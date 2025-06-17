@@ -1,0 +1,14 @@
+{
+  "files": {
+    "main.css": "/static/css/main.7f7bf801.css",
+    "main.js": "/static/js/main.fd611028.js",
+    "static/media/login_poliub.jpg": "/static/media/login_poliub.62be56943c89c4f4e36a.jpg",
+    "index.html": "/index.html",
+    "main.7f7bf801.css.map": "/static/css/main.7f7bf801.css.map",
+    "main.fd611028.js.map": "/static/js/main.fd611028.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.7f7bf801.css",
+    "static/js/main.fd611028.js"
+  ]
+}
