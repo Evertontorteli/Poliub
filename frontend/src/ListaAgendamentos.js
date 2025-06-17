@@ -271,7 +271,7 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
                 </div>
 
                 <div className="flex flex-row items-center gap-2 w-full md:justify-end">
-                  <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                  <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${
                     STATUS_COLORS[ag.status] || 'bg-gray-200 text-gray-700'
                   } min-w-[72px] text-center`}>
                     {STATUS_LABELS[ag.status] || '-'}
