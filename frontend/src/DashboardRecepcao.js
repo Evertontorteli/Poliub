@@ -23,6 +23,17 @@ export default function DashboardRecepcao() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  const STATUS_LABELS = {
+  'Novo': 'Novo',
+  'Retorno': 'Retorno',
+  'Solicitado': 'Solicitado',
+};
+const STATUS_COLORS = {
+  'Novo': "bg-[#2FA74E] text-white",
+  'Retorno': "bg-[#FEC139] text-[#555555]",
+  'Solicitado': "bg-[#DA3648] text-white",
+};
+
   // cores dos cards
   const cardColors = [
     "bg-[#5956D6]",
@@ -152,12 +163,11 @@ export default function DashboardRecepcao() {
             onClick={() => buscarAgendamentosDaDisciplina(disc)}
             className={`
               min-w-[150px] flex-1 rounded-2xl px-6 py-8 text-left border-2 transition
-              ${
-                disciplinaSelecionada?.id === disc.id
-                  ? "border-[#F3F3F3] bg-[#3172C0]"
-                  : `border-transparent hover:border-[#3172C0] hover:bg-[#3172C0] ${cardColors[
-                      idx % cardColors.length
-                    ]}`
+              ${disciplinaSelecionada?.id === disc.id
+                ? "border-[#F3F3F3] bg-[#3172C0]"
+                : `border-transparent hover:border-[#3172C0] hover:bg-[#3172C0] ${cardColors[
+                idx % cardColors.length
+                ]}`
               }
             `}
           >
@@ -215,11 +225,11 @@ export default function DashboardRecepcao() {
                     viewBox="0 0 24 24"
                     stroke="currentColor"
                   >
-                    <rect x="4" y="6" width="16" height="14" fill="white" stroke="currentColor" strokeWidth="2"/>
-                    <path d="M16 2v4M8 2v4M4 10h16" stroke="currentColor" strokeWidth="2"/>
+                    <rect x="4" y="6" width="16" height="14" fill="white" stroke="currentColor" strokeWidth="2" />
+                    <path d="M16 2v4M8 2v4M4 10h16" stroke="currentColor" strokeWidth="2" />
                   </svg>
                 </button>
-                <Tooltip text="Filtrar por data"/>
+                <Tooltip text="Filtrar por data" />
                 <input
                   type="date"
                   ref={dataInputRef}
@@ -245,11 +255,11 @@ export default function DashboardRecepcao() {
                     viewBox="0 0 24 24"
                     stroke="currentColor"
                   >
-                    <circle cx="12" cy="12" r="9" fill="white" stroke="currentColor" strokeWidth="2"/>
-                    <path d="M12 7v5l3 3" stroke="currentColor" strokeWidth="2"/>
+                    <circle cx="12" cy="12" r="9" fill="white" stroke="currentColor" strokeWidth="2" />
+                    <path d="M12 7v5l3 3" stroke="currentColor" strokeWidth="2" />
                   </svg>
                 </button>
-                <Tooltip text="Filtrar por hora"/>
+                <Tooltip text="Filtrar por hora" />
                 <input
                   type="time"
                   ref={horaInputRef}
@@ -275,12 +285,12 @@ export default function DashboardRecepcao() {
                     viewBox="0 0 24 24"
                     stroke="currentColor"
                   >
-                    <rect x="6" y="9" width="12" height="7" fill="white" stroke="currentColor" strokeWidth="2"/>
-                    <path d="M6 9V5a2 2 0 012-2h8a2 2 0 012 2v4" stroke="currentColor" strokeWidth="2"/>
-                    <rect x="9" y="16" width="6" height="4" fill="white" stroke="currentColor" strokeWidth="2"/>
+                    <rect x="6" y="9" width="12" height="7" fill="white" stroke="currentColor" strokeWidth="2" />
+                    <path d="M6 9V5a2 2 0 012-2h8a2 2 0 012 2v4" stroke="currentColor" strokeWidth="2" />
+                    <rect x="9" y="16" width="6" height="4" fill="white" stroke="currentColor" strokeWidth="2" />
                   </svg>
                 </button>
-                <Tooltip text="Imprimir lista"/>
+                <Tooltip text="Imprimir lista" />
               </div>
             </div>
           </div>
@@ -301,7 +311,7 @@ export default function DashboardRecepcao() {
                     }}
                   >
                     {/* sliding content */}
-                    <div className={`bg-white p-4 transform transition-transform ${swipedId===ag.id ? "-translate-x-24" : ""}`}>
+                    <div className={`bg-white p-4 transform transition-transform ${swipedId === ag.id ? "-translate-x-24" : ""}`}>
                       <div className="flex items-center mb-3">
                         {/* avatar com inicial do paciente */}
                         <div className="w-10 h-10 rounded-full bg-blue-200 flex items-center justify-center text-white font-semibold mr-3">
@@ -324,7 +334,7 @@ export default function DashboardRecepcao() {
                       </div>
                       <div className="flex justify-between text-gray-600 text-sm">
                         <span> {ag.telefone || "-"}</span>
-                        <span>{ag.data.slice(0,10).split("-").reverse().join("/")}</span>
+                        <span>{ag.data.slice(0, 10).split("-").reverse().join("/")}</span>
                         <span> {ag.hora || "-"}</span>
                       </div>
                     </div>
@@ -378,13 +388,11 @@ export default function DashboardRecepcao() {
                       {ag.hora || "-"}
                     </div>
                     <div className="flex md:justify-end items-center space-x-2">
-                      <span className="
-                        inline-block px-3 py-1 rounded-full
-                        text-xs font-semibold bg-blue-100 text-blue-700
-                        min-w-[72px] text-center
-                      ">
-                        {ag.status}
-                      </span>
+                      <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${
+                    STATUS_COLORS[ag.status] || 'bg-gray-200 text-gray-700'
+                  } min-w-[72px] text-center`}>
+                    {STATUS_LABELS[ag.status] || '-'}
+                  </span>
                       {user.role === "recepcao" && (
                         <>
                           <button
