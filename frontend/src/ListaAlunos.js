@@ -13,13 +13,13 @@ export default function ListaAlunos({ reloadKey, onEditar }) {
     const token = localStorage.getItem('token');
     const role  = localStorage.getItem('role'); // "aluno" ou "recepcao"
 
+        // Base da API (definida em Settings → Variables do Frontend)
+    const baseURL = process.env.REACT_APP_API_URL;
+
     // Se for recepção → lista todos; se for aluno → busca apenas o próprio
     const url = role === 'recepcao'
-      ? '/api/alunos'
-      : '/api/alunos/me';
-
-       // Base da API (definida em Settings → Variables do Frontend)
-    const baseURL = process.env.REACT_APP_API_URL;
+      ? `${baseURL}/api/alunos`
+      : `${baseURL}/api/alunos/me`;
 
     axios
       .get(url, {
