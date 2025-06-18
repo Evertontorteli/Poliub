@@ -2,21 +2,25 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const authRouter = require('./routes/auth');
 const { getConnection } = require('./database');   // <-- adicione isso
 const app = express();
 const PORT = 3000;
 
+// Rotas protegidas (precisam do token)
 const pacienteRoutes = require('./routes/pacienteRoutes');
 const alunoRoutes = require('./routes/alunoRoutes');
 const disciplinaRoutes = require('./routes/disciplinaRoutes');
 const agendamentoRoutes = require('./routes/agendamentoRoutes');
 const periodosRoutes = require('./routes/periodosRoutes');
-const authRouter = require('./routes/auth');
+
 
 const { verificaToken } = require('./middlewares/authMiddleware');
 
 app.use(cors());
 app.use(express.json());
+// 🔓 Rota pública de login
+app.use('/api', authRouter);
 
 // Health‐check para validar a conexão com o MySQL (retorna { db: 1 })
 app.get('/health-db', async (req, res) => {
