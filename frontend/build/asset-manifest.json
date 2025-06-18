@@ -1,14 +1,14 @@
 {
   "files": {
     "main.css": "/static/css/main.824f3def.css",
-    "main.js": "/static/js/main.43dfd3bb.js",
+    "main.js": "/static/js/main.04251bff.js",
     "static/media/login_poliub.jpg": "/static/media/login_poliub.62be56943c89c4f4e36a.jpg",
     "index.html": "/index.html",
     "main.824f3def.css.map": "/static/css/main.824f3def.css.map",
-    "main.43dfd3bb.js.map": "/static/js/main.43dfd3bb.js.map"
+    "main.04251bff.js.map": "/static/js/main.04251bff.js.map"
   },
   "entrypoints": [
     "static/css/main.824f3def.css",
-    "static/js/main.43dfd3bb.js"
+    "static/js/main.04251bff.js"
   ]
 }
