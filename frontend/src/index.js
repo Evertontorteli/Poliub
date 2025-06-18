@@ -3,12 +3,10 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import axios from "axios";
 
-// Se REACT_APP_API_URL estiver definida, usa-a (removendo barra final); 
-// senão, baseURL fica vazio (proxy do CRA em dev e sem erro em prod)
+// Se REACT_APP_API_URL estiver definida (apenas no build em prod), usa-a;
+// caso contrário (dev ou variável apagada), baseURL = ""
 const apiUrl = process.env.REACT_APP_API_URL;
-axios.defaults.baseURL = apiUrl
-  ? apiUrl.replace(/\/+$/, "")
-  : "";
+axios.defaults.baseURL = apiUrl ? apiUrl.replace(/\/+$/, "") : "";
 
 // ▶️ Intercepta todas as requisições e injeta o token JWT, se existir
 axios.interceptors.request.use((config) => {
