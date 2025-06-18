@@ -2,6 +2,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const { getConnection } = require('./database');   // <-- adicione isso
 const app = express();
 const PORT = 3000;
 
@@ -20,7 +21,7 @@ app.use(express.json());
 // Health‐check para validar a conexão com o MySQL (retorna { db: 1 })
 app.get('/health-db', async (req, res) => {
   try {
-    const conn = await getConnection();
+    const conn  = await getConnection();
     const [rows] = await conn.query('SELECT 1 AS ok');
     await conn.release();
     return res.json({ db: rows[0].ok });
