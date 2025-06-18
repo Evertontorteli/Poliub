@@ -1,24 +1,26 @@
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
-// Se houver URL completa (Railway), usa ela; caso contrário monta o objeto
-const poolConfig = process.env.MYSQL_URL
-  || process.env.MYSQL_PUBLIC_URL
-  || {
-    host:               process.env.MYSQL_HOST     || 'localhost',
-    user:               process.env.MYSQL_USER     || 'root',
-    password:           process.env.MYSQL_PASSWORD || 'senha123',
-    database:           process.env.MYSQLDATABASE || 'poliub',
-    port:               +process.env.MYSQL_PORT    || 3306,
+const uri = process.env.MYSQL_URL || process.env.MYSQL_PUBLIC_URL;
+
+let pool;
+if (uri) {
+  console.log('📦 DB URI:', uri);
+  pool = mysql.createPool(uri);
+} else {
+  const config = {
+    host:               process.env.MYSQL_HOST     || process.env.MYSQLHOST     || 'localhost',
+    user:               process.env.MYSQL_USER     || process.env.MYSQLUSER     || 'root',
+    password:           process.env.MYSQL_PASSWORD || process.env.MYSQLPASSWORD || 'senha123',
+    database:           process.env.MYSQL_DATABASE || process.env.MYSQLDATABASE || 'poliub',
+    port:               +process.env.MYSQL_PORT    || +process.env.MYSQLPORT    || 3306,
     waitForConnections: true,
     connectionLimit:    10,
     queueLimit:         0
   };
-
-// DEBUG: exibe nos logs qual configuração está sendo usada
-console.log('📦 DB config:', poolConfig);
-
-const pool = mysql.createPool(poolConfig);
+  console.log('📦 DB Config:', config);
+  pool = mysql.createPool(config);
+}
 
 // exporta uma função para pegar a conexão (melhor prática!)
 module.exports = {
