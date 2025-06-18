@@ -5,7 +5,7 @@ import axios from 'axios';
 
 // usa a variável em produção; em dev (onde REACT_APP_API_URL não existe), deixa relativo
 axios.defaults.baseURL =
-  process.env.NODE_ENV === 'production' ? process.env.REACT_APP_API_URL : '';
+  process.env.REACT_APP_API_URL?.replace(/\/+$/, '') || '';
 
 
 const root = createRoot(document.getElementById("root"));
