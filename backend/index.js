@@ -17,6 +17,19 @@ const { verificaToken } = require('./middlewares/authMiddleware');
 app.use(cors());
 app.use(express.json());
 
+// Health‐check para validar a conexão com o MySQL (retorna { db: 1 })
+app.get('/health-db', async (req, res) => {
+  try {
+    const conn = await getConnection();
+    const [rows] = await conn.query('SELECT 1 AS ok');
+    await conn.release();
+    return res.json({ db: rows[0].ok });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+
 // Rotas abertas (são as que não precisam de token):
 app.use('/api', authRouter); // /api/login
 
