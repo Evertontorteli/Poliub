@@ -1,20 +1,23 @@
-// NOVO (React 18 ou mais)
+// src/index.js
 import { createRoot } from "react-dom/client";
 import App from "./App";
-import axios from 'axios';
+import axios from "axios";
 
-// usa a variável em produção; em dev (onde REACT_APP_API_URL não existe), deixa relativo
+// ▶️ Configura a URL base da API:
+// Em produção, usa a variável; em dev (CRA), mantém relativo para o proxy
 axios.defaults.baseURL =
-  process.env.REACT_APP_API_URL?.replace(/\/+$/, '') || '';
+  process.env.NODE_ENV === "production"
+    ? process.env.REACT_APP_API_URL.replace(/\/+$/, "")
+    : "";
 
-
-const root = createRoot(document.getElementById("root"));
-root.render(<App />);
-
-axios.interceptors.request.use(config => {
-  const token = localStorage.getItem('token');
+// ▶️ Intercepta todas as requisições e injeta o token JWT, se existir
+axios.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
+
+const root = createRoot(document.getElementById("root"));
+root.render(<App />);
