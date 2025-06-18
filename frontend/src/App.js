@@ -30,6 +30,8 @@ import PrintAgendamentos from './pages/PrintAgendamentos'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthProvider, useAuth } from './context/AuthContext'
 
+
+
 /**
  * Escolhe o dashboard certo conforme o perfil do usuário
  */
