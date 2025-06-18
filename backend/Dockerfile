@@ -1,13 +1,16 @@
-# backend/Dockerfile
-FROM node:18-alpine
+# dentro de backend/Dockerfile
+
 WORKDIR /app
 
-# Copia os package.json direto (já estamos em backend/)
-COPY package*.json ./
+# 1) Copia package.json **e** package-lock.json
+COPY package.json package-lock.json ./
+
+# 2) Agora npm ci vai funcionar
 RUN npm ci --production
 
-# Copia todo o resto do código do backend
+# 3) Copia o restante do backend
 COPY . ./
+
 
 EXPOSE 3000
 CMD ["npm", "run", "start"]
