@@ -1,0 +1,33 @@
+# docker-compose.yml
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - MYSQL_HOST=localhost
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=senha123
+      - MYSQL_DATABASE=poliub
+    depends_on:
+      - mysql
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+  mysql:
+    image: mysql:8
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=senha123
+      - MYSQL_DATABASE=poliub
+    volumes:
+      - db-data:/var/lib/mysql
+
+volumes:
+  db-data:
