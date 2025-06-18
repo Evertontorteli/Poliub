@@ -18,6 +18,9 @@ export default function ListaAlunos({ reloadKey, onEditar }) {
       ? '/api/alunos'
       : '/api/alunos/me';
 
+       // Base da API (definida em Settings → Variables do Frontend)
+    const baseURL = process.env.REACT_APP_API_URL;
+
     axios
       .get(url, {
         headers: { Authorization: `Bearer ${token}` }
