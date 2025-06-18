@@ -3,10 +3,12 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import axios from "axios";
 
-// Se REACT_APP_API_URL estiver definida (apenas no build em prod), usa-a;
-// caso contrário (dev ou variável apagada), baseURL = ""
-const apiUrl = process.env.REACT_APP_API_URL;
-axios.defaults.baseURL = apiUrl ? apiUrl.replace(/\/+$/, "") : "";
+// ▶️ Configura a URL base da API:
+// Em produção (build), use REACT_APP_API_URL (definida no Railway Settings → Variables),
+// removendo qualquer barra no fim.
+// Em desenvolvimento (npm start) ou se a var não existir, usa string vazia para o proxy do CRA.
+const apiUrl = process.env.REACT_APP_API_URL ?? "";
+axios.defaults.baseURL = apiUrl.replace(/\/+$/, "");
 
 // ▶️ Intercepta todas as requisições e injeta o token JWT, se existir
 axios.interceptors.request.use((config) => {
