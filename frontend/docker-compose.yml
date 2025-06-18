@@ -9,9 +9,9 @@ services:
     environment:
       - NODE_ENV=production
       - MYSQL_HOST=mysql
-      - MYSQL_USER=seu_user
-      - MYSQL_PASSWORD=sua_senha
-      - MYSQL_DATABASE=sua_db
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=Senha123
+      - MYSQL_DATABASE=Poliub
 
   frontend:
     image: nginx:stable-alpine
@@ -26,8 +26,8 @@ services:
     image: mysql:8
     restart: always
     environment:
-      - MYSQL_ROOT_PASSWORD=changeme
-      - MYSQL_DATABASE=sua_db
+      - MYSQL_ROOT_PASSWORD=Senha123
+      - MYSQL_DATABASE=Poliub
     volumes:
       - db-data:/var/lib/mysql
 
