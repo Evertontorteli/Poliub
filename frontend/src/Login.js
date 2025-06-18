@@ -12,10 +12,7 @@ function Login({ onLogin }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post(
-        `${process.env.REACT_APP_API_URL}/api/login`,
-        { usuario, senha }
-      );
+      const res = await axios.post("/api/login", { usuario, senha });
       onLogin(res.data);
     } catch {
       setMensagem('Usuário ou senha inválidos!');
