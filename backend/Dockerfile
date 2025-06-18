@@ -1,16 +1,22 @@
-# dentro de backend/Dockerfile
+# backend/Dockerfile
 
+# 1) Definir a imagem base
+FROM node:18-alpine
+
+# 2) Diretório de trabalho
 WORKDIR /app
 
-# 1) Copia package.json **e** package-lock.json
+# 3) Copiar package.json e lockfile (se existir)
 COPY package.json package-lock.json ./
 
-# 2) Agora npm ci vai funcionar
+# 4) Instalar só deps de produção
 RUN npm ci --production
+# ou, se você não tiver lockfile:
+# RUN npm install --production
 
-# 3) Copia o restante do backend
+# 5) Copiar o restante do backend
 COPY . ./
 
-
+# 6) Expor porta e iniciar
 EXPOSE 3000
 CMD ["npm", "run", "start"]
