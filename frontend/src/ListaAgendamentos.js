@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
+const baseURL = process.env.REACT_APP_API_URL;
 
 const STATUS_LABELS = {
   'Novo': 'Novo',
