@@ -12,11 +12,7 @@ function Login({ onLogin }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post(
-                `${process.env.REACT_APP_API_URL}/api/login`,
-                { usuario, senha }
-              );
-              
+      const res = await axios.post('/api/login', { usuario, senha });
       onLogin(res.data);
     } catch {
       setMensagem('Usuário ou senha inválidos!');
@@ -28,7 +24,7 @@ function Login({ onLogin }) {
       {/* Imagem à esquerda (desktop apenas) */}
       <div
         className="hidden md:block md:w-1/2 bg-cover justify-center"
-        style={{ backgroundImage: `url(${loginImage})` }}
+         style={{ backgroundImage: `url(${loginImage})` }}
       />
 
       {/* Formulário centralizado */}
@@ -39,8 +35,8 @@ function Login({ onLogin }) {
         >
           <h2 className="text-lefth text-3xl font-bold text-gray-800">
             PoliUB
-            <p>Atendimentos</p>
-
+            <p>Atendimentos</p> 
+            
           </h2>
           <p className="text-lefth text-gray-600">Faça login na sua conta</p>
 
