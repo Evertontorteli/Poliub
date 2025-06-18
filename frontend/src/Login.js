@@ -12,10 +12,14 @@ function Login({ onLogin }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post("/api/login", { usuario, senha });
+      // força usar o seu backend, independente de proxy/baseURL
+      const res = await axios.post(
+        "https://poliub-production.up.railway.app/api/login",
+        { usuario, senha }
+      );
       onLogin(res.data);
     } catch {
-      setMensagem('Usuário ou senha inválidos!');
+      setMensagem('Usuário ou senha inválidos ou sem conexão com o banco de dados.');
     }
   };
 
