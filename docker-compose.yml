@@ -1,4 +1,3 @@
-# docker-compose.yml
 services:
   backend:
     build: ./backend
