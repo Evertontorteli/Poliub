@@ -19,9 +19,6 @@ export default function DashboardAluno() {
   useEffect(() => {
     axios.get("/api/agendamentos/meus")
       .then(res => {
-        console.log("📦 res.data =", res.data); // inspeciona o formato real da resposta
-
-        // Extrai sempre um array válido de agendamentos
         let lista = [];
         if (Array.isArray(res.data)) {
           lista = res.data;
@@ -32,7 +29,7 @@ export default function DashboardAluno() {
       })
       .catch(err => {
         console.error("Erro ao carregar agendamentos:", err);
-        setAgendamentos([]);  // garante array no erro
+        setAgendamentos([]);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -41,11 +38,17 @@ export default function DashboardAluno() {
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
 
-  // Filtragem por categoria, sempre validando array
+  // Minhas Solicitações: status "Solicitado" e data >= hoje
   const solicitacoes = Array.isArray(agendamentos)
-    ? agendamentos.filter(a => a.status === "Solicitado")
+    ? agendamentos.filter(a => {
+        if (a.status !== "Solicitado" || !a.data) return false;
+        const [Y, M, D] = a.data.slice(0,10).split("-");
+        const dt = new Date(Y, M - 1, D);
+        return dt >= hoje;
+      })
     : [];
 
+  // Próximos Agendamentos: data >= hoje e status diferente de "Solicitado"
   const proximos = Array.isArray(agendamentos)
     ? agendamentos.filter(a => {
         if (!a.data) return false;
@@ -55,12 +58,13 @@ export default function DashboardAluno() {
       })
     : [];
 
+  // Agendamentos Realizados: data < hoje e status diferente de "Solicitado"
   const atendidos = Array.isArray(agendamentos)
     ? agendamentos.filter(a => {
         if (!a.data) return false;
         const [Y, M, D] = a.data.slice(0,10).split("-");
         const dt = new Date(Y, M - 1, D);
-        return dt < hoje;
+        return dt < hoje && a.status !== "Solicitado";
       })
     : [];
 
