@@ -7,7 +7,7 @@ import axios from "axios";
 // Em produção, usa a variável; em dev (CRA), mantém relativo para o proxy
 axios.defaults.baseURL =
   process.env.NODE_ENV === "production"
-    ? process.env.REACT_APP_API_URL.replace(/\/+$/, "")
+    ? (process.env.REACT_APP_API_URL ?? "").replace(/\/+$/, "")
     : "";
 
 // ▶️ Intercepta todas as requisições e injeta o token JWT, se existir
