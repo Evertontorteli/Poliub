@@ -185,7 +185,7 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
       onNovoAgendamento && onNovoAgendamento();
     } catch (err) {
       console.error(err.response?.data || err.message);
-      setMensagem('Erro ao salvar agendamento.');
+      setMensagem('Erro ao salvar agendamento. Você tem que ser o Operador/Auxiliar.');
     }
   }
 
