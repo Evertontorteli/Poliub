@@ -3,23 +3,22 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const authRouter = require('./routes/auth');
-const { getConnection } = require('./database');   // <-- adicione isso
+const { getConnection } = require('./database');
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-// Rotas protegidas (precisam do token)
-const pacienteRoutes = require('./routes/pacienteRoutes');
-const alunoRoutes = require('./routes/alunoRoutes');
-const disciplinaRoutes = require('./routes/disciplinaRoutes');
-const agendamentoRoutes = require('./routes/agendamentoRoutes');
-const periodosRoutes = require('./routes/periodosRoutes');
+// Configura CORS para aceitar apenas o Front-end oficial
+app.use(cors({
+  origin: 'https://poliub-production-76b3.up.railway.app',
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization']
+}));
+// Responde a preflight OPTIONS
+app.options('*', cors());
 
-
-const { verificaToken } = require('./middlewares/authMiddleware');
-
-app.use(cors());
 app.use(express.json());
-// 🔓 Rota pública de login
+
+// Rota pública de login
 app.use('/api', authRouter);
 
 // Health‐check para validar a conexão com o MySQL (retorna { db: 1 })
@@ -34,18 +33,14 @@ app.get('/health-db', async (req, res) => {
   }
 });
 
+// Rotas protegidas (precisam de token conforme middleware individual)
+app.use('/api/pacientes', require('./routes/pacienteRoutes'));
+app.use('/api/alunos', require('./routes/alunoRoutes'));
+app.use('/api/disciplinas', require('./routes/disciplinaRoutes'));
+app.use('/api/agendamentos', require('./routes/agendamentoRoutes'));
+app.use('/api/periodos', require('./routes/periodosRoutes'));
 
-// Rotas abertas (são as que não precisam de token):
-app.use('/api', authRouter); // /api/login
-
-// A partir daqui, todas as rotas abaixo exigirão que você chame `verificaToken` individualmente
-app.use('/api/pacientes', pacienteRoutes);
-app.use('/api/alunos', alunoRoutes);
-app.use('/api/disciplinas', disciplinaRoutes);
-app.use('/api/agendamentos', agendamentoRoutes);
-app.use('/api/periodos', periodosRoutes);
-
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {
   res.send('API Poliub rodando 🚀');
 });
 
