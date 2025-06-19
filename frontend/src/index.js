@@ -3,14 +3,15 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import axios from "axios";
 
-// ▶️ Configura a URL base da API:
-// Em produção (build), use REACT_APP_API_URL (definida no Railway Settings → Variables),
-// removendo qualquer barra no fim.
-// Em desenvolvimento (npm start) ou se a var não existir, usa string vazia para o proxy do CRA.
-const apiUrl = process.env.REACT_APP_API_URL ?? "";
-axios.defaults.baseURL = apiUrl.replace(/\/+$/, "");
+// ▶️ Define baseURL para TODO o Axios:
+// Em produção, força o domínio do seu Back-end.
+// Em desenvolvimento (npm start), deixa vazio para usar o proxy do CRA.
+const isProd = process.env.NODE_ENV === "production";
+axios.defaults.baseURL = isProd
+  ? "https://poliub-production-40fb.up.railway.app"
+  : "";
 
-// ▶️ Intercepta todas as requisições e injeta o token JWT, se existir
+// ▶️ Injeta o token JWT em todas as requisições
 axios.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) {
