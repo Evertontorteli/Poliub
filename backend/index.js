@@ -7,12 +7,8 @@ const { getConnection } = require('./database');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Configura CORS para aceitar apenas o Front-end oficial
-app.use(cors({
-  origin: 'https://poliub-production-76b3.up.railway.app',
-  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type','Authorization']
-}));
+// Habilita CORS para todas as origens (simplifica debug e evita bloqueios)
+app.use(cors());
 // Responde a preflight OPTIONS
 app.options('*', cors());
 
