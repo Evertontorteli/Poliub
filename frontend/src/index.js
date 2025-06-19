@@ -8,7 +8,7 @@ import axios from "axios";
 // Em desenvolvimento (npm start), deixa vazio para usar o proxy do CRA.
 const isProd = process.env.NODE_ENV === "production";
 axios.defaults.baseURL = isProd
-  ? "https://poliub-production-40fb.up.railway.app"
+  ? "https://poliub-novo-ambiente-para-o-backend.up.railway.app"
   : "";
 
 // ▶️ Injeta o token JWT em todas as requisições
