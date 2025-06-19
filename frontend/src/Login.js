@@ -11,7 +11,6 @@ function Login({ onLogin }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      // usa o proxy (ou baseURL do axios configurado em src/index.js)
       const res = await axios.post("/api/login", { usuario, senha });
       onLogin(res.data);
     } catch {
@@ -40,6 +39,8 @@ function Login({ onLogin }) {
           <p className="text-left text-gray-600">Faça login na sua conta</p>
 
           <input
+            id="usuario"
+            name="usuario"
             type="text"
             placeholder="Usuário"
             value={usuario}
@@ -49,6 +50,8 @@ function Login({ onLogin }) {
           />
 
           <input
+            id="senha"
+            name="senha"
             type="password"
             placeholder="Senha"
             value={senha}
