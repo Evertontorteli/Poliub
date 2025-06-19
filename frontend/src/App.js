@@ -3,7 +3,7 @@
 import './index.css'
 import React, { useState } from 'react'
 import {
-  BrowserRouter as Router,
+  HashRouter as Router,
   Routes,
   Route,
   Navigate,
