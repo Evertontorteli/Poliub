@@ -14,7 +14,7 @@ function Login({ onLogin }) {
     try {
      // 👉 força usar o Back-end correto
       const res = await axios.post(
-        "https://poliub-production-40fb.up.railway.app/api/login",
+        "https://poliub-novo-ambiente-para-o-backend.up.railway.app/api/login",
         { usuario, senha }
       );
       
