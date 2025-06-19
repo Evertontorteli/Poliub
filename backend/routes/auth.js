@@ -6,12 +6,16 @@ const router = express.Router();
 const { getConnection } = require('../database');
 
 router.post('/login', async (req, res) => {
+  const { usuario, senha } = req.body;
+  let conn;
+
   try {
-    const { usuario, senha } = req.body;
-    const conn = await getConnection();
+    conn = await getConnection();    
     const [rows] = await conn.execute(
-      'SELECT * FROM alunos WHERE usuario = ?', [usuario]
+      'SELECT * FROM alunos WHERE usuario = ?', 
+      [usuario]
     );
+
     if (rows.length === 0) {
       return res.status(401).json({ error: 'Usuário ou senha inválidos.' });
     }
@@ -22,7 +26,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Usuário ou senha inválidos.' });
     }
 
-    // Aqui incluímos role no payload
+    // Gera o JWT com payload contendo id, nome e role
     const token = jwt.sign(
       { id: aluno.id, nome: aluno.nome, role: aluno.role },
       process.env.JWT_SECRET,
@@ -32,13 +36,18 @@ router.post('/login', async (req, res) => {
     res.json({
       token,
       id: aluno.id,
-      usuario: aluno.usuario, // o login
-      nome: aluno.nome,       // o nome completo
+      usuario: aluno.usuario,
+      nome: aluno.nome,
       role: aluno.role
     });
   } catch (error) {
     console.error('Erro no login:', error);
     return res.status(500).json({ error: 'Erro interno do servidor.' });
+  } finally {
+    if (conn) {
+      // libera a conexão de volta para a pool
+      conn.release();
+    }
   }
 });
 
