@@ -113,7 +113,7 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
         {/* Nome */}
         <div className="mb-6">
           <label className="block mb-2 font-medium text-gray-700">
-            Nome
+            Nome e Sobrenome
             <input
               className="w-full border rounded px-3 py-2 mt-1"
               required
