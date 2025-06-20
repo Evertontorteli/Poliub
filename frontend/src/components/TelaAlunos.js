@@ -8,13 +8,13 @@ import { useAuth } from "../context/AuthContext";
 export default function TelaAlunos() {
   const { user } = useAuth();
   const token = user.token;
-  const role = user.role;       // 'recepcao' ou 'aluno'
-  // const userId = user.id;    // não precisamos mais desse check
+  const role = user.role; // 'recepcao' ou 'aluno'
 
   const [alunos, setAlunos] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [mostrarModal, setMostrarModal] = useState(false);
   const [alunoEditando, setAlunoEditando] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const fetchAlunos = () => {
     setCarregando(true);
@@ -26,7 +26,10 @@ export default function TelaAlunos() {
         setAlunos(lista);
       })
       .catch((err) => {
-        console.error("Erro ao buscar alunos:", err.response?.data || err.message);
+        console.error(
+          "Erro ao buscar alunos:",
+          err.response?.data || err.message
+        );
         setAlunos([]);
       })
       .finally(() => setCarregando(false));
@@ -52,6 +55,15 @@ export default function TelaAlunos() {
     return <p className="text-center py-8">Nenhum aluno cadastrado.</p>;
   }
 
+  // filtra alunos por nome ou RA
+  const filtered = alunos.filter((a) => {
+    const term = searchTerm.toLowerCase();
+    return (
+      a.nome.toLowerCase().includes(term) ||
+      a.ra.toString().includes(term)
+    );
+  });
+
   return (
     <div className="mt-4 px-4 md:px-8">
       {/* Cadastrar só para recepção */}
@@ -66,6 +78,17 @@ export default function TelaAlunos() {
         </div>
       )}
 
+      {/* barra de pesquisa */}
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="Buscar por nome ou RA..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+        />
+      </div>
+
       {/* Cabeçalho desktop */}
       <div className="hidden md:grid md:grid-cols-6 gap-x-4 px-5 py-3 bg-gray-100 rounded-t-xl font-semibold text-gray-600 mb-2">
         <span>Nome</span>
@@ -78,7 +101,7 @@ export default function TelaAlunos() {
 
       {/* Lista */}
       <ul className="space-y-3">
-        {alunos.map((a) => (
+        {filtered.map((a) => (
           <li
             key={a.id}
             className="flex flex-col md:grid md:grid-cols-6 gap-y-2 gap-x-4 bg-gray-50 rounded-xl px-4 md:px-5 py-3 shadow-sm hover:bg-gray-100 transition"
@@ -87,13 +110,10 @@ export default function TelaAlunos() {
             <div className="truncate text-gray-600">{a.ra}</div>
             <div className="truncate text-gray-600">{a.usuario}</div>
             <div className="truncate text-gray-600">{a.role}</div>
-            <div className="truncate text-gray-600">
-              {a.periodo_nome} {a.turno}
-            </div>
+            <div className="truncate text-gray-600">{a.periodo_nome} {a.turno}</div>
 
             {/* Ações */}
             <div className="flex md:justify-end items-center space-x-2">
-              {/* EDITAR: recepção em todos, aluno em todos (lista já é só o próprio) */}
               {(role === "recepcao" || role === "aluno") && (
                 <button
                   onClick={() => onEditar(a)}
@@ -102,12 +122,14 @@ export default function TelaAlunos() {
                   Editar
                 </button>
               )}
-
-              {/* DELETAR: apenas recepção */}
               {role === "recepcao" && (
                 <button
                   onClick={() => {
-                    if (window.confirm("Tem certeza que deseja deletar este aluno?")) {
+                    if (
+                      window.confirm(
+                        "Tem certeza que deseja deletar este aluno?"
+                      )
+                    ) {
                       axios
                         .delete(`/api/alunos/${a.id}`, {
                           headers: { Authorization: `Bearer ${token}` },
