@@ -73,5 +73,3 @@ function ListaDisciplinas({ reloadKey, onEditar }) {
     </div>
   );
 }
-
-export default ListaDisciplinas;
