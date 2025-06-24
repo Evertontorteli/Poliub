@@ -313,7 +313,7 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
 
         {/* Operador / Auxiliar */}
         <div className="mb-6">
-          <label className="block mb-4 font-medium">Alunos que irão realizar</label>
+          <label className="block mb-4 font-medium">Alunos que irão realizar o procedimento</label>
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
               <label className="block mb-1 text-sm font-semibold">Operador</label>
