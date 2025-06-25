@@ -219,9 +219,7 @@ export default function DashboardRecepcao() {
             p-4 pt-0 pb-4 rounded-2xl bg-white mb-6
           ">
             <div className="flex-1 relative">
-              <label className="block text-sm font-medium mb-2">
-                Pesquisar
-              </label>
+          
               <input
                 type="text"
                 className="border rounded px-4 py-2 w-full rounded-2xl"
