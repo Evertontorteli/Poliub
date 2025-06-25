@@ -6,6 +6,7 @@ export default function ListaPeriodos({ onEditar, reloadKey }) {
   const [periodos, setPeriodos] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [erroVinculo, setErroVinculo] = useState(null);
 
   useEffect(() => {
     setCarregando(true);
@@ -23,13 +24,25 @@ export default function ListaPeriodos({ onEditar, reloadKey }) {
   }, [reloadKey]);
 
   const handleDeletar = (id) => {
-    if (window.confirm("Tem certeza que deseja deletar este período?")) {
-      axios
-        .delete(`/api/periodos/${id}`)
-        .then(() =>
-          setPeriodos((prev) => prev.filter((p) => p.id !== id))
-        );
+    if (!window.confirm("Tem certeza que deseja deletar este período?")) {
+      return;
     }
+
+    axios
+      .delete(`/api/periodos/${id}`)
+      .then(() => {
+        // remove da lista local
+        setPeriodos((prev) => prev.filter((p) => p.id !== id));
+        setErroVinculo(null);
+      })
+      .catch((err) => {
+        if (err.response?.status === 400 && err.response.data.agendamentos) {
+          setErroVinculo(err.response.data.agendamentos);
+        } else {
+          console.error(err);
+          alert("Ocorreu um erro ao tentar deletar o período.");
+        }
+      });
   };
 
   if (carregando) return <p>Carregando períodos...</p>;
@@ -56,6 +69,32 @@ export default function ListaPeriodos({ onEditar, reloadKey }) {
           className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
         />
       </div>
+
+      {/* Alerta de vínculo */}
+      {erroVinculo && (
+        <div className="mb-4 p-4 bg-yellow-100 text-yellow-800 rounded-lg">
+          <h4 className="font-semibold mb-2">
+            Não foi possível excluir este período:
+          </h4>
+          <p className="mb-2">
+            Existem agendamentos vinculados ao período:
+          </p>
+          <ul className="list-disc list-inside mb-2">
+            {erroVinculo.map((a) => (
+              <li key={a.id}>
+                Agendamento #{a.id} – aluno {a.aluno_id} em{" "}
+                {new Date(a.data_hora).toLocaleString()}
+              </li>
+            ))}
+          </ul>
+          <button
+            onClick={() => setErroVinculo(null)}
+            className="px-3 py-1 bg-yellow-200 rounded hover:bg-yellow-300"
+          >
+            Fechar
+          </button>
+        </div>
+      )}
 
       <div className="bg-white rounded-2xl p-0">
         {/* Cabeçalho das colunas (apenas desktop) */}
