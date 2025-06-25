@@ -7,6 +7,8 @@ import FormAgendamento from "./components/FormAgendamento";
 import { useAuth } from "./context/AuthContext";
 
 export default function DashboardRecepcao() {
+  const [periodos, setPeriodos] = useState([]);
+  const [selectedPeriodo, setSelectedPeriodo] = useState(null);
   const [disciplinas, setDisciplinas] = useState([]);
   const [disciplinaSelecionada, setDisciplinaSelecionada] = useState(null);
   const [agendamentosFiltrados, setAgendamentosFiltrados] = useState([]);
@@ -24,17 +26,16 @@ export default function DashboardRecepcao() {
   const navigate = useNavigate();
 
   const STATUS_LABELS = {
-  'Novo': 'Novo',
-  'Retorno': 'Retorno',
-  'Solicitado': 'Solicitado',
-};
-const STATUS_COLORS = {
-  'Novo': "bg-[#2FA74E] text-white",
-  'Retorno': "bg-[#FEC139] text-[#555555]",
-  'Solicitado': "bg-[#DA3648] text-white",
-};
+    Novo: "Novo",
+    Retorno: "Retorno",
+    Solicitado: "Solicitado",
+  };
+  const STATUS_COLORS = {
+    Novo: "bg-[#2FA74E] text-white",
+    Retorno: "bg-[#FEC139] text-[#555555]",
+    Solicitado: "bg-[#DA3648] text-white",
+  };
 
-  // cores dos cards
   const cardColors = [
     "bg-[#5956D6]",
     "bg-[#2B8FF2]",
@@ -49,10 +50,14 @@ const STATUS_COLORS = {
     "bg-[#009AF3]",
   ];
 
+  // Carrega períodos e disciplinas na inicialização
   useEffect(() => {
-    axios
-      .get("/api/disciplinas")
-      .then((res) => setDisciplinas(res.data))
+    axios.get("/api/periodos")
+      .then(res => setPeriodos(res.data))
+      .catch(() => console.error("Erro ao buscar períodos"));
+
+    axios.get("/api/disciplinas")
+      .then(res => setDisciplinas(res.data))
       .catch(() => console.error("Erro ao buscar disciplinas"));
   }, []);
 
@@ -64,6 +69,7 @@ const STATUS_COLORS = {
       .catch(() => console.error("Erro ao buscar agendamentos"));
   }
 
+  // Filtra agendamentos conforme busca/data/hora
   const agendamentosExibidos = agendamentosFiltrados.filter((ag) => {
     const textoBusca = busca.toLowerCase();
     const campos = [
@@ -73,39 +79,28 @@ const STATUS_COLORS = {
       ag.pacienteNome,
       ag.status,
     ].map((x) => (x ? x.toLowerCase() : ""));
-    const matchTexto = campos.some((campo) =>
-      campo.includes(textoBusca)
-    );
-    const matchData = filtroData
-      ? ag.data?.startsWith(filtroData)
-      : true;
-    const matchHora = filtroHora
-      ? ag.hora?.startsWith(filtroHora)
-      : true;
+    const matchTexto = campos.some((campo) => campo.includes(textoBusca));
+    const matchData = filtroData ? ag.data?.startsWith(filtroData) : true;
+    const matchHora = filtroHora ? ag.hora?.startsWith(filtroHora) : true;
     return matchTexto && matchData && matchHora;
   });
 
   const handleImprimir = () => {
-    const disciplinaId = disciplinaSelecionada?.id || null;
-    const disciplinaNome = disciplinaSelecionada?.nome || "";
     navigate("/print-agendamentos", {
       state: {
-        disciplinaId,
-        disciplinaNome,
+        disciplinaId: disciplinaSelecionada?.id || null,
+        disciplinaNome: disciplinaSelecionada?.nome || "",
         filtros: { busca, filtroData, filtroHora },
       },
     });
   };
 
   const handleDeletarAgendamento = (id) => {
-    if (!window.confirm("Tem certeza que deseja deletar este agendamento?"))
-      return;
+    if (!window.confirm("Tem certeza que deseja deletar este agendamento?")) return;
     axios
       .delete(`/api/agendamentos/${id}`)
       .then(() =>
-        setAgendamentosFiltrados((atual) =>
-          atual.filter((a) => a.id !== id)
-        )
+        setAgendamentosFiltrados((atual) => atual.filter((a) => a.id !== id))
       )
       .catch(() => alert("Erro ao deletar agendamento"));
   };
@@ -149,34 +144,61 @@ const STATUS_COLORS = {
     else horaInputRef.current.click();
   };
 
+  // Determina quais disciplinas mostrar com base no período selecionado
+  const disciplinasVisiveis = selectedPeriodo
+    ? disciplinas.filter(d => d.periodo_id === selectedPeriodo)
+    : disciplinas;
+
   return (
     <div className="mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold mb-6 text-[#1d3557]">
-        Disciplinas
-      </h1>
-
-      {/* Cards de Disciplinas */}
+      <h1 className="text-2xl font-bold mb-6 text-[#1d3557]">Períodos</h1>
+      {/* Tags de Períodos */}
       <div className="flex flex-wrap gap-2 mb-8">
-        {disciplinas.map((disc, idx) => (
+        {periodos.map(p => (
+          <button
+            key={p.id}
+            onClick={() => {
+              setSelectedPeriodo(p.id);
+              setDisciplinaSelecionada(null);
+            }}
+            className={`
+              px-4 py-2 rounded-full border transition
+              ${selectedPeriodo === p.id
+                ? "bg-[#3172C0] text-white border-transparent"
+                : "bg-white text-gray-700 border-gray-300 hover:bg-[#3172C0] hover:text-white"
+              }
+            `}
+          >
+            {p.nome}
+          </button>
+        ))}
+        {selectedPeriodo && (
+          <button
+            onClick={() => setSelectedPeriodo(null)}
+            className="px-2 py-2 rounded-full text-red-600 hover:bg-red-100 transition"
+          >
+            Limpar
+          </button>
+        )}
+      </div>
+
+      <h1 className="text-2xl font-bold mb-6 text-[#1d3557]">Disciplinas</h1>
+      {/* Cards de Disciplinas filtrados por Período */}
+      <div className="flex flex-wrap gap-2 mb-8">
+        {disciplinasVisiveis.map((disc, idx) => (
           <button
             key={disc.id}
             onClick={() => buscarAgendamentosDaDisciplina(disc)}
             className={`
               min-w-[150px] flex-1 rounded-2xl px-6 py-8 text-left border-2 transition
               ${disciplinaSelecionada?.id === disc.id
-                ? "border-[#F3F3F3] bg-[#3172C0]"
-                : `border-transparent hover:border-[#3172C0] hover:bg-[#3172C0] ${cardColors[
-                idx % cardColors.length
-                ]}`
+                ? "border-[#F3F3F3] bg-[#3172C0] text-white"
+                : `border-transparent hover:border-[#3172C0] hover:bg-[#3172C0] ${cardColors[idx % cardColors.length]} text-white`
               }
             `}
           >
-            <div className="font-bold text-lg text-white mb-1">
-              {disc.nome}
-            </div>
-            <div className="text-white text-sm">
-              {disc.periodo_nome} {disc.turno}
-            </div>
+            <div className="font-bold text-lg mb-1">{disc.nome}</div>
+            <div className="text-sm">{disc.periodo_nome} {disc.turno}</div>
           </button>
         ))}
       </div>
