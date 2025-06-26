@@ -190,7 +190,7 @@ export default function DashboardRecepcao() {
             key={disc.id}
             onClick={() => buscarAgendamentosDaDisciplina(disc)}
             className={`
-              min-w-[150px] flex-1 rounded-2xl px-6 py-8 text-left border-2 transition
+              min-w-[150px] flex-full rounded-2xl px-6 py-8 text-left border-2 transition
               ${disciplinaSelecionada?.id === disc.id
                 ? "border-[#F3F3F3] bg-[#3172C0] text-white"
                 : `border-transparent hover:border-[#3172C0] hover:bg-[#3172C0] ${cardColors[idx % cardColors.length]} text-white`
