@@ -69,6 +69,7 @@ export default function ListaAlunos({ reloadKey, onEditar }) {
         <div className="hidden md:grid grid-cols-4 gap-x-4 px-2 py-2 bg-gray-100 rounded-t-xl font-semibold text-gray-600 mb-2">
           <span>Nome</span>
           <span>RA</span>
+          <span>Box</span>
           <span>Período</span>
           <span className="text-right">Ações</span>
         </div>
@@ -84,6 +85,9 @@ export default function ListaAlunos({ reloadKey, onEditar }) {
               </div>
               <div className="w-full text-gray-600">
                 {aluno.ra}
+              </div>
+              <div className="w-full text-gray-600">
+                {aluno.box}
               </div>
               <div className="w-full text-gray-500">
                 {aluno.periodo_nome} {aluno.turno}

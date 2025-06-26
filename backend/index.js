@@ -7,6 +7,7 @@ const { initDb, getConnection } = require('./database');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
+const boxRoutes = require('./routes/boxRoutes');
 
 (async () => {
   try {
@@ -36,6 +37,7 @@ const PORT = process.env.PORT || 3000;
     app.use('/api/disciplinas', require('./routes/disciplinaRoutes'));
     app.use('/api/agendamentos', require('./routes/agendamentoRoutes'));
     app.use('/api/periodos',    require('./routes/periodosRoutes'));
+    app.use('/api/boxes', boxRoutes);
 
     app.get('/', (_req, res) => res.send('API Poliub rodando 🚀'));
 
