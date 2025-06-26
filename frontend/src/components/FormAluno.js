@@ -1,151 +1,108 @@
 // src/components/FormAluno.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 
 function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
-  // Campos de texto existentes
+  const { user } = useAuth();
+  const token = user.token;
+  const headers = { Authorization: `Bearer ${token}` };
+
+  // Campos do formulário
   const [nome, setNome] = useState('');
   const [ra, setRa] = useState('');
+  const [box, setBox] = useState(''); // até 3 dígitos
+  const [boxId, setBoxId] = useState(null);
   const [periodoId, setPeriodoId] = useState('');
-  const [mensagem, setMensagem] = useState('');
-
-  // Novos campos:
   const [usuario, setUsuario] = useState('');
   const [senha, setSenha] = useState('');
-  const [role, setRole] = useState('aluno'); // valor padrão = "aluno"
+  const [showSenha, setShowSenha] = useState(false);
+  const [role, setRole] = useState('aluno');
+  const [mensagem, setMensagem] = useState('');
 
-  // Lista de períodos (preservamos o fetch que você já tinha)
+  // Auxiliares
   const [periodos, setPeriodos] = useState([]);
+  const alunoId = alunoEditando?.id;
 
   useEffect(() => {
-    axios.get('/api/periodos')
+    axios.get('/api/periodos', { headers })
       .then(res => setPeriodos(res.data))
       .catch(() => setPeriodos([]));
-  }, []);
+  }, [token]);
 
-  // Quando estivermos editando, devemos preencher os campos existentes
   useEffect(() => {
     if (alunoEditando) {
       setNome(alunoEditando.nome || '');
       setRa(alunoEditando.ra || '');
-      setPeriodoId(
-        alunoEditando.periodo_id != null ? String(alunoEditando.periodo_id) : ''
-      );
+      setPeriodoId(String(alunoEditando.periodo_id || ''));
       setUsuario(alunoEditando.usuario || '');
       setRole(alunoEditando.role || 'aluno');
-      setSenha(''); // nunca mostramos a senha atual no frontend
+      // preencher senha com o valor vindo do backend
+      setSenha(alunoEditando.senha || '');
+      setShowSenha(false);
+      axios.get(`/api/boxes/${alunoEditando.id}`, { headers })
+        .then(res => {
+          if (res.data.length) {
+            setBox(String(res.data[0].conteudo).slice(0,3));
+            setBoxId(res.data[0].id);
+          } else {
+            setBox(''); setBoxId(null);
+          }
+        })
+        .catch(() => { setBox(''); setBoxId(null); });
     } else {
-      // Form em branco
-      setNome('');
-      setRa('');
-      setPeriodoId('');
-      setUsuario('');
-      setSenha('');
-      setRole('aluno');
+      setNome(''); setRa(''); setBox(''); setBoxId(null);
+      setPeriodoId(''); setUsuario(''); setSenha(''); setShowSenha(false);
+      setRole('aluno'); setMensagem('');
     }
-    setMensagem('');
-  }, [alunoEditando]);
+  }, [alunoEditando, token]);
 
-  // Validações simples de nome completo e RA
-  function validarNomeCompleto(nome) {
-    const partes = nome.trim().split(' ').filter(p => p.length >= 2);
-    return partes.length >= 2;
-  }
-  function validarRA(ra) {
-    return /^\d{1,9}$/.test(ra);
-  }
+  const validarNome = n => n.trim().split(' ').filter(p => p.length>=2).length>=2;
+  const validarRA = r => /^\d{1,9}$/.test(r);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = e => {
     e.preventDefault();
+    if (!validarNome(nome)) return setMensagem('Informe nome completo!');
+    if (!validarRA(ra)) return setMensagem('RA inválido!');
+    if (!usuario.trim()) return setMensagem('Insira usuário!');
+    if (!alunoEditando && senha.length < 4) return setMensagem('Senha mínimo 4 chars!');
+    if (!periodoId) return setMensagem('Selecione período!');
 
-    // Validação de campos antes de enviar:
-    if (!validarNomeCompleto(nome)) {
-      setMensagem('Informe o nome completo!');
-      return;
-    }
-    if (!validarRA(ra)) {
-      setMensagem('O RA deve conter apenas números e até 9 dígitos!');
-      return;
-    }
-    if (!usuario.trim()) {
-      setMensagem('Insira um usuário para login!');
-      return;
-    }
-    if (!alunoEditando && senha.length < 4) {
-      setMensagem('Senha deve ter no mínimo 4 caracteres!');
-      return;
-    }
-    if (!periodoId) {
-      setMensagem('Selecione um período!');
-      return;
-    }
-
-    // Montamos o objeto que enviaremos para o backend
-    const dados = {
-      nome,
-      ra,
-      periodo_id: periodoId,
-      usuario,
-      senha,     // em backend transformaremos com bcrypt
-      role       // "aluno" ou "recepcao"
-    };
+    const alunoData = { nome, ra, periodo_id: periodoId, usuario, senha, role };
 
     if (alunoEditando) {
-      // Se estivermos editando um aluno existente, usamos PUT
-      // ATENÇÃO: se a senha estiver vazia, podemos enviar sem a propriedade senha,
-      // e o backend interpretará como “não alterar a senha”.
-      const payload = { nome, ra, periodo_id: periodoId, usuario, role };
-      if (senha) payload.senha = senha;
-
-      axios.put(`/api/alunos/${alunoEditando.id}`, payload)
+      const payload = { ...alunoData };
+      if (!senha) delete payload.senha;
+      axios.put(`/api/alunos/${alunoId}`, payload, { headers })
         .then(() => {
+          if (box) {
+            if (boxId) axios.put(`/api/boxes/${boxId}`, { conteudo: box }, { headers });
+            else axios.post('/api/boxes', { aluno_id: alunoId, conteudo: box }, { headers });
+          }
           setMensagem('Aluno atualizado com sucesso!');
-          setNome(''); setRa(''); setPeriodoId('');
-          setUsuario(''); setSenha(''); setRole('aluno');
-          onNovoAluno();     // para recarregar lista
-          onFimEdicao();     // fecha formulário de edição
+          onNovoAluno(); onFimEdicao();
         })
-        .catch(err => {
-          if (err.response?.data?.error) {
-            setMensagem(err.response.data.error);
-          } else {
-            setMensagem('Erro ao atualizar aluno.');
-          }
-        });
-
+        .catch(err => setMensagem(err.response?.data?.error || 'Erro ao atualizar.'));
     } else {
-      // Inserção de novo aluno
-      axios.post('/api/alunos', dados)
-        .then(() => {
+      axios.post('/api/alunos', alunoData, { headers })
+        .then(res => {
+          const newId = res.data.id;
+          if (box) axios.post('/api/boxes', { aluno_id: newId, conteudo: box }, { headers });
           setMensagem('Aluno cadastrado com sucesso!');
-          setNome(''); setRa(''); setPeriodoId('');
-          setUsuario(''); setSenha(''); setRole('aluno');
-          onNovoAluno();   // para recarregar lista
-          // Se quiser fechar automático após 1,5s:
-          setTimeout(() => {
-            onFimEdicao && onFimEdicao();
-            setMensagem('');
-          }, 1500);
+          onNovoAluno();
+          setTimeout(() => { onFimEdicao(); setMensagem(''); }, 1500);
         })
-        .catch(err => {
-          if (err.response?.data?.error) {
-            setMensagem(err.response.data.error);
-          } else {
-            setMensagem('Erro ao cadastrar aluno.');
-          }
-        });
+        .catch(err => setMensagem(err.response?.data?.error || 'Erro ao cadastrar.'));
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <h2 className="text-xl font-bold">
-        {alunoEditando ? 'Editar Aluno' : 'Cadastrar Novo Aluno'}
-      </h2>
+    <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl  space-y-6">
+      <h2 className="text-2xl font-bold">{alunoEditando ? 'Editar Aluno' : 'Cadastrar Aluno'}</h2>
 
       {/* Nome Completo */}
       <div>
-        <label className="block font-medium mb-1">Nome Completo:</label>
+        <label className="block mb-1 font-medium">Nome Completo</label>
         <input
           type="text"
           className="w-full border rounded px-3 py-2"
@@ -155,22 +112,34 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
         />
       </div>
 
-      {/* RA */}
-      <div>
-        <label className="block font-medium mb-1">RA:</label>
-        <input
-          type="text"
-          className="w-full border rounded px-3 py-2"
-          value={ra}
-          onChange={e => setRa(e.target.value.replace(/\D/g, '').slice(0, 9))}
-          maxLength={9}
-          required
-        />
+      {/* RA e Box */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block mb-1 font-medium">RA</label>
+          <input
+            type="text"
+            className="w-full border rounded px-3 py-2"
+            value={ra}
+            maxLength={9}
+            onChange={e => setRa(e.target.value.replace(/\D/g,'').slice(0,9))}
+            required
+          />
+        </div>
+        <div>
+          <label className="block mb-1 font-medium">Box</label>
+          <input
+            type="text"
+            className="w-full border rounded px-3 py-2"
+            value={box}
+            maxLength={3}
+            onChange={e => setBox(e.target.value.replace(/\D/g,'').slice(0,3))}
+          />
+        </div>
       </div>
 
       {/* Período */}
       <div>
-        <label className="block font-medium mb-1">Período:</label>
+        <label className="block mb-1 font-medium">Período</label>
         <select
           className="w-full border rounded px-3 py-2"
           value={periodoId}
@@ -178,21 +147,20 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
           required
         >
           <option value="">Selecione um período</option>
-          {periodos.map(periodo => (
-            <option key={periodo.id} value={String(periodo.id)}>
-              {periodo.nome} ({periodo.turno})
+          {periodos.map(p => (
+            <option key={p.id} value={String(p.id)}>
+              {p.nome} ({p.turno})
             </option>
           ))}
         </select>
       </div>
 
-      {/* Usuário */}
+      {/* Login */}
       <div>
-        <label className="block font-medium mb-1">Login:</label>
+        <label className="block mb-1 font-medium">Login</label>
         <input
           type="text"
           className="w-full border rounded px-3 py-2"
-          placeholder="Exemplo: Número do seu RA"
           value={usuario}
           onChange={e => setUsuario(e.target.value)}
           required
@@ -201,22 +169,28 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
 
       {/* Senha */}
       <div>
-        <label className="block font-medium mb-1">
-          {alunoEditando ? 'Nova senha (deixe em branco para manter)' : 'Senha:'}
-        </label>
-        <input
-          type="password"
-          className="w-full border rounded px-3 py-2"
-          placeholder={alunoEditando ? '••••••••' : '••••••••'}
-          value={senha}
-          onChange={e => setSenha(e.target.value)}
-          required={!alunoEditando}
-        />
+        <label className="block mb-1 font-medium">{alunoEditando ? 'Nova senha (opcional)' : 'Senha'}</label>
+        <div className="relative">
+          <input
+            type={showSenha ? 'text' : 'password'}
+            className="w-full border rounded px-3 py-2 pr-10"
+            value={senha}
+            onChange={e => setSenha(e.target.value)}
+            required={!alunoEditando}
+          />
+          <button
+            type="button"
+            className="absolute inset-y-0 right-0 px-3 text-sm"
+            onClick={() => setShowSenha(prev => !prev)}
+          >
+            {showSenha ? 'Ocultar' : 'Mostrar'}
+          </button>
+        </div>
       </div>
 
-      {/* Role */}
+      {/* Permissão */}
       <div>
-        <label className="block font-medium mb-1">Permissão:</label>
+        <label className="block mb-1 font-medium">Permissão</label>
         <select
           className="w-full border rounded px-3 py-2"
           value={role}
@@ -227,37 +201,31 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
         </select>
       </div>
 
+      {/* Mensagem de feedback */}
+      {mensagem && (
+        <p className={`text-sm ${mensagem.toLowerCase().includes('sucesso') ? 'text-green-600' : 'text-red-600'}`}>
+          {mensagem}
+        </p>
+      )}
+
       {/* Botões */}
-      <div className="flex items-center gap-4 mt-4">
+      <div className="flex gap-4 pt-4">
         <button
           type="submit"
-          className="bg-[#1A1C2C] text-white font-semibold py-2 px-6 rounded-full hover:bg-[#3B4854]"
+          className="bg-[#1A1C2C] hover:bg-[#3B4854] text-white font-bold px-4 py-2 rounded-full"
         >
           {alunoEditando ? 'Atualizar' : 'Cadastrar'}
         </button>
         {alunoEditando && (
           <button
             type="button"
-            className="bg-[#DA3648] text-white font-semibold py-2 px-6 rounded-full hover:bg-[#BC3140]"
             onClick={onFimEdicao}
+            className="bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-2 rounded-full"
           >
             Cancelar
           </button>
         )}
       </div>
-
-      {mensagem && (
-        <p
-          className={`mt-2 ${
-            mensagem.toLowerCase().includes('sucesso') ||
-            mensagem.toLowerCase().includes('cadastrado')
-              ? 'text-green-600'
-              : 'text-red-600'
-          }`}
-        >
-          {mensagem}
-        </p>
-      )}
     </form>
   );
 }
