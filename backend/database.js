@@ -9,11 +9,11 @@ async function initDb() {
   if (process.env.MYSQLHOST && process.env.MYSQLPORT) {
     console.log(`📦 Conectando em ${process.env.MYSQLHOST}:${process.env.MYSQLPORT}`);
     const p = mysql.createPool({
-      host:     process.env.MYSQLHOST,
-      port:     +process.env.MYSQLPORT,
+      host:     process.env.MYSQLHOST,      
       user:     process.env.MYSQLUSER,
       password: process.env.MYSQLPASSWORD,
       database: process.env.MYSQLDATABASE,
+      port:     +process.env.MYSQLPORT,
       waitForConnections: true,
       connectionLimit:    10,
       queueLimit:         0
