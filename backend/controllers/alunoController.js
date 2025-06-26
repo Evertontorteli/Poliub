@@ -212,4 +212,27 @@ exports.deletarAluno = async (req, res) => {
   }
 };
 
+exports.listarPorPeriodo = async (req, res) => {
+  const periodoId = req.user.periodo_id;               // vindo do AuthContext / JWT
+  let conn;
+
+  try {
+    conn = await getConnection();
+
+    const [alunos] = await conn.query(
+      'SELECT id, nome FROM alunos WHERE periodo_id = ?',
+      [periodoId]
+    );
+
+    return res.json(alunos);
+  } catch (err) {
+    console.error('Erro ao listar alunos por período:', err);
+    return res.status(500).json({
+      error: 'Erro interno ao listar os alunos',
+      details: err.sqlMessage || err.message
+    });
+  } finally {
+    if (conn) await conn.release();
+  }
+};
 
