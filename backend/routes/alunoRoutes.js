@@ -14,7 +14,7 @@ const {
 // PUT  /api/alunos/me     → atualiza os dados do aluno logado
 router.get('/me', verificaToken, apenasAluno, alunoController.buscarAlunoLogado);
 router.put('/me', verificaToken, apenasAluno, alunoController.atualizarAlunoLogado);
-router.get('/', authMiddleware, alunoController.listarPorPeriodo);
+//router.get('/', authMiddleware, alunoController.listarPorPeriodo);
 
 // rota para o próprio aluno
 router.get(
