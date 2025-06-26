@@ -5,7 +5,7 @@ require('dotenv').config();
 let pool;
 
 async function initDb() {
-  // 1) Se tiver host e porta (variáveis compartilhadas no Railway), use-as:
+  // 1) Service Variables (Railway)
   if (process.env.MYSQLHOST && process.env.MYSQLPORT) {
     console.log(`📦 Conectando em ${process.env.MYSQLHOST}:${process.env.MYSQLPORT}`);
     const p = mysql.createPool({
@@ -23,7 +23,7 @@ async function initDb() {
     return p;
   }
 
-  // 2) Fallback para URL completa, se quiser usar MYSQL_URL
+  // 2) Fallback URL completa (se você quiser usar MYSQL_URL)
   if (process.env.MYSQL_URL) {
     console.log('📦 Conectando via MYSQL_URL (fallback)');
     const p = mysql.createPool(process.env.MYSQL_URL);
@@ -32,7 +32,7 @@ async function initDb() {
     return p;
   }
 
-  // 3) Desenvolvimento local: tenta localhost:3306 e 3307
+  // 3) Desenvolvimento local em localhost:3306/3307
   const host     = 'localhost';
   const user     = process.env.MYSQLUSER || 'root';
   const password = process.env.MYSQLPASSWORD || 'senha123';
@@ -42,6 +42,7 @@ async function initDb() {
     connectionLimit:    10,
     queueLimit:         0
   };
+
   for (const port of [3306, 3307]) {
     try {
       console.log(`🔌 Tentando localhost:${port}`);
@@ -50,16 +51,16 @@ async function initDb() {
       console.log(`✅ Conectado em localhost:${port}`);
       return p;
     } catch (err) {
-      console.warn(`❌ Falha em localhost:${port}:`, err.code);
+      console.warn(`❌ Falha em localhost:${port}:`, err.code || err.message);
     }
   }
 
   throw new Error('Não foi possível conectar ao MySQL em nenhum lugar.');
 }
 
-// inicializa pool assim que o módulo for carregado
+// dispara a inicialização e guarda o pool
 initDb()
-  .then(p => pool = p)
+  .then(p => { pool = p; })
   .catch(err => {
     console.error('❌ Erro ao inicializar DB:', err.message);
     process.exit(1);
