@@ -111,7 +111,7 @@ exports.criarAluno = async (req, res) => {
   // Se vier role='recepcao' e quem está chamando não for recepção, ignora role e força 'aluno'
   let papel;
   if (req.user && req.user.role === 'recepcao' && role === 'recepcao') {
-    // Recepção cadastrando outro recepção ou aluno: permite
+    // Recepção cadastrando outro recepção ou aluno: permitee
     papel = 'recepcao';
   } else {
     papel = 'aluno';
