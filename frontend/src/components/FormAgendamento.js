@@ -43,54 +43,60 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
   useEffect(() => {
     const headers = { Authorization: `Bearer ${token}` };
 
-    // 1) Buscar dados do usuário logado (me)
-    axios.get('/api/alunos/me', { headers })
-      .then(res => {
-        setMe(res.data);
-        const meuPeriodo = String(res.data.periodo_id);
+    if (role === 'aluno') {
+      // 1) Pega meu cadastro e filtra tudo pelo meu período
+      axios.get('/api/alunos/me', { headers })
+        .then(res => {
+          setMe(res.data);
+          const meuPeriodo = String(res.data.periodo_id);
 
-        // 2) Carregar disciplinas
-        if (role === 'aluno') {
-          // filtra pelo meu período
+          // Disciplinas daquele período
           axios.get('/api/disciplinas', { headers })
-            .then(res2 => {
-              const minhas = res2.data.filter(d => String(d.periodo_id) === meuPeriodo);
-              setDisciplinas(minhas);
+            .then(r2 => {
+              const fil = r2.data.filter(d => String(d.periodo_id) === meuPeriodo);
+              setDisciplinas(fil);
             })
             .catch(err => {
-              console.error('Erro ao carregar disciplinas:', err);
+              console.error('Erro disciplinas:', err);
               setMensagem('Não foi possível carregar suas disciplinas.');
             });
-        } else {
-          // recepção: todas
-          axios.get('/api/disciplinas', { headers })
-            .then(res2 => setDisciplinas(res2.data))
+
+          // Alunos daquele período
+          axios.get('/api/alunos', { headers })
+            .then(r3 => {
+              const filA = r3.data.filter(a => String(a.periodo_id) === meuPeriodo);
+              setAlunos(filA);
+            })
             .catch(err => {
-              console.error('Erro ao carregar disciplinas:', err);
-              setMensagem('Não foi possível carregar disciplinas.');
+              console.error('Erro alunos:', err);
+              setMensagem('Não foi possível carregar lista de alunos.');
             });
-        }
+        })
+        .catch(err => {
+          console.error('Erro ao carregar usuário:', err);
+          setMensagem('Erro ao carregar usuário logado.');
+        });
+    } else {
+      // recepção: carrega tudo sem filtro de período
+      axios.get('/api/disciplinas', { headers })
+        .then(res => setDisciplinas(res.data))
+        .catch(err => {
+          console.error('Erro disciplinas:', err);
+          setMensagem('Não foi possível carregar disciplinas.');
+        });
 
-        // 3) Carregar pacientes (sem filtro de período)
-        axios.get('/api/pacientes', { headers })
-          .then(res2 => setPacientes(res2.data))
-          .catch(err => console.error('Erro ao carregar pacientes:', err));
+      axios.get('/api/alunos', { headers })
+        .then(res => setAlunos(res.data))
+        .catch(err => {
+          console.error('Erro alunos:', err);
+          setMensagem('Não foi possível carregar lista de alunos.');
+        });
+    }
 
-        // 4) Carregar alunos e filtrar pelo mesmo período
-        axios.get('/api/alunos', { headers })
-          .then(res2 => {
-            const meusAlunos = res2.data.filter(a => String(a.periodo_id) === meuPeriodo);
-            setAlunos(meusAlunos);
-          })
-          .catch(err => {
-            console.error('Erro ao carregar alunos:', err);
-            setMensagem('Não foi possível carregar lista de alunos.');
-          });
-      })
-      .catch(err => {
-        console.error('Erro ao obter dados do usuário:', err);
-        setMensagem('Erro ao carregar usuário logado.');
-      });
+    // Pacientes (idem para ambos os perfis)
+    axios.get('/api/pacientes', { headers })
+      .then(res => setPacientes(res.data))
+      .catch(err => console.error('Erro pacientes:', err));
   }, [token, role]);
 
   // Fecha autocomplete ao clicar fora
@@ -107,19 +113,11 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
   // Preenche campos em edição
   useEffect(() => {
     if (!agendamentoEditando) {
-      // limpa tudo
       setTipoAtendimento('Novo');
-      setDisciplinaId('');
-      setPacienteId('');
-      setNomePaciente('');
-      setTelefone('');
-      setData('');
-      setHora('19:00');
-      setObservacoes('');
-      setOperadorId('');
-      setAuxiliar1Id('');
-      setBuscaPaciente('');
-      setShowLista(false);
+      setDisciplinaId(''); setPacienteId(''); setNomePaciente('');
+      setTelefone(''); setData(''); setHora('19:00');
+      setObservacoes(''); setOperadorId(''); setAuxiliar1Id('');
+      setBuscaPaciente(''); setShowLista(false);
       return;
     }
     const a = agendamentoEditando;
@@ -155,27 +153,13 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
   // Submissão do form
   async function handleSubmit(e) {
     e.preventDefault();
-
-    // 1) Seleção de operador
-    if (!operadorId) {
-      return setMensagem('Selecione um operador.');
+    if (!operadorId) return setMensagem('Selecione um operador.');
+    // validação apenas para alunos
+    if (role !== 'recepcao' && String(user.id) !== operadorId && String(user.id) !== auxiliar1Id) {
+      return setMensagem('Você deve ser o Operador ou Auxiliar para realizar este agendamento.');
     }
-    // 2) Validação: usuário deve ser Operador ou Auxiliar
-    if (
-      String(user.id) !== String(operadorId) &&
-      String(user.id) !== String(auxiliar1Id)
-    ) {
-      return setMensagem(
-        'Você deve ser o Operador ou Auxiliar para realizar este agendamento.'
-      );
-    }
-    // 3) Demais validações
-    if (!disciplinaId) {
-      return setMensagem('Selecione uma disciplina.');
-    }
-    if (!pacienteId && tipoAtendimento !== 'Solicitar') {
-      return setMensagem('Selecione um paciente.');
-    }
+    if (!disciplinaId) return setMensagem('Selecione uma disciplina.');
+    if (!pacienteId && tipoAtendimento !== 'Solicitar') return setMensagem('Selecione um paciente.');
 
     const payload = {
       disciplina_id: disciplinaId,
@@ -194,33 +178,20 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
 
     try {
       if (agendamentoEditando) {
-        await axios.put(
-          `/api/agendamentos/${agendamentoEditando.id}`,
-          payload,
-          { headers }
-        );
+        await axios.put(`/api/agendamentos/${agendamentoEditando.id}`, payload, { headers });
         setMensagem('Agendamento atualizado!');
         onFimEdicao();
       } else {
         await axios.post('/api/agendamentos', payload, { headers });
         setMensagem('Agendamento cadastrado!');
-        // limpa campos
-        setDisciplinaId('');
-        setPacienteId('');
-        setNomePaciente('');
-        setTelefone('');
-        setData('');
-        setHora('19:00');
-        setObservacoes('');
-        setOperadorId('');
-        setAuxiliar1Id('');
+        setDisciplinaId(''); setPacienteId(''); setNomePaciente('');
+        setTelefone(''); setData(''); setHora('19:00');
+        setObservacoes(''); setOperadorId(''); setAuxiliar1Id('');
       }
       onNovoAgendamento && onNovoAgendamento();
     } catch (err) {
       console.error(err.response?.data || err.message);
-      setMensagem(
-        'Erro ao salvar agendamento. Você tem que ser o Operador/Auxiliar.'
-      );
+      setMensagem('Erro ao salvar agendamento. Você tem que ser o Operador/Auxiliar.');
     }
   }
 

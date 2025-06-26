@@ -1,7 +1,13 @@
 // backend/controllers/alunoController.js
+
 const Aluno = require('../models/alunoModel');
 const bcrypt = require('bcryptjs');
 const db = require('../database'); // para consultas diretas quando preciso validar propriedade
+
+
+// -> logo abaixo dos outros requires:
+const { getConnection } = require('../database');
+
 
 /**
  * 1) LISTAR TODOS OS ALUNOS → apenas recepção (verificado na rota)
