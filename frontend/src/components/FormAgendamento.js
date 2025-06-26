@@ -8,7 +8,7 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
   const token = user.token;
   const role = user.role; // 'aluno' ou 'recepcao'
 
-  // Dados do próprio aluno (para filtrar disciplinas)
+  // Dados do próprio aluno (para filtrar disciplinas e alunos)
   const [me, setMe] = useState(null);
 
   // Tipo de atendimento
@@ -25,7 +25,7 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
   // Disciplinas (todas para recepção, filtradas para aluno)
   const [disciplinas, setDisciplinas] = useState([]);
 
-  // Lista de alunos (Operador/Auxiliar)
+  // Lista de alunos (Operador/Auxiliar) — apenas do mesmo período
   const [alunos, setAlunos] = useState([]);
 
   // Campos do formulário
@@ -33,55 +33,63 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
   const [data, setData] = useState('');
   const [hora, setHora] = useState('');
   const [observacoes, setObservacoes] = useState('');
-
   const [operadorId, setOperadorId] = useState('');
   const [auxiliar1Id, setAuxiliar1Id] = useState('');
   const [mensagem, setMensagem] = useState('');
 
-  // Ref para detectar clique fora do autocomplete
+  // Ref para clique fora do autocomplete
   const inputRef = useRef(null);
 
   useEffect(() => {
     const headers = { Authorization: `Bearer ${token}` };
 
-    if (role === 'aluno') {
-      // 1) Pega meu cadastro
-      axios.get('/api/alunos/me', { headers })
-        .then(res => {
-          setMe(res.data);
-          const meuPeriodo = res.data.periodo_id;
-          // 2) Busca disciplinas e filtra pelo meu período
-          return axios.get('/api/disciplinas', { headers })
+    // 1) Buscar dados do usuário logado (me)
+    axios.get('/api/alunos/me', { headers })
+      .then(res => {
+        setMe(res.data);
+        const meuPeriodo = String(res.data.periodo_id);
+
+        // 2) Carregar disciplinas
+        if (role === 'aluno') {
+          // filtra pelo meu período
+          axios.get('/api/disciplinas', { headers })
             .then(res2 => {
-              const minhas = res2.data.filter(d => String(d.periodo_id) === String(meuPeriodo));
+              const minhas = res2.data.filter(d => String(d.periodo_id) === meuPeriodo);
               setDisciplinas(minhas);
+            })
+            .catch(err => {
+              console.error('Erro ao carregar disciplinas:', err);
+              setMensagem('Não foi possível carregar suas disciplinas.');
             });
-        })
-        .catch(err => {
-          console.error('Erro ao carregar usuário ou disciplinas:', err);
-          setMensagem('Não foi possível carregar suas disciplinas.');
-        });
-    } else {
-      // recepção: carrega todas as disciplinas
-      axios.get('/api/disciplinas', { headers })
-        .then(res => setDisciplinas(res.data))
-        .catch(err => {
-          console.error('Erro ao buscar disciplinas:', err);
-          setMensagem('Não foi possível carregar disciplinas.');
-        });
-    }
+        } else {
+          // recepção: todas
+          axios.get('/api/disciplinas', { headers })
+            .then(res2 => setDisciplinas(res2.data))
+            .catch(err => {
+              console.error('Erro ao carregar disciplinas:', err);
+              setMensagem('Não foi possível carregar disciplinas.');
+            });
+        }
 
-    // 3) Pacientes
-    axios.get('/api/pacientes', { headers })
-      .then(res => setPacientes(res.data))
-      .catch(err => console.error('Erro ao buscar pacientes:', err));
+        // 3) Carregar pacientes (sem filtro de período)
+        axios.get('/api/pacientes', { headers })
+          .then(res2 => setPacientes(res2.data))
+          .catch(err => console.error('Erro ao carregar pacientes:', err));
 
-    // 4) Alunos (sempre todos)
-    axios.get('/api/alunos', { headers })
-      .then(res => setAlunos(res.data))
+        // 4) Carregar alunos e filtrar pelo mesmo período
+        axios.get('/api/alunos', { headers })
+          .then(res2 => {
+            const meusAlunos = res2.data.filter(a => String(a.periodo_id) === meuPeriodo);
+            setAlunos(meusAlunos);
+          })
+          .catch(err => {
+            console.error('Erro ao carregar alunos:', err);
+            setMensagem('Não foi possível carregar lista de alunos.');
+          });
+      })
       .catch(err => {
-        console.error('Erro ao buscar alunos:', err);
-        setMensagem('Não foi possível carregar lista de alunos.');
+        console.error('Erro ao obter dados do usuário:', err);
+        setMensagem('Erro ao carregar usuário logado.');
       });
   }, [token, role]);
 
@@ -96,10 +104,10 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Preenche campos no modo edição
+  // Preenche campos em edição
   useEffect(() => {
     if (!agendamentoEditando) {
-      // limpa
+      // limpa tudo
       setTipoAtendimento('Novo');
       setDisciplinaId('');
       setPacienteId('');
@@ -125,9 +133,7 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
     setObservacoes(a.observacoes || '');
     setOperadorId(String(a.aluno_id || a.operador_id || ''));
     setAuxiliar1Id(String(a.auxiliar1_id || ''));
-    setBuscaPaciente(
-      (a.nome_paciente || '') + (a.telefone ? ' - ' + a.telefone : '')
-    );
+    setBuscaPaciente((a.nome_paciente || '') + (a.telefone ? ' - ' + a.telefone : ''));
     setShowLista(false);
   }, [agendamentoEditando]);
 
@@ -135,7 +141,7 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
   const pacientesFiltrados = pacientes.filter(p => {
     const term = buscaPaciente.toLowerCase();
     return p.nome.toLowerCase().includes(term)
-      || (p.telefone && p.telefone.includes(term));
+        || (p.telefone && p.telefone.includes(term));
   });
 
   function handleSelecionarPaciente(p) {
@@ -146,13 +152,30 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
     setShowLista(false);
   }
 
-  // Submissão (novo ou editar)
+  // Submissão do form
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!operadorId) return setMensagem('Selecione um operador.');
-    if (!disciplinaId) return setMensagem('Selecione uma disciplina.');
-    if (!pacienteId && tipoAtendimento !== 'Solicitar')
+
+    // 1) Seleção de operador
+    if (!operadorId) {
+      return setMensagem('Selecione um operador.');
+    }
+    // 2) Validação: usuário deve ser Operador ou Auxiliar
+    if (
+      String(user.id) !== String(operadorId) &&
+      String(user.id) !== String(auxiliar1Id)
+    ) {
+      return setMensagem(
+        'Você deve ser o Operador ou Auxiliar para realizar este agendamento.'
+      );
+    }
+    // 3) Demais validações
+    if (!disciplinaId) {
+      return setMensagem('Selecione uma disciplina.');
+    }
+    if (!pacienteId && tipoAtendimento !== 'Solicitar') {
       return setMensagem('Selecione um paciente.');
+    }
 
     const payload = {
       disciplina_id: disciplinaId,
@@ -171,30 +194,44 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
 
     try {
       if (agendamentoEditando) {
-        await axios.put(`/api/agendamentos/${agendamentoEditando.id}`, payload, { headers });
+        await axios.put(
+          `/api/agendamentos/${agendamentoEditando.id}`,
+          payload,
+          { headers }
+        );
         setMensagem('Agendamento atualizado!');
         onFimEdicao();
       } else {
         await axios.post('/api/agendamentos', payload, { headers });
         setMensagem('Agendamento cadastrado!');
         // limpa campos
-        setDisciplinaId(''); setPacienteId(''); setNomePaciente(''); setTelefone('');
-        setData(''); setHora('19:00'); setObservacoes('');
-        setOperadorId(''); setAuxiliar1Id('');
+        setDisciplinaId('');
+        setPacienteId('');
+        setNomePaciente('');
+        setTelefone('');
+        setData('');
+        setHora('19:00');
+        setObservacoes('');
+        setOperadorId('');
+        setAuxiliar1Id('');
       }
       onNovoAgendamento && onNovoAgendamento();
     } catch (err) {
       console.error(err.response?.data || err.message);
-      setMensagem('Erro ao salvar agendamento. Você tem que ser o Operador/Auxiliar.');
+      setMensagem(
+        'Erro ao salvar agendamento. Você tem que ser o Operador/Auxiliar.'
+      );
     }
   }
 
   return (
     <div className="bg-white mx-auto max-w-2xl rounded-2xl p-6">
       <form onSubmit={handleSubmit} autoComplete="off">
-        <h2 className="text-2xl font-bold mb-6 text-gray-800">Agendar Paciente</h2>
+        <h2 className="text-2xl font-bold mb-6 text-gray-800">
+          Agendar Paciente
+        </h2>
 
-        {/* Tipo */}
+        {/* Tipo de atendimento */}
         <div className="flex flex-wrap gap-2 mb-6">
           {['Novo', 'Retorno', 'Solicitar'].map(t => (
             <button
@@ -220,10 +257,11 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
                 key={d.id}
                 type="button"
                 onClick={() => setDisciplinaId(String(d.id))}
-                className={`px-4 py-2 rounded-2xl border transition text-left ${disciplinaId === String(d.id)
+                className={`px-4 py-2 rounded-2xl border transition text-left ${
+                  disciplinaId === String(d.id)
                     ? 'bg-[#D9E0FF] text-gray-800 font-semibold border-blue-300'
                     : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
-                  }`}
+                }`}
               >
                 <div className="font-medium">{d.nome}</div>
                 <div className="text-xs text-gray-600 mt-1">
@@ -233,11 +271,13 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
             ))}
           </div>
           {!disciplinaId && (
-            <p className="text-red-600 text-xs mt-1">Selecione uma disciplina</p>
+            <p className="text-red-600 text-xs mt-1">
+              Selecione uma disciplina
+            </p>
           )}
         </div>
 
-        {/* Paciente */}
+        {/* Paciente autocomplete */}
         {tipoAtendimento !== 'Solicitar' && (
           <div className="mb-6 relative" ref={inputRef}>
             <label className="block mb-1 font-medium">Paciente</label>
@@ -264,7 +304,9 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
                   </li>
                 ))}
                 {pacientesFiltrados.length === 0 && (
-                  <li className="px-3 py-2 text-gray-400">Nenhum paciente encontrado</li>
+                  <li className="px-3 py-2 text-gray-400">
+                    Nenhum paciente encontrado
+                  </li>
                 )}
               </ul>
             )}
@@ -284,13 +326,13 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
             )}
           </div>
         )}
-<label className="block mb-4 font-medium">Data e Hora do Agendamento</label>
+
         {/* Data / Hora */}
+        <label className="block mb-4 font-medium">
+          Data e Hora do Agendamento
+        </label>
         <div className="mb-6 flex gap-4">
-          
-
           <div className="flex-1">
-
             <input
               type="date"
               className="w-full border rounded-full px-3 py-2"
@@ -300,7 +342,6 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
             />
           </div>
           <div className="flex-1">
-
             <input
               type="time"
               className="w-full border rounded-full px-3 py-2"
@@ -313,10 +354,14 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
 
         {/* Operador / Auxiliar */}
         <div className="mb-6">
-          <label className="block mb-4 font-medium">Alunos que irão realizar o procedimento</label>
+          <label className="block mb-4 font-medium">
+            Alunos que irão realizar o procedimento
+          </label>
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1">
-              <label className="block mb-1 text-sm font-semibold">Operador</label>
+              <label className="block mb-1 text-sm font-semibold">
+                Operador
+              </label>
               <select
                 className="w-full border rounded px-3 py-2"
                 value={operadorId}
@@ -325,12 +370,16 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
               >
                 <option value="">Selecione</option>
                 {alunos.map(a => (
-                  <option key={a.id} value={a.id}>{a.nome}</option>
+                  <option key={a.id} value={a.id}>
+                    {a.nome}
+                  </option>
                 ))}
               </select>
             </div>
             <div className="flex-1">
-              <label className="block mb-1 text-sm font-semibold">Auxiliar (Opcional)</label>
+              <label className="block mb-1 text-sm font-semibold">
+                Auxiliar (Opcional)
+              </label>
               <select
                 className="w-full border rounded px-3 py-2"
                 value={auxiliar1Id}
@@ -338,7 +387,9 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
               >
                 <option value="">Nenhum</option>
                 {alunos.map(a => (
-                  <option key={a.id} value={a.id}>{a.nome}</option>
+                  <option key={a.id} value={a.id}>
+                    {a.nome}
+                  </option>
                 ))}
               </select>
             </div>
@@ -351,7 +402,9 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
             type="submit"
             className="bg-[#1A1C2C] hover:bg-[#3B4854] text-white font-bold px-6 py-2 rounded-full"
           >
-            {tipoAtendimento === 'Solicitar' ? 'Solicitar para Recepção' : 'Agendar Paciente'}
+            {tipoAtendimento === 'Solicitar'
+              ? 'Solicitar para Recepção'
+              : 'Agendar Paciente'}
           </button>
           {agendamentoEditando && (
             <button
@@ -364,7 +417,9 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
           )}
         </div>
 
-        {mensagem && <p className="mt-4 text-red-600">{mensagem}</p>}
+        {mensagem && (
+          <p className="mt-4 text-red-600">{mensagem}</p>
+        )}
       </form>
     </div>
   );
