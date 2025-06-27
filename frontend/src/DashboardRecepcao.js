@@ -193,7 +193,8 @@ export default function DashboardRecepcao() {
               min-w-[150px] flex-full rounded-2xl px-6 py-8 text-left border-2 transition
               ${disciplinaSelecionada?.id === disc.id
                 ? "border-[#F3F3F3] bg-[#3172C0] text-white"
-                : `border-transparent hover:border-[#3172C0] hover:bg-[#3172C0] ${cardColors[idx % cardColors.length]} text-white`
+                : `border-transparent hover:border-[#3172C0] hover:bg-[#3172C0] ${cardColors[idx % cardColors.length]
+                } text-white`
               }
             `}
           >
@@ -219,7 +220,6 @@ export default function DashboardRecepcao() {
             p-4 pt-0 pb-4 rounded-2xl bg-white mb-6
           ">
             <div className="flex-1 relative">
-          
               <input
                 type="text"
                 className="border rounded px-4 py-2 w-full rounded-2xl"
@@ -318,7 +318,22 @@ export default function DashboardRecepcao() {
           {/* Lista de Agendamentos */}
           <div className="overflow-x-auto">
             <div className="mt-2 space-y-3">
-              {agendamentosExibidos.map((ag) => (
+              {/* Cabeçalho Desktop */}
+              <div className="
+                hidden md:grid md:grid-cols-[50px_50px_1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto_30px] gap-x-4 px-5 py-2 bg-gray-100 rounded-t-xl font-semibold text-gray-600 mb-2
+              ">
+                <span className="truncate">#</span>
+                <span className="truncate">Box</span>
+                <span className="truncate">Operador</span>
+                <span className="truncate">Auxiliar</span>
+                <span className="truncate">Disciplina</span>
+                <span className="truncate">Paciente</span>
+                <span className="truncate">Telefone</span>
+                <span className="truncate">Data e Hora</span>
+                <span className="truncate text-right">Ações</span>
+              </div>
+
+              {agendamentosExibidos.map((ag, idx) => (
                 <React.Fragment key={ag.id}>
                   {/* ==== MOBILE CARD ==== */}
                   <div
@@ -339,7 +354,7 @@ export default function DashboardRecepcao() {
                         </div>
                         <div className="flex-1">
                           <div className="text-sm text-gray-500">
-                            #{ag.id} • {ag.operadorNome || "-"}
+                            {idx + 1} • {ag.operadorBox ?? "-"} • {ag.operadorNome || "-"}
                           </div>
                           <div className="font-medium text-gray-800 truncate">
                             {disciplinaSelecionada.nome}
@@ -354,7 +369,11 @@ export default function DashboardRecepcao() {
                       </div>
                       <div className="flex justify-between text-gray-600 text-sm">
                         <span> {ag.telefone || "-"}</span>
-                        <span>{ag.data.slice(0, 10).split("-").reverse().join("/")}</span>
+                        <span>
+                          {ag.data
+                            ? ag.data.slice(0, 10).split("-").reverse().join("/")
+                            : "-"}
+                        </span>
                         <span> {ag.hora || "-"}</span>
                       </div>
                     </div>
@@ -380,10 +399,10 @@ export default function DashboardRecepcao() {
 
                   {/* ==== DESKTOP GRID ==== */}
                   <div className="
-                    hidden md:grid md:grid-cols-8 gap-y-1 gap-x-4
-                    items-center bg-gray-50 rounded-xl px-4 md:px-5 py-2
-                    shadow-sm hover:bg-gray-100 transition
+                    hidden md:grid md:grid-cols-[50px_50px_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-y-1 gap-x-4 items-center bg-gray-50 rounded-xl px-4 md:px-5 py-2 shadow-sm hover:bg-gray-100 transition
                   ">
+                    <div className="text-gray-800 truncate">{idx + 1}</div>
+                    <div className="truncate">{ag.operadorBox ?? "-"}</div>
                     <div className="font-medium text-gray-800 truncate">
                       {ag.operadorNome || "-"}
                     </div>
@@ -402,34 +421,24 @@ export default function DashboardRecepcao() {
                     <div className="text-gray-800 truncate">
                       {ag.data
                         ? ag.data.slice(0, 10).split("-").reverse().join("/")
-                        : "-"}
-                    </div>
-                    <div className="text-gray-800 truncate">
-                      {ag.hora || "-"}
+                        : "-"} {ag.hora || "-"}
                     </div>
                     <div className="flex md:justify-end items-center space-x-2">
-                      <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${
-                    STATUS_COLORS[ag.status] || 'bg-gray-200 text-gray-700'
-                  } min-w-[72px] text-center`}>
-                    {STATUS_LABELS[ag.status] || '-'}
-                  </span>
+                      <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[ag.status] || "bg-gray-200 text-gray-700"
+                        } min-w-[72px] text-center`}>
+                        {STATUS_LABELS[ag.status] || "-"}
+                      </span>
                       {user.role === "recepcao" && (
                         <>
                           <button
                             onClick={() => handleEditarAgendamento(ag)}
-                            className="
-                              px-3 py-1 rounded-lg bg-blue-100 text-blue-800
-                              hover:bg-blue-200 font-semibold transition
-                            "
+                            className="px-3 py-1 rounded-lg bg-blue-100 text-blue-800 hover:bg-blue-200 font-semibold transition"
                           >
                             Editar
                           </button>
                           <button
                             onClick={() => handleDeletarAgendamento(ag.id)}
-                            className="
-                              px-3 py-1 rounded-lg bg-red-100 text-red-700
-                              hover:bg-red-200 font-semibold transition
-                            "
+                            className="px-3 py-1 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 font-semibold transition"
                           >
                             Deletar
                           </button>
