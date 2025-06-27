@@ -1,41 +1,86 @@
 // backend/controllers/agendamentoController.js
+
 const Agendamento = require('../models/agendamentoModel');
 const db = require('../database'); // getConnection()
+
+/**
+ * Lê a tabela `boxes` e anexa a cada agendamento
+ * o campo `operadorBox` com o conteúdo do box do operador.
+ */
+async function adicionaBoxAoOperador(agendamentos) {
+  if (agendamentos.length === 0) return agendamentos;
+
+  const conn = await db.getConnection();
+  try {
+    // 1) extrai IDs de operador únicos
+    const operadorIds = [
+      ...new Set(agendamentos.map(a => Number(a.aluno_id)))
+    ];
+
+    // 2) busca o conteúdo desses boxes na tabela boxes
+    const [rows] = await conn.query(
+      'SELECT aluno_id, conteudo FROM boxes WHERE aluno_id IN (?)',
+      [operadorIds]
+    );
+
+    // 3) monta mapa aluno_id → conteudo
+    const mapa = rows.reduce((m, { aluno_id, conteudo }) => {
+      m[aluno_id] = conteudo;
+      return m;
+    }, {});
+
+    // 4) retorna nova lista com operadorBox anexado
+    return agendamentos.map(a => ({
+      ...a,
+      operadorBox: mapa[a.aluno_id] ?? null
+    }));
+  } finally {
+    await conn.release();
+  }
+}
 
 // 1) LISTAR TODOS OS AGENDAMENTOS (só recepção)
 exports.listarAgendamentos = async (req, res) => {
   try {
     const { disciplinaId } = req.query;
-    const results = await Agendamento.listarTodos();
-    let filtrados = results;
+    let results = await Agendamento.listarTodos();
+
+    // filtra por disciplina, se passado
     if (disciplinaId) {
-      filtrados = results.filter(
+      results = results.filter(
         ag =>
           String(ag.disciplina_id) === String(disciplinaId) ||
           String(ag.disciplinaId) === String(disciplinaId)
       );
     }
-    return res.json(filtrados);
+
+    // anexa operadorBox a cada objeto ag
+    results = await adicionaBoxAoOperador(results);
+
+    return res.json(results);
   } catch (err) {
     console.error('Erro ao listar agendamentos:', err);
     return res.status(500).json({ error: 'Erro ao buscar agendamentos' });
   }
 };
 
-// 2) LISTAR SOMENTE OS PRÓPRIOS AGENDAMENTOS (só aluno)
+// 2) LISTAR MEUS AGENDAMENTOS (só aluno, operador ou auxiliar)
 exports.listarMeusAgendamentos = async (req, res) => {
   try {
     const userId = String(req.user.id);
-    const resultados = await Agendamento.listarTodos();
+    let resultados = await Agendamento.listarTodos();
 
-    // inclui se for operador (aluno_id) ou auxiliar1 ou auxiliar2
-    const meus = resultados.filter(ag =>
+    // filtra apenas onde usuário é operador ou auxiliar1 ou auxiliar2
+    resultados = resultados.filter(ag =>
       String(ag.aluno_id) === userId ||
       String(ag.auxiliar1_id) === userId ||
       String(ag.auxiliar2_id) === userId
     );
 
-    return res.json(meus);
+    // anexa operadorBox
+    resultados = await adicionaBoxAoOperador(resultados);
+
+    return res.json(resultados);
   } catch (err) {
     console.error('Erro ao listar meus agendamentos:', err);
     return res.status(500).json({ error: 'Erro ao buscar seus agendamentos.' });
@@ -60,11 +105,10 @@ exports.criarAgendamento = async (req, res) => {
       telefone
     } = req.body;
 
-    // normalize empty strings to null
+    // strings vazias viram null
     auxiliar1_id = auxiliar1_id === '' ? null : auxiliar1_id;
     auxiliar2_id = auxiliar2_id === '' ? null : auxiliar2_id;
 
-    // → SE FOR RECEPCAO: sem restrição
     if (req.user.role === 'recepcao') {
       const novoId = await Agendamento.inserir({
         aluno_id,
@@ -83,7 +127,6 @@ exports.criarAgendamento = async (req, res) => {
       return res.status(201).json({ id: novoId });
     }
 
-    // → SE FOR ALUNO: precisa aparecer exatamente uma vez entre os três papéis
     if (req.user.role === 'aluno') {
       const userId = String(req.user.id);
       const roles = [
@@ -104,7 +147,6 @@ exports.criarAgendamento = async (req, res) => {
         });
       }
 
-      // tudo certo: insere exatamente como veio do front
       const novoId = await Agendamento.inserir({
         aluno_id,
         disciplina_id,
@@ -122,10 +164,7 @@ exports.criarAgendamento = async (req, res) => {
       return res.status(201).json({ id: novoId });
     }
 
-    // → outros roles não autorizados
-    return res
-      .status(403)
-      .json({ error: 'Role não autorizado para criar agendamento.' });
+    return res.status(403).json({ error: 'Role não autorizado para criar agendamento.' });
   } catch (err) {
     console.error('Erro ao criar agendamento:', err);
     return res.status(500).json({ error: 'Erro ao criar agendamento.' });
