@@ -53,7 +53,14 @@ export default function DashboardRecepcao() {
   // Carrega períodos e disciplinas na inicialização
   useEffect(() => {
     axios.get("/api/periodos")
-      .then(res => setPeriodos(res.data))
+      .then(res => {
+        const lista = res.data
+          // remove qualquer período cujo nome (ou número) seja zero
+          .filter(p => parseInt(p.nome, 10) !== 0)
+          // ordena numericamente pelo nome do período
+          .sort((a, b) => parseInt(a.nome, 10) - parseInt(b.nome, 10));
+        setPeriodos(lista);
+      })
       .catch(() => console.error("Erro ao buscar períodos"));
 
     axios.get("/api/disciplinas")
@@ -445,6 +452,7 @@ export default function DashboardRecepcao() {
                             className="px-3 py-1 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 font-semibold transition"
                           >
                             Deletar
+            
                           </button>
                         </>
                       )}
