@@ -50,6 +50,7 @@ export default function TelaAlunos() {
     }
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     fetchAlunos();
   }, [token, role]);
