@@ -153,10 +153,19 @@ export default function PrintAgendamentos() {
 
       <style>
         {`
-          @media print {
+             @media print {
             body * { visibility: hidden; }
             .printable, .printable * { visibility: visible !important; }
-            .printable { position: absolute; top: 0; left: 0; width: 100vw; }
+            .printable {
+              position: static !important;
+              top: auto; left: auto;
+              width: auto !important;
+              margin: 0;
+            }
+            .printable table {
+              width: 100% !important;
+              border-collapse: collapse !important;
+            }
           }
         `}
       </style>

@@ -136,12 +136,18 @@ export default function DashboardRecepcao() {
   }
 
   const handleDataClick = () => {
-    if (dataInputRef.current?.showPicker) dataInputRef.current.showPicker();
-    else dataInputRef.current.click();
+    if (dataInputRef.current?.showPicker) {
+      dataInputRef.current.showPicker();
+    } else if (dataInputRef.current) {
+      dataInputRef.current.focus();
+    }
   };
   const handleHoraClick = () => {
-    if (horaInputRef.current?.showPicker) horaInputRef.current.showPicker();
-    else horaInputRef.current.click();
+    if (horaInputRef.current?.showPicker) {
+      horaInputRef.current.showPicker();
+    } else if (horaInputRef.current) {
+      horaInputRef.current.focus();
+    }
   };
 
   // Determina quais disciplinas mostrar com base no período selecionado
@@ -217,7 +223,7 @@ export default function DashboardRecepcao() {
           {/* Filtros */}
           <div className="
             flex flex-col md:flex-row md:items-end gap-3
-            p-4 pt-0 pb-4 rounded-2xl bg-white mb-6
+            p-4 pt-0 pb-4 rounded-2xl bg-white
           ">
             <div className="flex-1 relative">
               <input
@@ -254,9 +260,8 @@ export default function DashboardRecepcao() {
                   type="date"
                   ref={dataInputRef}
                   value={filtroData}
-                  onChange={(e) => setFiltroData(e.target.value)}
-                  className="sr-only"
-                  tabIndex={-1}
+                  onChange={e => setFiltroData(e.target.value)}
+                  className="absolute opacity-0 w-0 h-0"
                 />
               </div>
 
@@ -284,9 +289,8 @@ export default function DashboardRecepcao() {
                   type="time"
                   ref={horaInputRef}
                   value={filtroHora}
-                  onChange={(e) => setFiltroHora(e.target.value)}
-                  className="sr-only"
-                  tabIndex={-1}
+                  onChange={e => setFiltroHora(e.target.value)}
+                  className="absolute opacity-0 w-0 h-0"
                 />
               </div>
 
