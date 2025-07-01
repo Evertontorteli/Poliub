@@ -1,3 +1,4 @@
+// src/components/ListaPacientes.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
@@ -66,7 +67,8 @@ function ListaPacientes({ reloadKey, onEditar }) {
           />
         </div>
         {/* Cabeçalho das colunas (desktop) */}
-        <div className="hidden md:grid grid-cols-4 gap-x-4 px-2 py-2 bg-gray-100 rounded-t-xl font-semibold text-gray-600 mb-2">
+        <div className="hidden md:grid grid-cols-5 gap-x-4 px-2 py-2 bg-gray-100 rounded-t-xl font-semibold text-gray-600 mb-2">
+          <span>*</span>
           <span>Prontuário</span>
           <span>Nome</span>
           <span>Telefone</span>
@@ -74,12 +76,15 @@ function ListaPacientes({ reloadKey, onEditar }) {
         </div>
         {/* Lista */}
         <div className="space-y-3">
-          {filteredPacientes.map((p) => (
+          {filteredPacientes.map((p, idx) => (
             <div
               key={p.id}
-              className="flex flex-col md:grid md:grid-cols-4 gap-y-1 gap-x-4 items-start bg-gray-50 rounded-xl px-4 md:px-2 py-2 shadow-sm hover:bg-gray-100 transition"
+              className="flex flex-col md:grid md:grid-cols-5 gap-y-1 gap-x-4 items-start bg-gray-50 rounded-xl px-4 md:px-2 py-2 shadow-sm hover:bg-gray-100 transition"
             >
-              {/* Mobile view: labels + values */}
+              {/* ==== MOBILE ==== */}
+              <div className="md:hidden w-full mb-1">
+                <strong></strong> <span className="text-gray-500">{idx + 1}</span>
+              </div>
               <div className="md:hidden w-full mb-1">
                 <strong>Prontuário:</strong> <span className="text-gray-500">{p.numero_prontuario || '-'}</span>
               </div>
@@ -106,7 +111,8 @@ function ListaPacientes({ reloadKey, onEditar }) {
                 )}
               </div>
 
-              {/* Desktop view: grid cells */}
+              {/* ==== DESKTOP ==== */}
+              <div className="hidden md:block w-full text-gray-600 truncate">{idx + 1}</div>
               <div className="hidden md:block w-full text-gray-500 truncate">{p.numero_prontuario || '-'}</div>
               <div className="hidden md:block w-full font-medium text-gray-800 truncate">{p.nome}</div>
               <div className="hidden md:block w-full text-gray-500">{p.telefone}</div>
