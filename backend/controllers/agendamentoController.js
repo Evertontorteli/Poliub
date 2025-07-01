@@ -35,7 +35,7 @@ async function adicionaBoxAoOperador(agendamentos) {
       operadorBox: mapa[a.aluno_id] ?? null
     }));
   } finally {
-    await conn.release();
+    conn.release();
   }
 }
 
@@ -45,7 +45,6 @@ exports.listarAgendamentos = async (req, res) => {
     const { disciplinaId } = req.query;
     let results = await Agendamento.listarTodos();
 
-    // filtra por disciplina, se passado
     if (disciplinaId) {
       results = results.filter(
         ag =>
@@ -54,9 +53,7 @@ exports.listarAgendamentos = async (req, res) => {
       );
     }
 
-    // anexa operadorBox a cada objeto ag
     results = await adicionaBoxAoOperador(results);
-
     return res.json(results);
   } catch (err) {
     console.error('Erro ao listar agendamentos:', err);
@@ -70,16 +67,13 @@ exports.listarMeusAgendamentos = async (req, res) => {
     const userId = String(req.user.id);
     let resultados = await Agendamento.listarTodos();
 
-    // filtra apenas onde usuário é operador ou auxiliar1 ou auxiliar2
     resultados = resultados.filter(ag =>
       String(ag.aluno_id) === userId ||
       String(ag.auxiliar1_id) === userId ||
       String(ag.auxiliar2_id) === userId
     );
 
-    // anexa operadorBox
     resultados = await adicionaBoxAoOperador(resultados);
-
     return res.json(resultados);
   } catch (err) {
     console.error('Erro ao listar meus agendamentos:', err);
@@ -105,12 +99,15 @@ exports.criarAgendamento = async (req, res) => {
       telefone
     } = req.body;
 
-    // strings vazias viram null
+    // normalize empty strings to null
     auxiliar1_id = auxiliar1_id === '' ? null : auxiliar1_id;
     auxiliar2_id = auxiliar2_id === '' ? null : auxiliar2_id;
 
+    const io = req.app.get('io');
+
+    // → SE FOR RECEPCAO: sem restrição
     if (req.user.role === 'recepcao') {
-      const novoId = await Agendamento.inserir({
+      const insertResult = await Agendamento.inserir({
         aluno_id,
         disciplina_id,
         paciente_id,
@@ -124,9 +121,47 @@ exports.criarAgendamento = async (req, res) => {
         nome_paciente,
         telefone
       });
+      // normaliza para número caso venha ResultSetHeader
+      const novoId = insertResult.insertId ?? insertResult;
+
+      // busca todos os campos necessários para a notificação
+      const conn2 = await db.getConnection();
+      try {
+        const [agRows] = await conn2.execute(`
+          SELECT 
+            ag.nome_paciente,
+            al.nome            AS nome_aluno,
+            ag.data,
+            ag.hora,
+            d.nome             AS disciplina_nome,
+            p.nome             AS periodo_nome,
+            p.turno            AS periodo_turno
+          FROM agendamentos ag
+          JOIN alunos      al ON ag.aluno_id      = al.id
+          JOIN disciplinas d  ON ag.disciplina_id = d.id
+          JOIN periodos    p  ON d.periodo_id     = p.id
+          WHERE ag.id = ?
+        `, [novoId]);
+
+        const info = agRows[0] || {};
+        io.emit('novoAgendamentoRecepcao', {
+          id:              novoId,
+          nome_aluno:      info.nome_aluno,
+          nome_paciente:   info.nome_paciente,
+          data:            info.data,
+          hora:            info.hora,
+          disciplina_nome: info.disciplina_nome,
+          periodo_nome:    info.periodo_nome,
+          periodo_turno:   info.periodo_turno
+        });
+      } finally {
+        conn2.release();
+      }
+
       return res.status(201).json({ id: novoId });
     }
 
+    // → SE FOR ALUNO: valida se está em um dos papéis
     if (req.user.role === 'aluno') {
       const userId = String(req.user.id);
       const roles = [
@@ -147,7 +182,7 @@ exports.criarAgendamento = async (req, res) => {
         });
       }
 
-      const novoId = await Agendamento.inserir({
+      const insertResult = await Agendamento.inserir({
         aluno_id,
         disciplina_id,
         paciente_id,
@@ -161,9 +196,48 @@ exports.criarAgendamento = async (req, res) => {
         nome_paciente,
         telefone
       });
+      const novoId = insertResult.insertId ?? insertResult;
+
+      // se foi “Solicitar para Recepção”, notifica igual à recepção
+      if (solicitado_por_recepcao) {
+        const conn2 = await db.getConnection();
+        try {
+          const [agRows] = await conn2.execute(`
+            SELECT 
+              ag.nome_paciente,
+              al.nome            AS nome_aluno,
+              ag.data,
+              ag.hora,
+              d.nome             AS disciplina_nome,
+              p.nome             AS periodo_nome,
+              p.turno            AS periodo_turno
+            FROM agendamentos ag
+            JOIN alunos      al ON ag.aluno_id      = al.id
+            JOIN disciplinas d  ON ag.disciplina_id = d.id
+            JOIN periodos    p  ON d.periodo_id     = p.id
+            WHERE ag.id = ?
+          `, [novoId]);
+
+          const info = agRows[0] || {};
+          io.emit('novoAgendamentoRecepcao', {
+            id:              novoId,
+            nome_aluno:      info.nome_aluno,
+            nome_paciente:   info.nome_paciente,
+            data:            info.data,
+            hora:            info.hora,
+            disciplina_nome: info.disciplina_nome,
+            periodo_nome:    info.periodo_nome,
+            periodo_turno:   info.periodo_turno
+          });
+        } finally {
+          conn2.release();
+        }
+      }
+
       return res.status(201).json({ id: novoId });
     }
 
+    // → outros roles não autorizados
     return res.status(403).json({ error: 'Role não autorizado para criar agendamento.' });
   } catch (err) {
     console.error('Erro ao criar agendamento:', err);
@@ -186,10 +260,17 @@ exports.atualizarAgendamento = async (req, res) => {
     if (req.user.role === 'aluno') {
       const conn = await db.getConnection();
       const [rows] = await conn.execute(
-        'SELECT aluno_id FROM agendamentos WHERE id = ?',
+        'SELECT aluno_id, auxiliar1_id, auxiliar2_id FROM agendamentos WHERE id = ?',
         [id]
       );
-      if (rows.length === 0 || String(rows[0].aluno_id) !== String(req.user.id)) {
+      conn.release();
+
+      if (
+        rows.length === 0 ||
+        ![rows[0].aluno_id, rows[0].auxiliar1_id, rows[0].auxiliar2_id]
+          .map(x => String(x))
+          .includes(String(req.user.id))
+      ) {
         return res.status(403).json({ error: 'Não autorizado a atualizar este agendamento.' });
       }
       await Agendamento.atualizar(id, dados);
@@ -216,6 +297,7 @@ exports.deletarAgendamento = async (req, res) => {
         'SELECT aluno_id FROM agendamentos WHERE id = ?',
         [id]
       );
+      conn.release();
       if (rows.length === 0 || String(rows[0].aluno_id) !== String(req.user.id)) {
         return res.status(403).json({ error: 'Não autorizado a deletar este agendamento.' });
       }

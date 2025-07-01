@@ -205,9 +205,9 @@ export default function DashboardRecepcao() {
             className={`
               min-w-[150px] flex-full rounded-2xl px-6 py-8 text-left border-2 transition
               ${disciplinaSelecionada?.id === disc.id
-                ? "border-[#F3F3F3] bg-[#3172C0] text-white"
-                : `border-transparent hover:border-[#3172C0] hover:bg-[#3172C0] ${cardColors[idx % cardColors.length]
-                } text-white`
+                ? "border-[#CCD7E1] bg-[#8D8D8D] text-[white]"
+                : `border-transparent hover:border-[#CCD7E1] hover:bg-[#8D8D8D] ${cardColors[idx % cardColors.length]
+                } text-[white]`
               }
             `}
           >
