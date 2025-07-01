@@ -54,7 +54,7 @@ export default function Header() {
         {dropdownOpen && (
           <ul className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg">
             <li className="px-4 py-2 text-gray-700 font-medium border-b border-gray-100">
-              {user?.usuario || 'Usuário'}
+              {user?.nome || 'Usuário'}
             </li>
             <li>
               <button
