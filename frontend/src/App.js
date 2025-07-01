@@ -1,7 +1,7 @@
 // src/App.js
 
 import './index.css'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   HashRouter as Router,
   Routes,
@@ -30,7 +30,9 @@ import PrintAgendamentos from './pages/PrintAgendamentos'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthProvider, useAuth } from './context/AuthContext'
 
-
+import { io } from 'socket.io-client'
+import { ToastContainer, toast } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 
 /**
  * Escolhe o dashboard certo conforme o perfil do usuário
@@ -43,28 +45,51 @@ function Dashboards() {
 }
 
 /**
- * LayoutInterno exibe Header, Sidebar/BottomNavBar e troca o conteúdo
- * de acordo com o menu ativo.
+ * LayoutInterno exibe Header, Sidebar/BottomNavBar e o conteúdo
+ * de acordo com o menu ativo, além de tratar a notificação
  */
 function LayoutInterno() {
   const [active, setActive] = useState('dashboard')
+  const { user } = useAuth()
+
+  // <-- INÍCIO da adição: criar socket só para recepção
+  useEffect(() => {
+    if (user?.role !== 'recepcao') return
+
+    const backendUrl = process.env.REACT_APP_API_URL
+    const socket = io(backendUrl)
+
+    socket.on('novoAgendamentoRecepcao', ({
+      nome_aluno,
+      nome_paciente,
+      data,
+      hora,
+      disciplina_nome,
+      periodo_nome,
+      periodo_turno
+    }) => {
+      const [yyyy, mm, dd] = data.slice(0, 10).split('-')
+      const dataFmt = `${dd}/${mm}/${yyyy}`
+
+      toast.info(
+        `Nova Solicitação: ${nome_aluno} em ${dataFmt} às ${hora}` +
+        ` — Disciplina: ${disciplina_nome} (${periodo_nome} ${periodo_turno})`
+      )
+    })
+
+    return () => socket.disconnect()
+  }, [user])
+  // <-- FIM da adição
 
   function renderConteudo() {
     switch (active) {
-      case 'dashboard':
-        return <Dashboards />
-      case 'agendar':
-        return <TelaAgendamentos />
-      case 'disciplinas':
-        return <TelaDisciplinas />
-      case 'pacientes':
-        return <TelaPacientes />
-      case 'alunos':
-        return <TelaAlunos />
-      case 'periodos':
-        return <TelaPeriodos />
-      case 'ajuda':
-        return <Ajuda />
+      case 'dashboard':   return <Dashboards />
+      case 'agendar':     return <TelaAgendamentos />
+      case 'disciplinas': return <TelaDisciplinas />
+      case 'pacientes':   return <TelaPacientes />
+      case 'alunos':      return <TelaAlunos />
+      case 'periodos':    return <TelaPeriodos />
+      case 'ajuda':       return <Ajuda />
       default:
         return (
           <div>
@@ -115,12 +140,20 @@ function LoginWrapper() {
 }
 
 /**
- * App: define rotas públicas e protegidas
+ * App: define rotas públicas e protegidas e engloba tudo no AuthProvider
  */
 export default function App() {
   return (
     <AuthProvider>
       <Router>
+        <ToastContainer
+          position="top-right"
+          autoClose={60000}   // fica até o usuário fechar
+          closeOnClick       // fecha ao clicar no X
+          pauseOnHover       // pausa ao passar o mouse
+          draggable={false}  // impede arrastar para descartar
+        />
+
         <Routes>
           {/* Pública */}
           <Route path="/login" element={<LoginWrapper />} />
