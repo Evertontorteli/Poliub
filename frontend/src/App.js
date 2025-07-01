@@ -75,7 +75,8 @@ function LayoutInterno() {
       })
     })
     presSocket.on('onlineUsers', lista => {
-      setOnlineUsers(lista)
+      // remove o próprio usuário da lista antes de guardar
+  setOnlineUsers(lista.filter(u => u.id !== user.id))
     })
     presSocket.on('connect_error', err => {
       console.error('❌ presenca connect error:', err)
