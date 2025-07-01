@@ -87,7 +87,7 @@ export default function TelaAlunos() {
     <div className="mt-4 px-4 md:px-8">
       {/* Cadastrar só para recepção */}
       {role === "recepcao" && (
-        <div className="flex justify-lefth mb-2">
+        <div className="flex justify-left mb-2">
           <button
             className="bg-[#1A1C2C] text-white px-4 py-2 rounded-full hover:bg-[#3B4854] transition"
             onClick={() => setMostrarModal(true)}
@@ -109,7 +109,8 @@ export default function TelaAlunos() {
       </div>
 
       {/* Cabeçalho desktop */}
-      <div className="hidden md:grid md:grid-cols-7 gap-x-4 px-5 py-3 bg-gray-100 rounded-t-xl font-semibold text-gray-600 mb-2">
+      <div className="hidden md:grid md:grid-cols-8 gap-x-4 px-5 py-3 bg-gray-100 rounded-t-xl font-semibold text-gray-600 mb-2">
+        <span>*</span>
         <span>Nome</span>
         <span>RA</span>
         <span>Box</span>
@@ -121,17 +122,21 @@ export default function TelaAlunos() {
 
       {/* Lista */}
       <ul className="space-y-3">
-        {filtered.map((a) => (
+        {filtered.map((a, idx) => (
           <li
             key={a.id}
-            className="flex flex-col md:grid md:grid-cols-7 gap-y-2 gap-x-4 bg-gray-50 rounded-xl px-4 md:px-5 py-3 shadow-sm hover:bg-gray-100 transition"
+            className="flex flex-col md:grid md:grid-cols-8 gap-y-2 gap-x-4 bg-gray-50 rounded-xl px-4 md:px-5 py-3 shadow-sm hover:bg-gray-100 transition"
           >
+            {/* contador de linha */}
+            <div className="truncate text-gray-600">{idx + 1}</div>
             <div className="truncate font-medium text-gray-800">{a.nome}</div>
             <div className="truncate text-gray-600">{a.ra}</div>
             <div className="truncate text-gray-500">{a.box || '-'}</div>
             <div className="truncate text-gray-600">{a.usuario}</div>
             <div className="truncate text-gray-600">{a.role}</div>
-            <div className="truncate text-gray-600">{a.periodo_nome} {a.turno}</div>
+            <div className="truncate text-gray-600">
+              {a.periodo_nome} {a.turno}
+            </div>
             {/* Ações */}
             <div className="flex md:justify-end items-center space-x-2">
               {(role === "recepcao" || role === "aluno") && (
@@ -145,7 +150,11 @@ export default function TelaAlunos() {
               {role === "recepcao" && (
                 <button
                   onClick={() => {
-                    if (window.confirm("Tem certeza que deseja deletar este aluno?")) {
+                    if (
+                      window.confirm(
+                        "Tem certeza que deseja deletar este aluno?"
+                      )
+                    ) {
                       axios
                         .delete(`/api/alunos/${a.id}`, { headers })
                         .then(fetchAlunos);

@@ -333,7 +333,7 @@ export default function DashboardRecepcao() {
               <div className="
                 hidden md:grid md:grid-cols-[50px_50px_1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto_30px] gap-x-4 px-5 py-2 bg-gray-100 rounded-t-xl font-semibold text-gray-600 mb-2
               ">
-                <span className="truncate">#</span>
+                <span className="truncate">*</span>
                 <span className="truncate">Box</span>
                 <span className="truncate">Operador</span>
                 <span className="truncate">Auxiliar</span>

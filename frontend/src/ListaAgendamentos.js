@@ -32,7 +32,7 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
 
     // Recupera token e role do localStorage (ou de onde você armazenou após login)
     const token = localStorage.getItem('token');
-    const role  = localStorage.getItem('role'); // ex: "aluno" ou "recepcao"
+    const role = localStorage.getItem('role'); // ex: "aluno" ou "recepcao"
 
     // Escolhe a URL de listagem conforme o role:
     // - recepcao → lista todos (/api/agendamentos)
@@ -41,7 +41,7 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
       ? '/api/agendamentos'
       : '/api/agendamentos/meus';
 
- 
+
 
     axios.get(url, {
       headers: { Authorization: `Bearer ${token}` }
@@ -55,7 +55,7 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
         setCarregando(false);
       });
   }, [reloadKey]);
-  
+
 
   // Função para filtrar a lista localmente (por texto, data, hora)
   const filtrarAgendamentos = (lista) => {
@@ -79,7 +79,7 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
   const agendamentosFiltrados = filtrarAgendamentos(agendamentos).slice(0, 100);
   const disciplinaNome = agendamentosFiltrados[0]?.disciplinaNome || '';
   //const dataAtual = agendamentosFiltrados[0]?.data
-   // ? agendamentosFiltrados[0].data.slice(0, 10).split('-').reverse().join('/')
+  // ? agendamentosFiltrados[0].data.slice(0, 10).split('-').reverse().join('/')
   //  : '';
   //const semestre = ""; // se for relevante, preencha aqui
 
@@ -147,10 +147,10 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
                 }
               >
                 <svg xmlns="http://www.w3.org/2000/svg"
-                     className="h-6 w-6 text-[#3172C0]"
-                     fill="none"
-                     viewBox="0 0 24 24"
-                     stroke="currentColor"
+                  className="h-6 w-6 text-[#3172C0]"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
                 >
                   <rect x="4" y="6" width="16" height="14" rx="2" strokeWidth="2" stroke="currentColor" fill="white" />
                   <path d="M16 2v4M8 2v4M4 10h16" strokeWidth="2" stroke="currentColor" />
@@ -179,10 +179,10 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
                 }
               >
                 <svg xmlns="http://www.w3.org/2000/svg"
-                     className="h-6 w-6 text-[#3172C0]"
-                     fill="none"
-                     viewBox="0 0 24 24"
-                     stroke="currentColor"
+                  className="h-6 w-6 text-[#3172C0]"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
                 >
                   <circle cx="12" cy="12" r="9" strokeWidth="2" stroke="currentColor" fill="white" />
                   <path d="M12 7v5l3 3" strokeWidth="2" stroke="currentColor" />
@@ -208,17 +208,17 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
                 onClick={handleImprimir}
               >
                 <svg xmlns="http://www.w3.org/2000/svg"
-                     className="h-6 w-6 text-[#3172C0]"
-                     fill="none"
-                     viewBox="0 0 24 24"
-                     stroke="currentColor"
+                  className="h-6 w-6 text-[#3172C0]"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
                 >
                   <rect x="6" y="9" width="12" height="7" rx="2"
-                        strokeWidth="2" stroke="currentColor" fill="white" />
+                    strokeWidth="2" stroke="currentColor" fill="white" />
                   <path d="M6 9V5a2 2 0 012-2h8a2 2 0 012 2v4"
-                        strokeWidth="2" stroke="currentColor" />
+                    strokeWidth="2" stroke="currentColor" />
                   <rect x="9" y="16" width="6" height="4" rx="1"
-                        strokeWidth="2" stroke="currentColor" fill="white" />
+                    strokeWidth="2" stroke="currentColor" fill="white" />
                 </svg>
               </button>
               <span className="absolute z-50 left-1/2 -translate-x-1/2 -top-9 w-max bg-gray-900 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 pointer-events-none transition">
@@ -231,22 +231,29 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
         {/* ==== Lista de Agendamentos ==== */}
         <div className="overflow-x-auto">
           <div className="mt-0 space-y-3">
-            <div className="hidden md:grid grid-cols-8 gap-x-4 px-5 py-2 bg-gray-100 rounded-t-xl font-semibold text-gray-600 mb-2">
+            <div className="hidden md:grid md:grid-cols-[50px_50px_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-x-4 px-5 py-2 bg-gray-100 rounded-t-xl font-semibold text-gray-600 mb-2">
+              <span className="truncate">*</span>
+              <span className="truncate">Box</span>
               <span className="truncate">Operador</span>
               <span className="truncate">Auxiliar</span>
               <span className="truncate">Disciplina</span>
               <span className="truncate">Paciente</span>
               <span className="truncate">Telefone</span>
-              <span className="truncate">Data</span>
-              <span className="truncate">Hora</span>
+              <span className="truncate">Data e Hora</span>
+
               <span className="truncate text-right">Ações</span>
             </div>
 
             {agendamentosFiltrados.map((ag, idx) => (
+              
               <div
                 key={ag.id || idx}
-                className="flex flex-col md:grid md:grid-cols-8 gap-y-1 gap-x-4 items-center bg-gray-50 rounded-xl px-4 md:px-5 py-2 shadow-sm hover:bg-gray-100 transition"
+                className="flex flex-col md:grid md:grid-cols-[50px_50px_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-y-1 gap-x-4 items-center bg-gray-50 rounded-xl px-4 md:px-5 py-2 shadow-sm hover:bg-gray-100 transition"
               >
+                 {/* número da linha */}
+        <div className="text-gray-800 truncate">{idx + 1}</div>
+        {/* box do operador */}
+        <div className="truncate">{ag.operadorBox ?? '-'}</div>
                 <div className="w-full font-medium text-gray-800 truncate">
                   {ag.operadorNome || '-'}
                 </div>
@@ -265,16 +272,12 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
                 <div className="w-full text-gray-800 truncate">
                   {ag.data
                     ? ag.data.slice(0, 10).split('-').reverse().join('/')
-                    : '-'}
-                </div>
-                <div className="w-full text-gray-800 truncate">
-                  {ag.hora || '-'}
+                    : '-'} {ag.hora || '-'}
                 </div>
 
                 <div className="flex flex-row items-center gap-2 w-full md:justify-end">
-                  <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${
-                    STATUS_COLORS[ag.status] || 'bg-gray-200 text-gray-700'
-                  } min-w-[72px] text-center`}>
+                  <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[ag.status] || 'bg-gray-200 text-gray-700'
+                    } min-w-[72px] text-center`}>
                     {STATUS_LABELS[ag.status] || '-'}
                   </span>
                   <button
