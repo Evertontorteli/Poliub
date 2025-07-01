@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useAuth } from "./context/AuthContext";
-
 export default function DashboardAluno() {
   const { user } = useAuth();
   const [agendamentos, setAgendamentos] = useState([]);
