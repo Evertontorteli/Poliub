@@ -7,6 +7,7 @@ export default function DashboardAluno() {
   const [agendamentos, setAgendamentos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCard, setSelectedCard] = useState(null);
+  const [profile, setProfile] = useState(null)
 
   // Mapeamento de cores por status
   const STATUS_STYLES = {
@@ -67,7 +68,7 @@ export default function DashboardAluno() {
       })
     : [];
 
-  const firstName = (user.usuario || "").split(" ")[0];
+  const firstName = user.nome.split(' ')[0];
 
   const cardColors = {
     solicitacoes: "bg-[#DA6C6C]",
@@ -85,7 +86,7 @@ export default function DashboardAluno() {
 
   return (
     <div className="max-w-3xl mx-auto py-10 px-4">
-      <h1 className="text-3xl font-bold mb-8">Olá, {firstName}!</h1>
+      <h1 className="text-3xl font-bold mb-8">Olá, {user.nome}!</h1>
 
       {/* --- CARDS --- */}
       <div className="flex flex-wrap gap-4 mb-8">
