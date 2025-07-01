@@ -56,12 +56,15 @@ function LayoutInterno() {
   useEffect(() => {
     if (user?.role !== 'recepcao') return
 
-    const backendUrl = process.env.REACT_APP_API_URL
+    // pega da env ou fallback pro seu backend em production
+    const backendUrl =
+      process.env.REACT_APP_API_URL ||
+      'https://poliub-novo-ambiente-para-o-backend.up.railway.app'
 
+    // conecta via WebSocket (sem polling) e garante o path correto
     const socket = io(backendUrl, {
-      transports: ['polling'],       // forza XHR-polling only
       path: '/socket.io',
-      
+      transports: ['websocket']
     })
 
     socket.on('connect', () => {
@@ -97,13 +100,13 @@ function LayoutInterno() {
 
   function renderConteudo() {
     switch (active) {
-      case 'dashboard': return <Dashboards />
-      case 'agendar': return <TelaAgendamentos />
+      case 'dashboard':   return <Dashboards />
+      case 'agendar':     return <TelaAgendamentos />
       case 'disciplinas': return <TelaDisciplinas />
-      case 'pacientes': return <TelaPacientes />
-      case 'alunos': return <TelaAlunos />
-      case 'periodos': return <TelaPeriodos />
-      case 'ajuda': return <Ajuda />
+      case 'pacientes':   return <TelaPacientes />
+      case 'alunos':      return <TelaAlunos />
+      case 'periodos':    return <TelaPeriodos />
+      case 'ajuda':       return <Ajuda />
       default:
         return (
           <div>
