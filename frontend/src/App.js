@@ -56,15 +56,12 @@ function LayoutInterno() {
   useEffect(() => {
     if (user?.role !== 'recepcao') return
 
-    // em dev conecta no localhost:3000, em prod usa a variável
-    const backendUrl =
-      process.env.NODE_ENV === 'development'
-        ? 'http://localhost:3000'
-        : process.env.REACT_APP_API_URL
+    const backendUrl = process.env.REACT_APP_API_URL
 
     const socket = io(backendUrl, {
+      transports: ['polling'],       // forza XHR-polling only
       path: '/socket.io',
-      transports: ['websocket', 'polling']
+      
     })
 
     socket.on('connect', () => {
@@ -100,13 +97,13 @@ function LayoutInterno() {
 
   function renderConteudo() {
     switch (active) {
-      case 'dashboard':   return <Dashboards />
-      case 'agendar':     return <TelaAgendamentos />
+      case 'dashboard': return <Dashboards />
+      case 'agendar': return <TelaAgendamentos />
       case 'disciplinas': return <TelaDisciplinas />
-      case 'pacientes':   return <TelaPacientes />
-      case 'alunos':      return <TelaAlunos />
-      case 'periodos':    return <TelaPeriodos />
-      case 'ajuda':       return <Ajuda />
+      case 'pacientes': return <TelaPacientes />
+      case 'alunos': return <TelaAlunos />
+      case 'periodos': return <TelaPeriodos />
+      case 'ajuda': return <Ajuda />
       default:
         return (
           <div>
