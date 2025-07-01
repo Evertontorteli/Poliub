@@ -56,10 +56,15 @@ function LayoutInterno() {
   useEffect(() => {
     if (user?.role !== 'recepcao') return
 
-    const backendUrl = process.env.REACT_APP_API_URL
+    // em dev conecta no localhost:3000, em prod usa a variável
+    const backendUrl =
+      process.env.NODE_ENV === 'development'
+        ? 'http://localhost:3000'
+        : process.env.REACT_APP_API_URL
+
     const socket = io(backendUrl, {
-      transports: ['websocket', 'polling'],
-      upgrade: true
+      path: '/socket.io',
+      transports: ['websocket', 'polling']
     })
 
     socket.on('connect', () => {
@@ -78,15 +83,6 @@ function LayoutInterno() {
       periodo_nome,
       periodo_turno
     }) => {
-      console.log('evento recebido:', {
-        nome_aluno,
-        nome_paciente,
-        data,
-        hora,
-        disciplina_nome,
-        periodo_nome,
-        periodo_turno
-      })
       const [yyyy, mm, dd] = data.slice(0, 10).split('-')
       const dataFmt = `${dd}/${mm}/${yyyy}`
 
