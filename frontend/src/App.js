@@ -52,12 +52,22 @@ function LayoutInterno() {
   const [active, setActive] = useState('dashboard')
   const { user } = useAuth()
 
-  // <-- INÍCIO da adição: criar socket só para recepção
+  // ←──  Bloco de socket apenas para recepção  ──→
   useEffect(() => {
     if (user?.role !== 'recepcao') return
 
     const backendUrl = process.env.REACT_APP_API_URL
-    const socket = io(backendUrl)
+    const socket = io(backendUrl, {
+      transports: ['websocket', 'polling'],
+      upgrade: true
+    })
+
+    socket.on('connect', () => {
+      console.log('🔌 socket conectado:', socket.id)
+    })
+    socket.on('connect_error', (err) => {
+      console.error('❌ socket connect error:', err)
+    })
 
     socket.on('novoAgendamentoRecepcao', ({
       nome_aluno,
@@ -68,6 +78,15 @@ function LayoutInterno() {
       periodo_nome,
       periodo_turno
     }) => {
+      console.log('evento recebido:', {
+        nome_aluno,
+        nome_paciente,
+        data,
+        hora,
+        disciplina_nome,
+        periodo_nome,
+        periodo_turno
+      })
       const [yyyy, mm, dd] = data.slice(0, 10).split('-')
       const dataFmt = `${dd}/${mm}/${yyyy}`
 
@@ -77,9 +96,11 @@ function LayoutInterno() {
       )
     })
 
-    return () => socket.disconnect()
+    return () => {
+      socket.disconnect()
+    }
   }, [user])
-  // <-- FIM da adição
+  // ←─────────────────────────────────────────────→
 
   function renderConteudo() {
     switch (active) {
