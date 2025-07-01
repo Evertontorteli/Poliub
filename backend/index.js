@@ -18,9 +18,29 @@ const io = new Server(server, {
 // expõe o io para outros módulos via app.get('io')
 app.set('io', io);
 
-// 1) Conecta ao banco
+// ─── Bloco de presence e identificação ───
+const onlineUsers = new Map();
+io.on('connection', (socket) => {
+  // quando o cliente se identifica (após login)
+  socket.on('identify', (user) => {
+    socket.user = user;
+    onlineUsers.set(user.id, user);
+    io.emit('onlineUsers', Array.from(onlineUsers.values()));
+  });
+
+  // quando desconecta, remove do mapa
+  socket.on('disconnect', () => {
+    if (socket.user) {
+      onlineUsers.delete(socket.user.id);
+      io.emit('onlineUsers', Array.from(onlineUsers.values()));
+    }
+  });
+});
+// ──────────────────────────────────────────
+
 (async () => {
   try {
+    // 1) Conecta ao banco
     const pool = await initDb();
     app.locals.db = pool;
 

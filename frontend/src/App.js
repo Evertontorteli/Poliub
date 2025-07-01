@@ -45,23 +45,54 @@ function Dashboards() {
 }
 
 /**
- * LayoutInterno exibe Header, Sidebar/BottomNavBar e o conteúdo
- * de acordo com o menu ativo, além de tratar a notificação
+ * LayoutInterno exibe Header, Sidebar/BottomNavBar e troca o conteúdo,
+ * além de tratar:
+ *  1) notificações de agendamento (socket `'novoAgendamentoRecepcao'`)
+ *  2) presença online (socket `'onlineUsers'`)
  */
 function LayoutInterno() {
   const [active, setActive] = useState('dashboard')
   const { user } = useAuth()
+  const [onlineUsers, setOnlineUsers] = useState([])
 
-  // ←──  Bloco de socket apenas para recepção  ──→
+  // 1) PRESENÇA: informa quem sou e recebe lista de onlineUsers
+  useEffect(() => {
+    if (!user) return
+
+    const backendUrl = process.env.REACT_APP_API_URL ||
+      'https://poliub-novo-ambiente-para-o-backend.up.railway.app'
+
+    const presSocket = io(backendUrl, {
+      path: '/socket.io',
+      transports: ['websocket']
+    })
+
+    presSocket.on('connect', () => {
+      presSocket.emit('identify', {
+        id:         user.id,
+        nome:       user.nome,
+        avatar_url: user.avatar_url
+      })
+    })
+    presSocket.on('onlineUsers', lista => {
+      setOnlineUsers(lista)
+    })
+    presSocket.on('connect_error', err => {
+      console.error('❌ presenca connect error:', err)
+    })
+
+    return () => {
+      presSocket.disconnect()
+    }
+  }, [user])
+
+  // 2) NOTIFICAÇÕES: só recepção ouve evento de novo agendamento
   useEffect(() => {
     if (user?.role !== 'recepcao') return
 
-    // pega da env ou fallback pro seu backend em production
-    const backendUrl =
-      process.env.REACT_APP_API_URL ||
+    const backendUrl = process.env.REACT_APP_API_URL ||
       'https://poliub-novo-ambiente-para-o-backend.up.railway.app'
 
-    // conecta via WebSocket (sem polling) e garante o path correto
     const socket = io(backendUrl, {
       path: '/socket.io',
       transports: ['websocket']
@@ -70,7 +101,7 @@ function LayoutInterno() {
     socket.on('connect', () => {
       console.log('🔌 socket conectado:', socket.id)
     })
-    socket.on('connect_error', (err) => {
+    socket.on('connect_error', err => {
       console.error('❌ socket connect error:', err)
     })
 
@@ -96,7 +127,6 @@ function LayoutInterno() {
       socket.disconnect()
     }
   }, [user])
-  // ←─────────────────────────────────────────────→
 
   function renderConteudo() {
     switch (active) {
@@ -118,23 +148,19 @@ function LayoutInterno() {
 
   return (
     <div className="bg-white min-h-screen">
-      <Header />
+      {/* Passa a lista de usuários online pro Header */}
+      <Header onlineUsers={onlineUsers} />
 
       <div className="flex">
-        {/* Desktop sidebar */}
         <div className="hidden md:block">
           <Sidebar active={active} onMenuClick={setActive} />
         </div>
-
-        {/* Main content */}
         <main className="flex-1 ml-0 md:ml-64 mt-16 p-8 h-[calc(100vh-64px)] overflow-y-auto">
           <div className="mx-auto">
             {renderConteudo()}
           </div>
         </main>
       </div>
-
-      {/* Mobile bottom nav */}
       <BottomNavBar active={active} onMenuClick={setActive} />
     </div>
   )
@@ -148,7 +174,6 @@ function LoginWrapper() {
   const navigate = useNavigate()
 
   function onLoginHandler(dadosDoLogin) {
-    // { token, usuario, role }
     login(dadosDoLogin)
     navigate('/', { replace: true })
   }
@@ -165,18 +190,15 @@ export default function App() {
       <Router>
         <ToastContainer
           position="top-right"
-          autoClose={60000}   // fica até o usuário fechar
-          closeOnClick       // fecha ao clicar no X
-          pauseOnHover       // pausa ao passar o mouse
-          draggable={false}  // impede arrastar para descartar
+          autoClose={60000}
+          closeOnClick
+          pauseOnHover
+          draggable={false}
         />
 
         <Routes>
-          {/* Pública */}
           <Route path="/login" element={<LoginWrapper />} />
           <Route path="/print-agendamentos" element={<PrintAgendamentos />} />
-
-          {/* Tudo aqui dentro exige login */}
           <Route
             path="/*"
             element={
@@ -185,8 +207,6 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-
-          {/* Fallback */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </Router>
