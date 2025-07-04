@@ -9,6 +9,10 @@ const {
   apenasRecepcaoOuProprioAluno
 } = require('../middlewares/authMiddleware');
 
+// 1) Buscar aluno por PIN (aberto)
+router.get('/pin/:pin', alunoController.buscarPorPin);
+
+
 // → Novas rotas para o próprio aluno
 // GET  /api/alunos/me     → retorna os dados do aluno logado
 // PUT  /api/alunos/me     → atualiza os dados do aluno logado

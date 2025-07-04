@@ -19,6 +19,12 @@ import TelaAlunos from './components/TelaAlunos'
 import TelaPacientes from './components/TelaPacientes'
 import TelaDisciplinas from './components/TelaDisciplinas'
 import TelaAgendamentos from './components/TelaAgendamentos'
+import TelaEsterilizacao from './components/TelaEsterilizacao'  // ← aqui
+import TelaCaixas from './components/TelaCaixas'
+import TelaDashboardEsterilizacao from './components/TelaDashboardEsterilizacao'
+
+
+
 
 import DashboardAluno from './DashboardAluno'
 import DashboardRecepcao from './DashboardRecepcao'
@@ -47,15 +53,15 @@ function Dashboards() {
 /**
  * LayoutInterno exibe Header, Sidebar/BottomNavBar e troca o conteúdo,
  * além de tratar:
- *  1) notificações de agendamento (socket `'novoAgendamentoRecepcao'`)
- *  2) presença online (socket `'onlineUsers'`)
+ *  1) notificações de agendamento (socket 'novoAgendamentoRecepcao')
+ *  2) presença online (socket 'onlineUsers')
  */
 function LayoutInterno() {
   const [active, setActive] = useState('dashboard')
   const { user } = useAuth()
   const [onlineUsers, setOnlineUsers] = useState([])
 
-  // 1) PRESENÇA: informa quem sou e recebe lista de onlineUsers
+  // 1) PRESENÇA: identifica e ouve 'onlineUsers'
   useEffect(() => {
     if (!user) return
 
@@ -67,27 +73,24 @@ function LayoutInterno() {
       transports: ['websocket']
     })
 
-    presSocket.on('connect', () => {
+    presSocket.on('connect', () =>
       presSocket.emit('identify', {
-        id:         user.id,
-        nome:       user.nome,
+        id: user.id,
+        nome: user.nome,
         avatar_url: user.avatar_url
       })
-    })
-    presSocket.on('onlineUsers', lista => {
-      // remove o próprio usuário da lista antes de guardar
-  setOnlineUsers(lista.filter(u => u.id !== user.id))
-    })
-    presSocket.on('connect_error', err => {
+    )
+    presSocket.on('onlineUsers', lista =>
+      setOnlineUsers(lista.filter(u => u.id !== user.id))
+    )
+    presSocket.on('connect_error', err =>
       console.error('❌ presenca connect error:', err)
-    })
+    )
 
-    return () => {
-      presSocket.disconnect()
-    }
+    return () => presSocket.disconnect()
   }, [user])
 
-  // 2) NOTIFICAÇÕES: só recepção ouve evento de novo agendamento
+  // 2) NOTIFICAÇÕES: só 'recepcao' escuta novo agendamento
   useEffect(() => {
     if (user?.role !== 'recepcao') return
 
@@ -99,13 +102,12 @@ function LayoutInterno() {
       transports: ['websocket']
     })
 
-    socket.on('connect', () => {
+    socket.on('connect', () =>
       console.log('🔌 socket conectado:', socket.id)
-    })
-    socket.on('connect_error', err => {
+    )
+    socket.on('connect_error', err =>
       console.error('❌ socket connect error:', err)
-    })
-
+    )
     socket.on('novoAgendamentoRecepcao', ({
       nome_aluno,
       nome_paciente,
@@ -124,20 +126,21 @@ function LayoutInterno() {
       )
     })
 
-    return () => {
-      socket.disconnect()
-    }
+    return () => socket.disconnect()
   }, [user])
 
   function renderConteudo() {
     switch (active) {
-      case 'dashboard':   return <Dashboards />
-      case 'agendar':     return <TelaAgendamentos />
+      case 'dashboard': return <Dashboards />
+      case 'agendar': return <TelaAgendamentos />
       case 'disciplinas': return <TelaDisciplinas />
-      case 'pacientes':   return <TelaPacientes />
-      case 'alunos':      return <TelaAlunos />
-      case 'periodos':    return <TelaPeriodos />
-      case 'ajuda':       return <Ajuda />
+      case 'pacientes': return <TelaPacientes />
+      case 'alunos': return <TelaAlunos />
+      case 'periodos': return <TelaPeriodos />
+      case 'esterilizacao': return <TelaEsterilizacao />   // ← case existente
+      case 'caixas': return <TelaCaixas />   // ← case existente
+      case 'dashboard-esterilizacao':     return <TelaDashboardEsterilizacao />
+      case 'ajuda': return <Ajuda />
       default:
         return (
           <div>
@@ -149,9 +152,7 @@ function LayoutInterno() {
 
   return (
     <div className="bg-white min-h-screen">
-      {/* Passa a lista de usuários online pro Header */}
       <Header onlineUsers={onlineUsers} />
-
       <div className="flex">
         <div className="hidden md:block">
           <Sidebar active={active} onMenuClick={setActive} />
@@ -191,7 +192,7 @@ export default function App() {
       <Router>
         <ToastContainer
           position="top-right"
-          autoClose={60000}
+          autoClose={3000}
           closeOnClick
           pauseOnHover
           draggable={false}

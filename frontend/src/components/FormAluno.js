@@ -16,6 +16,7 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
   const [periodoId, setPeriodoId] = useState('');
   const [usuario, setUsuario] = useState('');
   const [senha, setSenha] = useState('');
+  const [pin, setPin] = useState(alunoEditando?.pin || '');  // novo estado para o PIN
   const [showSenha, setShowSenha] = useState(false);
   const [role, setRole] = useState('aluno');
   const [mensagem, setMensagem] = useState('');
@@ -37,13 +38,14 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
       setPeriodoId(String(alunoEditando.periodo_id || ''));
       setUsuario(alunoEditando.usuario || '');
       setRole(alunoEditando.role || 'aluno');
+      setPin(alunoEditando.pin || '');  // carrega o PIN existente
       // preencher senha com o valor vindo do backend
       setSenha(alunoEditando.senha || '');
       setShowSenha(false);
       axios.get(`/api/boxes/${alunoEditando.id}`, { headers })
         .then(res => {
           if (res.data.length) {
-            setBox(String(res.data[0].conteudo).slice(0,3));
+            setBox(String(res.data[0].conteudo).slice(0, 3));
             setBoxId(res.data[0].id);
           } else {
             setBox(''); setBoxId(null);
@@ -57,7 +59,7 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
     }
   }, [alunoEditando, token]);
 
-  const validarNome = n => n.trim().split(' ').filter(p => p.length>=2).length>=2;
+  const validarNome = n => n.trim().split(' ').filter(p => p.length >= 2).length >= 2;
   const validarRA = r => /^\d{1,9}$/.test(r);
 
   const handleSubmit = e => {
@@ -68,7 +70,7 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
     if (!alunoEditando && senha.length < 4) return setMensagem('Senha mínimo 4 chars!');
     if (!periodoId) return setMensagem('Selecione período!');
 
-    const alunoData = { nome, ra, periodo_id: periodoId, usuario, senha, role };
+    const alunoData = { nome, ra, periodo_id: periodoId, usuario, senha, role, pin };
 
     if (alunoEditando) {
       const payload = { ...alunoData };
@@ -121,7 +123,7 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
             className="w-full border rounded px-3 py-2"
             value={ra}
             maxLength={9}
-            onChange={e => setRa(e.target.value.replace(/\D/g,'').slice(0,9))}
+            onChange={e => setRa(e.target.value.replace(/\D/g, '').slice(0, 9))}
             required
           />
         </div>
@@ -132,7 +134,7 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
             className="w-full border rounded px-3 py-2"
             value={box}
             maxLength={3}
-            onChange={e => setBox(e.target.value.replace(/\D/g,'').slice(0,3))}
+            onChange={e => setBox(e.target.value.replace(/\D/g, '').slice(0, 3))}
           />
         </div>
       </div>
@@ -188,6 +190,20 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
         </div>
       </div>
 
+      {/* PIN */}
+      <div>
+        <label className="block mb-1 font-medium">PIN (4 dígitos)</label>
+        <input
+          type="text"
+          maxLength={4}
+          className="w-full border rounded px-3 py-2"
+          value={pin}
+          onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+          required
+        />
+      </div>
+
+
       {/* Permissão */}
       <div>
         <label className="block mb-1 font-medium">Permissão</label>
@@ -200,6 +216,7 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
           <option value="recepcao">Recepção</option>
         </select>
       </div>
+
 
       {/* Mensagem de feedback */}
       {mensagem && (

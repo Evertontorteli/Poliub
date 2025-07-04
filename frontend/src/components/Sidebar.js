@@ -9,6 +9,8 @@ import {
   Mail,
   Settings,
   HelpCircle,
+  Box,              // importe o ícone de caixa
+  PieChart,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
@@ -41,7 +43,7 @@ export default function Sidebar({ active, onMenuClick }) {
           onClick={() => onMenuClick("pacientes")}
         />
 
-        {/* hide these four for aluno, everywhere */}
+        {/* hide these four for aluno */}
         {role !== "aluno" && (
           <>
             <MenuItem
@@ -63,6 +65,27 @@ export default function Sidebar({ active, onMenuClick }) {
               label="Períodos"
               active={active === "periodos"}
               onClick={() => onMenuClick("periodos")}
+            />
+
+            <MenuItem
+              icon={<PieChart size={24} />}
+              label="Painel Esterilização"
+              active={active === "dashboard-esterilizacao"}
+              onClick={() => onMenuClick("dashboard-esterilizacao")}
+            />
+
+            <MenuItem
+              icon={<Box size={24} />}        // importe Box de lucide-react
+              label="Caixas"
+              active={active === "caixas"}
+              onClick={() => onMenuClick("caixas")}
+            />
+            {/* Novo item Esterilização */}
+            <MenuItem
+              icon={<Box size={24} />}
+              label="Esterilização"
+              active={active === "esterilizacao"}
+              onClick={() => onMenuClick("esterilizacao")}
             />
           </>
         )}
@@ -94,11 +117,10 @@ function MenuItem({ icon, label, active, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-3 w-full py-3 px-4 rounded-full text-base transition-all ${
-        active
-          ? "bg-[#D9E0FF] text-[#23263A]"
-          : "text-[#23263A] hover:bg-gray-100"
-      }`}
+      className={`flex items-center gap-3 w-full py-3 px-4 rounded-full text-base transition-all ${active
+        ? "bg-[#D9E0FF] text-[#23263A]"
+        : "text-[#23263A] hover:bg-gray-100"
+        }`}
       style={{
         boxShadow: active
           ? "0px 2px 8px rgba(100, 116, 139, 0.08)"

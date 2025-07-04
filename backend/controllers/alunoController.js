@@ -2,11 +2,23 @@
 
 const Aluno = require('../models/alunoModel');
 const bcrypt = require('bcryptjs');
-const db = require('../database'); // para consultas diretas quando preciso validar propriedade
+const { getConnection } = require('../database'); // para consultas diretas quando preciso validar propriedade
 
 
-// -> logo abaixo dos outros requires:
-const { getConnection } = require('../database');
+exports.buscarPorPin = async (req, res) => {
+  try {
+    const { pin } = req.params;
+    const aluno = await Aluno.buscarPorPin(pin);
+    if (!aluno) {
+      return res.status(404).json({ error: 'Aluno não encontrado' });
+    }
+    // devolve { id, nome, … } para o front poder usar aluno.nome
+    res.json(aluno);
+  } catch (err) {
+    console.error('Erro ao buscar aluno por PIN:', err);
+    res.status(500).json({ error: 'Erro ao buscar aluno' });
+  }
+};
 
 
 /**
@@ -26,11 +38,10 @@ exports.listarAlunos = async (req, res) => {
 
 /**
  * 2) BUSCAR DADOS DO PRÓPRIO ALUNO
- *    → apenas aluno (verificado na rota /me), usa req.user.id
  */
 exports.buscarMeuCadastro = async (req, res) => {
   try {
-    const id = req.user.id; // já vem do token
+    const id = req.user.id;
     const aluno = await Aluno.buscarPorId(id);
     if (!aluno) {
       return res.status(404).json({ error: 'Aluno não encontrado' });
@@ -45,16 +56,13 @@ exports.buscarMeuCadastro = async (req, res) => {
 
 /**
  * 3) BUSCAR ALUNO POR ID 
- *    → recepção ou próprio aluno
  */
 exports.buscarAlunoPorId = async (req, res) => {
   const { id } = req.params;
   try {
-    // Se for aluno, só pode ver o próprio
     if (req.user.role === 'aluno' && String(req.user.id) !== String(id)) {
       return res.status(403).json({ error: 'Não autorizado a visualizar este aluno.' });
     }
-    // Recepção ou próprio → busca normalmente
     const aluno = await Aluno.buscarPorId(id);
     if (!aluno) {
       return res.status(404).json({ error: 'Aluno não encontrado' });
@@ -66,6 +74,7 @@ exports.buscarAlunoPorId = async (req, res) => {
     return res.status(500).json({ error: 'Erro ao buscar aluno' });
   }
 };
+
 // → busca os dados do próprio aluno
 exports.buscarAlunoLogado = async (req, res) => {
   try {
@@ -80,9 +89,7 @@ exports.buscarAlunoLogado = async (req, res) => {
 
 // → atualiza o próprio aluno (reusa a lógica de atualizarAluno)
 exports.atualizarAlunoLogado = async (req, res) => {
-  // força o id do params para o do usuário logado
   req.params.id = req.user.id;
-  // chama o handler existente de atualização
   return exports.atualizarAluno(req, res);
 };
 
@@ -100,30 +107,32 @@ exports.buscarPerfil = async (req, res) => {
 };
 
 /**
- * 4) CRIAR NOVO ALUNO (sign‐up ou admin recepção)
- *    → aberto (nem exige token). Qualquer um pode se cadastrar.
+ * 4) CRIAR NOVO ALUNO
  */
 exports.criarAluno = async (req, res) => {
-  const { nome, ra, periodo_id, usuario, senha, role } = req.body;
-  if (!nome || !ra || !usuario || !senha) {
+  const { nome, ra, periodo_id, usuario, senha, role, pin } = req.body;
+
+  // valida campos obrigatórios
+  if (!nome || !ra || !usuario || !senha || !pin) {
     return res.status(400).json({ error: 'Campos obrigatórios faltando.' });
   }
-  // Se vier role='recepcao' e quem está chamando não for recepção, ignora role e força 'aluno'
+  // valida PIN de 4 dígitos
+  if (!/^\d{4}$/.test(pin)) {
+    return res.status(400).json({ error: 'PIN deve ter exatamente 4 dígitos.' });
+  }
+
   let papel;
   if (req.user && req.user.role === 'recepcao' && role === 'recepcao') {
-    // Recepção cadastrando outro recepção ou aluno: permitee
     papel = 'recepcao';
   } else {
     papel = 'aluno';
   }
 
   try {
-    // Verifica se usuário já existe
     const existente = await Aluno.buscarPorUsuario(usuario);
     if (existente) {
       return res.status(400).json({ error: 'Usuário já existe.' });
     }
-    // Gera hash da senha
     const salt = await bcrypt.genSalt(10);
     const senhaHash = await bcrypt.hash(senha, salt);
     const novoId = await Aluno.inserir({
@@ -132,6 +141,7 @@ exports.criarAluno = async (req, res) => {
       periodo_id,
       usuario,
       senhaHash,
+      pin,         // novo campo
       role: papel
     });
     return res.status(201).json({
@@ -140,6 +150,7 @@ exports.criarAluno = async (req, res) => {
       ra,
       periodo_id,
       usuario,
+      pin,         // devolve também
       role: papel
     });
   } catch (err) {
@@ -150,54 +161,47 @@ exports.criarAluno = async (req, res) => {
 
 /**
  * 5) ATUALIZAR ALUNO
- *    → recepção pode atualizar qualquer um
- *    → aluno só pode atualizar o próprio cadastro
  */
 exports.atualizarAluno = async (req, res) => {
   const { id } = req.params;
-  const { nome, ra, periodo_id, usuario, senha, role } = req.body;
+  const { nome, ra, periodo_id, usuario, senha, role, pin } = req.body;
 
-  // Validações mínimas
-  if (!nome || !ra || !usuario) {
+  if (!nome || !ra || !usuario || !pin) {
     return res.status(400).json({ error: 'Campos obrigatórios faltando.' });
+  }
+  if (!/^\d{4}$/.test(pin)) {
+    return res.status(400).json({ error: 'PIN deve ter exatamente 4 dígitos.' });
   }
 
   try {
-    // Se for ALUNO, verifica propriedade
-    if (req.user.role === 'aluno') {
-      if (String(req.user.id) !== String(id)) {
-        return res.status(403).json({ error: 'Não autorizado a editar este cadastro.' });
-      }
+    if (req.user.role === 'aluno' && String(req.user.id) !== String(id)) {
+      return res.status(403).json({ error: 'Não autorizado a editar este cadastro.' });
     }
 
-    // Define o papel que será salvo:
     let papel;
     if (req.user.role === 'aluno') {
-      // Aluno nunca pode alterar o próprio role para 'recepcao'
       papel = 'aluno';
     } else {
-      // Recepção pode definir qualquer role (aluno ou recepção)
       papel = role === 'recepcao' ? 'recepcao' : 'aluno';
     }
 
-    // Se enviou senha, gera hash, senão deixa null para não mudar
     let senhaHash = null;
     if (senha && senha.trim() !== '') {
       const salt = await bcrypt.genSalt(10);
       senhaHash = await bcrypt.hash(senha, salt);
     }
 
-    // Atualiza no banco
     await Aluno.atualizar(id, {
       nome,
       ra,
       periodo_id,
       usuario,
       senhaHash,
+      pin,    // atualiza também
       role: papel
     });
 
-    return res.json({ id, nome, ra, periodo_id, usuario, role: papel });
+    return res.json({ id, nome, ra, periodo_id, usuario, pin, role: papel });
   } catch (err) {
     console.error("Erro ao atualizar aluno:", err);
     return res.status(500).json({ error: 'Não foi possível atualizar o aluno.' });
@@ -219,17 +223,14 @@ exports.deletarAluno = async (req, res) => {
 };
 
 exports.listarPorPeriodo = async (req, res) => {
-  const periodoId = req.user.periodo_id;               // vindo do AuthContext / JWT
+  const periodoId = req.user.periodo_id;
   let conn;
-
   try {
     conn = await getConnection();
-
     const [alunos] = await conn.query(
       'SELECT id, nome FROM alunos WHERE periodo_id = ?',
       [periodoId]
     );
-
     return res.json(alunos);
   } catch (err) {
     console.error('Erro ao listar alunos por período:', err);
@@ -241,4 +242,3 @@ exports.listarPorPeriodo = async (req, res) => {
     if (conn) await conn.release();
   }
 };
-

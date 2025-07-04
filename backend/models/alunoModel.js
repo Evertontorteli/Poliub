@@ -1,9 +1,9 @@
-const pool = require('../database'); // assume que este arquivo exporta um pool mysql2/promise
+// backend/models/alunoModel.js
+const pool = require('../database'); // seu pool mysql2/promise
 
 const Aluno = {
   /**
-   * Retorna uma lista de todos os alunos, incluindo o campo `periodo_id`,
-   * além do `periodo_nome` e `turno` vindos do JOIN com periodos.
+   * Lista todos os alunos, agora incluindo o campo `pin`
    */
   listarTodos: async () => {
     const conn = await pool.getConnection();
@@ -14,6 +14,7 @@ const Aluno = {
         a.ra,
         a.usuario,
         a.role,
+        a.pin,
         a.periodo_id,
         p.nome     AS periodo_nome,
         p.turno    AS periodo_turno
@@ -23,28 +24,24 @@ const Aluno = {
       ORDER BY a.nome
     `);
     conn.release();
-    return rows; 
-    // cada item virá com: { id, nome, ra, usuario, role, periodo_id, periodo_nome, periodo_turno }
+    return rows;
   },
 
   /**
-   * Busca um aluno pelo usuário de login.
-   * Retorna undefined se não encontrar.
+   * Busca por usuário de login (incluindo pin, caso precise)
    */
   buscarPorUsuario: async (usuario) => {
     const conn = await pool.getConnection();
     const [rows] = await conn.execute(
-      'SELECT * FROM alunos WHERE usuario = ?', 
+      'SELECT * FROM alunos WHERE usuario = ?',
       [usuario]
     );
     conn.release();
-    return rows[0]; // ou undefined
+    return rows[0];
   },
 
   /**
-   * Busca um único aluno pelo ID, incluindo `periodo_id`, `usuario`, `role` etc.
-   * Bom para quando precisar de dados individuais (por exemplo, em "Perfil" ou 
-   * em uma chamada GET /api/alunos/:id).
+   * Busca um aluno por ID (incluindo pin)
    */
   buscarPorId: async (id) => {
     const conn = await pool.getConnection();
@@ -55,6 +52,7 @@ const Aluno = {
          a.ra,
          a.usuario,
          a.role,
+         a.pin,
          a.periodo_id,
          p.nome AS periodo_nome,
          p.turno AS periodo_turno
@@ -64,40 +62,40 @@ const Aluno = {
       [id]
     );
     conn.release();
-    return rows[0]; // ou undefined
+    return rows[0];
   },
 
   /**
-   * Insere um novo aluno e devolve o insertId.
-   * Espera que `dados.senhaHash` já venha do controller (com bcrypt).
+   * Insere um novo aluno, agora recebendo também `pin`
+   * (espera que o controller te passe dados.pin já validado)
    */
   inserir: async (dados) => {
     const conn = await pool.getConnection();
     const [result] = await conn.execute(
       `INSERT INTO alunos 
-         (nome, ra, periodo_id, usuario, senha, role) 
-       VALUES (?, ?, ?, ?, ?, ?)`,
+         (nome, ra, periodo_id, usuario, senha, role, pin) 
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         dados.nome,
         dados.ra,
         dados.periodo_id,
         dados.usuario,
         dados.senhaHash,
-        dados.role
+        dados.role,
+        dados.pin
       ]
     );
     conn.release();
-    return result.insertId; 
+    return result.insertId;
   },
 
   /**
-   * Atualiza um aluno existente. Se `dados.senhaHash` for nulo, não atualiza a coluna senha.
-   * Caso contrário, atualiza todos os campos, incluindo a senha.
+   * Atualiza um aluno, agora permitindo atualizar também o pin
    */
   atualizar: async (id, dados) => {
     const conn = await pool.getConnection();
-
     if (dados.senhaHash) {
+      // atualiza senha e pin
       await conn.execute(
         `UPDATE alunos SET
            nome       = ?, 
@@ -105,7 +103,8 @@ const Aluno = {
            periodo_id = ?, 
            usuario    = ?, 
            senha      = ?, 
-           role       = ?
+           role       = ?,
+           pin        = ?
          WHERE id = ?`,
         [
           dados.nome,
@@ -114,17 +113,20 @@ const Aluno = {
           dados.usuario,
           dados.senhaHash,
           dados.role,
+          dados.pin,
           id
         ]
       );
     } else {
+      // sem alterar a senha, mas atualiza o pin
       await conn.execute(
         `UPDATE alunos SET
            nome       = ?, 
            ra         = ?, 
            periodo_id = ?, 
            usuario    = ?, 
-           role       = ?
+           role       = ?,
+           pin        = ?
          WHERE id = ?`,
         [
           dados.nome,
@@ -132,16 +134,16 @@ const Aluno = {
           dados.periodo_id,
           dados.usuario,
           dados.role,
+          dados.pin,
           id
         ]
       );
     }
-
     conn.release();
   },
 
   /**
-   * Deleta um aluno pelo ID.
+   * Deleta um aluno
    */
   deletar: async (id) => {
     const conn = await pool.getConnection();
@@ -150,6 +152,19 @@ const Aluno = {
       [id]
     );
     conn.release();
+  },
+
+  /**
+   * Busca um aluno pelo PIN (retorna id e nome)
+   */
+  buscarPorPin: async (pin) => {
+    const conn = await pool.getConnection();
+    const [rows] = await conn.execute(
+      'SELECT id, nome FROM alunos WHERE pin = ?', 
+      [pin]
+    );
+    conn.release();
+    return rows[0] || null;
   }
 };
 
