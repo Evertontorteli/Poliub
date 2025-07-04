@@ -23,9 +23,8 @@ axios.interceptors.response.use(
   response => response,
   error => {
     if (error.response?.status === 401) {
-      // token expirado ou inválido: desloga e leva ao login
       localStorage.removeItem('token');
-      window.location.href = '/#/login';  // se estiver usando HashRouter
+      window.location.href = '/#/login';
     }
     return Promise.reject(error);
   }

@@ -1,15 +1,15 @@
 require('dotenv').config();
 const express = require('express');
-const cors    = require('cors');
+const cors = require('cors');
 const authRouter = require('./routes/auth');
 const { initDb, getConnection } = require('./database');
 const boxRoutes = require('./routes/boxRoutes');
 
-const app  = express();
+const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Cria o HTTP server e o Socket.IO em cima dele
-const http   = require('http');
+const http = require('http');
 const server = http.createServer(app);
 const { Server } = require('socket.io');
 const io = new Server(server, {
@@ -57,10 +57,16 @@ io.on('connection', (socket) => {
     app.use('/api/agendamentos', require('./routes/agendamentoRoutes'));
     app.use('/api/periodos', require('./routes/periodosRoutes'));
     app.use('/api/boxes', boxRoutes);
+    // Movimentações de esterilização
+    app.use('/api/movimentacoes', require('./routes/movimentacaoRoutes'));
+    app.use('/api/caixas', require('./routes/caixaRoutes'));
+    
+
+
 
     app.get('/health-db', async (_req, res) => {
       try {
-        const conn   = await getConnection();
+        const conn = await getConnection();
         const [rows] = await conn.query('SELECT 1 AS ok');
         conn.release();
         res.json({ db: rows[0].ok });
