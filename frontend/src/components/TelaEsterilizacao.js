@@ -17,6 +17,7 @@ export default function TelaEsterilizacao() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterDate, setFilterDate] = useState('')
   const datePickerRef = useRef(null)
+  const [lastProcessedCaixas, setLastProcessedCaixas] = useState([])
 
   const BADGE_STYLES = [
     'bg-blue-100 text-blue-800',
