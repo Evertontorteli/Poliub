@@ -215,7 +215,7 @@ export default function TelaEsterilizacao() {
           />
           <button
             onClick={buscarCaixa}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full"
+            className="bg-[#1A1C2C] hover:bg-[#3B4854] text-white font-bold py-2 px-6 rounded-full"
           >
             Adicionar
           </button>
@@ -266,7 +266,7 @@ export default function TelaEsterilizacao() {
             />
             <button
               onClick={validarPin}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-full"
+              className="bg-[#1A1C2C] hover:bg-[#3B4854] text-white font-bold py-2 px-6 rounded-full"
             >
               Validar PIN
             </button>
