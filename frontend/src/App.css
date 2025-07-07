@@ -13,4 +13,5 @@
     color: #000 !important;
     background: #fff !important;
   }
+  .no-print { display: none !important; }
 }
