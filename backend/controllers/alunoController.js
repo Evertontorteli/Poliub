@@ -6,17 +6,38 @@ const { getConnection } = require('../database'); // para consultas diretas quan
 
 
 exports.buscarPorPin = async (req, res) => {
+  const { pin } = req.params;
+  let conn;
   try {
-    const { pin } = req.params;
-    const aluno = await Aluno.buscarPorPin(pin);
-    if (!aluno) {
-      return res.status(404).json({ error: 'Aluno não encontrado' });
+    conn = await getConnection();
+
+    // já traz o nome do período via JOIN
+    const [rows] = await conn.execute(
+      `SELECT 
+         a.id,
+         a.nome,
+         a.ra,
+         a.pin,
+         a.periodo_id,
+         p.nome AS periodo
+       FROM alunos a
+       LEFT JOIN periodos p ON p.id = a.periodo_id
+       WHERE a.pin = ?`,
+      [pin]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Aluno não encontrado.' });
     }
-    // devolve { id, nome, … } para o front poder usar aluno.nome
-    res.json(aluno);
+
+    // devolve um objeto com { id, nome, ra, pin, periodo_id, periodo }
+    res.json(rows[0]);
+
   } catch (err) {
     console.error('Erro ao buscar aluno por PIN:', err);
     res.status(500).json({ error: 'Erro ao buscar aluno' });
+  } finally {
+    if (conn) await conn.release();
   }
 };
 
