@@ -2,26 +2,36 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import axios from 'axios'
 import { toast } from 'react-toastify'
-import { QrCode, Box, CheckCircle } from 'lucide-react'
+import { Box, CheckCircle } from 'lucide-react'
 import { subDays } from 'date-fns'
+import Barcode from 'react-barcode'
 import Etiqueta from './Etiqueta'
-import { QRCodeSVG as QRCode } from 'qrcode.react'
 
 export default function TelaEsterilizacao() {
   // Wizard
   const [step, setStep] = useState(1)
   const [operation, setOperation] = useState(null) // 'entrada' ou 'saida'
 
-  // Dados
+  // Dados principais
   const [codigo, setCodigo] = useState('')
   const [allCaixas, setAllCaixas] = useState([])
   const [caixas, setCaixas] = useState([])
   const [alunoPin, setAlunoPin] = useState('')
   const [alunoNome, setAlunoNome] = useState('')
   const [pinValidated, setPinValidated] = useState(false)
-  const [historico, setHistorico] = useState([])    // usado só para validar saída
+  const [alunoId, setAlunoId] = useState('')           // novo: armazena o ID do aluno
+  const [alunoPeriodo, setAlunoPeriodo] = useState('')
+  const avancarButtonRef = useRef(null)
+  const caixaInputRef = useRef(null)
+
+
+
+
+  // Histórico completo do aluno (para cálculo de estoque)
+  const [fullHistory, setFullHistory] = useState([])
+
   const [printData, setPrintData] = useState(null)
-  const [printedIds, setPrintedIds] = useState([])  // caixas já impressas
+  const [printedIds, setPrintedIds] = useState([])
 
   const componentRef = useRef(null)
   const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
@@ -34,32 +44,41 @@ export default function TelaEsterilizacao() {
     'bg-purple-100 text-purple-800',
   ]
 
-  // carrega caixas para autocomplete
+  // 1) carrega todas as caixas para autocomplete
   useEffect(() => {
     axios.get('/api/caixas')
-      .then(r => setAllCaixas(r.data))
+      .then(res => setAllCaixas(res.data))
       .catch(() => setAllCaixas([]))
   }, [])
 
-  // busca histórico para validar saída
+  // 2) busca todo o histórico do aluno e os últimos 30 dias
   const fetchHistory = useCallback(() => {
     if (!pinValidated || !alunoNome) return
     axios.get('/api/movimentacoes')
-      .then(r => {
+      .then(res => {
+        // filtra só do aluno
+        const alunoMoves = res.data.filter(m => m.alunoNome === alunoNome)
+        setFullHistory(alunoMoves)
+
+        // últimos 30 dias
         const hoje = new Date()
         const from = subDays(hoje, 30).toISOString().slice(0, 10)
         const to = hoje.toISOString().slice(0, 10)
-        const fil = r.data.filter(m => {
+        const last30 = alunoMoves.filter(m => {
           const d = new Date(m.criado_em).toISOString().slice(0, 10)
-          return m.alunoNome === alunoNome && d >= from && d <= to
+          return d >= from && d <= to
         })
-        setHistorico(fil)
-      })
-      .catch(() => setHistorico([]))
-  }, [alunoNome, pinValidated])
-  useEffect(() => { fetchHistory() }, [fetchHistory])
 
-  // sugestões de caixas
+      })
+      .catch(() => {
+        setFullHistory([])
+
+      })
+  }, [alunoNome, pinValidated])
+
+  useEffect(fetchHistory, [fetchHistory])
+
+  // autocomplete de caixas
   const suggestions = codigo
     ? allCaixas.filter(c =>
       c.nome.toLowerCase().includes(codigo.toLowerCase()) ||
@@ -71,40 +90,60 @@ export default function TelaEsterilizacao() {
     setCaixas(prev => [...prev, c])
     toast.success(`Caixa adicionada: ${c.nome}`, { autoClose: 5000 })
     setCodigo('')
+    caixaInputRef.current?.focus()
   }
+
   const buscarCaixa = () => {
     if (!codigo.trim()) {
       toast.warn('Digite um código ou nome da caixa', { autoClose: 5000 })
       return
     }
-    const e = allCaixas.find(c =>
+    const encontrada = allCaixas.find(c =>
       c.codigo_barras === codigo ||
       c.nome.toLowerCase().includes(codigo.toLowerCase())
     )
-    if (!e) {
+    if (!encontrada) {
       toast.error('Caixa não encontrada', { autoClose: 5000 })
       return
     }
-    addCaixa(e)
+    addCaixa(encontrada)
   }
 
-  // valida PIN — não avança automaticamente
-  const validarPin = () => {
+  // validação de PIN (não avança sozinho)
+  // dentro de TelaEsterilizacao.jsx, substitua o validarPin inteiro por:
+  const validarPin = async () => {
     if (alunoPin.trim().length !== 4) {
-      toast.warn('PIN deve ter 4 dígitos', { autoClose: 5000 })
-      return
+      toast.warn('PIN deve ter 4 dígitos', { autoClose: 5000 });
+      return;
     }
-    axios.get(`/api/alunos/pin/${alunoPin}`)
-      .then(r => {
-        setAlunoNome(r.data.nome)
-        setPinValidated(true)
-        toast.success(`PIN validado: ${r.data.nome}`, { autoClose: 5000 })
-        fetchHistory()
-      })
-      .catch(() => toast.error('Aluno não encontrado', { autoClose: 5000 }))
-  }
 
-  // registra entrada/saída
+    try {
+      // 1) busca dados do aluno
+      const { data: aluno } = await axios.get(`/api/alunos/pin/${alunoPin}`);
+      setAlunoNome(aluno.nome);
+      setAlunoId(aluno.id);
+
+      // 2) usa diretamente o campo 'periodo' que já vem na resposta
+      //    (antigo res.data.periodo_id estava vindo undefined)
+      setAlunoPeriodo(aluno.periodo);
+
+      setPinValidated(true);
+      toast.success(`PIN validado: ${aluno.nome}`, { autoClose: 5000 });
+      fetchHistory();
+      avancarButtonRef.current?.focus()
+    } catch {
+      toast.error('Aluno não encontrado', { autoClose: 5000 });
+    }
+  };
+
+
+
+
+
+
+
+
+  // registra entrada ou saída
   const operar = async tipo => {
     if (!pinValidated) {
       toast.warn('Valide o PIN', { autoClose: 5000 })
@@ -115,12 +154,13 @@ export default function TelaEsterilizacao() {
       return
     }
     if (tipo === 'saida') {
-      const inv = caixas.filter(c => {
-        const h = historico.filter(m => m.caixa_id === c.id)
-        return !h.length || h[0].tipo !== 'entrada'
+      const invalidas = caixas.filter(c => {
+        // precisa haver pelo menos uma entrada antes
+        const h = fullHistory.filter(m => m.caixa_id === c.id && m.tipo === 'entrada')
+        return h.length === 0
       })
-      if (inv.length) {
-        inv.forEach(c =>
+      if (invalidas.length) {
+        invalidas.forEach(c =>
           toast.error(`Caixa "${c.nome}" sem entrada`, { autoClose: 5000 })
         )
         return
@@ -137,25 +177,22 @@ export default function TelaEsterilizacao() {
         `${tipo === 'entrada' ? 'Entrada' : 'Saída'} registrada! ${alunoNome}`,
         { autoClose: 5000 }
       )
-
-      // reset completo
+      // full reset
       setCaixas([])
       setAlunoPin('')
       setPinValidated(false)
       setOperation(null)
-      setAlunoNome('')        // limpa o nome do aluno
-      setHistorico([])
+      setAlunoNome('')
+
+      setFullHistory([])
       setPrintedIds([])
       setStep(1)
-
-
-
     } catch {
       toast.error(`Erro ao registrar ${tipo}`, { autoClose: 5000 })
     }
   }
 
-  // imprime etiqueta
+  // dispara impressão em janela separada
   useEffect(() => {
     if (!printData) return
     const area = document.getElementById('area-impressao')
@@ -164,25 +201,29 @@ export default function TelaEsterilizacao() {
       <html><head><title>Etiqueta</title>
       <style>body{margin:0;padding:8mm;font-family:sans-serif}</style>
       </head><body>${area.innerHTML}</body></html>`
-    const w = window.open('', '_blank', 'width=600,height=400')
+    const w = window.open('', '_blank', 'width=auto,height=auto') //abertura do modal no navegador
     w.document.write(html)
     w.document.close()
     w.focus()
     w.print()
     setPrintedIds(prev => [...prev, printData.caixaId])
     setPrintData(null)
-    setTimeout(() => w.close(), 500)
+    setTimeout(() => w.close(), 100)
   }, [printData])
 
   const handlePrint = c => {
     setPrintData({
+      alunoId,
       alunoNome,
+      periodo: alunoPeriodo || '—',
       caixaId: c.id,
       caixaNome: c.nome,
       criadoEm: c.criado_em || new Date().toISOString(),
       recebidoPor: usuarioLogadoNome,
-    })
-  }
+    });
+  };
+
+
 
   // remove apenas uma instância da caixa
   const removerCaixa = id => {
@@ -195,7 +236,7 @@ export default function TelaEsterilizacao() {
     })
   }
 
-  // agrupa caixas para exibir nome+quantidade
+  // agrupa caixas para exibir nome + quantidade
   const caixaCounts = caixas.reduce((acc, c) => {
     if (!acc[c.id]) acc[c.id] = { ...c, qty: 0 }
     acc[c.id].qty++
@@ -203,14 +244,14 @@ export default function TelaEsterilizacao() {
   }, {})
   const uniqueCaixas = Object.values(caixaCounts)
 
-  // estoque atual
+  // calcula estoque atual a partir do fullHistory
   const stockByBox = {}
-  historico.forEach(m => {
+  fullHistory.forEach(m => {
     stockByBox[m.caixaNome] = (stockByBox[m.caixaNome] || 0)
       + (m.tipo === 'entrada' ? 1 : -1)
   })
 
-  // timeline labels
+  // labels do wizard
   const steps = ['Operação', 'PIN', 'Caixas', 'Impressão']
 
   return (
@@ -246,20 +287,19 @@ export default function TelaEsterilizacao() {
         ))}
       </div>
 
-      {/* controles de página (alinhados) */}
-      <div className="flex justify-between items-center p-8">
+      {/* navegação */}
+      <div className="flex justify-between items-center p-8 mb-6 px-2">
         {step > 1 && (
-          <button
-            onClick={() => setStep(step - 1)}
-            className="text-blue-600 hover:underline"
-          >
+          <button onClick={() => setStep(step - 1)} className="text-blue-600 hover:underline">
             &larr; Voltar
           </button>
         )}
         {step > 1 && step < 4 && (
           <button
+            ref={avancarButtonRef}
             onClick={() => setStep(step + 1)}
-            className="text-blue-600 hover:underline"
+            disabled={step === 2 && !pinValidated}
+            className={`text-blue-600 hover:underline ${step === 2 && !pinValidated ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
             Avançar &rarr;
           </button>
@@ -271,13 +311,13 @@ export default function TelaEsterilizacao() {
         <div className="grid grid-cols-2 gap-8">
           <div
             onClick={() => { setOperation('entrada'); setStep(2) }}
-            className="p-12 bg-green-100 hover:bg-green-200 rounded-lg text-center shadow cursor-pointer transition"
+            className="p-12 bg-[#00A415] hover:bg-[#1F7E00] text-white rounded-lg text-center shadow cursor-pointer transition"
           >
             <h3 className="text-xl font-semibold">Entrada</h3>
           </div>
           <div
             onClick={() => { setOperation('saida'); setStep(2) }}
-            className="p-12 bg-red-100 hover:bg-red-200 rounded-lg text-center shadow cursor-pointer transition"
+            className="p-12 bg-[#FD4D4C] hover:bg-[#AF191D] text-white rounded-lg text-center shadow cursor-pointer transition"
           >
             <h3 className="text-xl font-semibold">Saída</h3>
           </div>
@@ -305,20 +345,22 @@ export default function TelaEsterilizacao() {
             </button>
           </div>
           {pinValidated && (
-            <p className="mt-4 text-gray-800">Aluno: <strong>{alunoNome}</strong></p>
+            <div className="mt-4 text-gray-800 space-y-1">
+              <p>Aluno: <strong>{alunoNome}</strong></p>
+              <p>Período: <strong>{alunoPeriodo || '—'}</strong></p>
+            </div>
           )}
         </div>
       )}
 
-      {/* TELA 3: controle de caixas */}
+      {/* TELA 3: informar caixas e estoque */}
       {step === 3 && pinValidated && (
         <div className="space-y-6">
-
-          {/* adiciona caixas */}
           <div className="bg-white rounded-2xl shadow p-6">
-            <h3 className="text-lg font-semibold p-2">Informar Caixas</h3>
+            <h3 className="text-lg font-semibold mb-4">Informar Caixas</h3>
             <div className="flex gap-4">
               <input
+                ref={caixaInputRef}
                 type="text"
                 placeholder="Código ou nome da caixa"
                 value={codigo}
@@ -357,7 +399,6 @@ export default function TelaEsterilizacao() {
             )}
           </div>
 
-          {/* Estoque Atual do aluno */}
           {Object.keys(stockByBox).length > 0 && (
             <div className="bg-white rounded-2xl p-6">
               <h4 className="font-medium mb-2">Estoque Atual do Aluno</h4>
@@ -365,7 +406,7 @@ export default function TelaEsterilizacao() {
                 {Object.entries(stockByBox).map(([nome, qty], i) => (
                   <div
                     key={nome}
-                    className={`px-3 py-1 rounded-full font-semibold ${BADGE_STYLES[i % 4]}`}
+                    className={`px-3 py-1 rounded-full font-semibold ${BADGE_STYLES[i % BADGE_STYLES.length]}`}
                   >
                     {nome}: {qty}
                   </div>
@@ -385,10 +426,16 @@ export default function TelaEsterilizacao() {
               <div key={c.id} className="flex items-center gap-2 bg-gray-50 p-2 rounded-full">
                 <span className="font-medium">{c.nome} ({c.qty})</span>
                 <button onClick={() => handlePrint(c)} className="no-print">
-                  <QrCode size={18} />
+                  <Barcode
+                    value={String(c.id)}
+                    format="CODE128"
+                    width={1}
+                    height={15}
+                    displayValue={false}
+                  />
                 </button>
                 {printedIds.includes(c.id) && (
-                  <CheckCircle size={18} className="text-green-500" />
+                  <CheckCircle size={24} className="text-green-500" />
                 )}
               </div>
             ))}
@@ -412,8 +459,11 @@ export default function TelaEsterilizacao() {
         <div id="area-impressao" style={{ position: 'absolute', left: -10000, top: -10000 }}>
           <Etiqueta
             ref={componentRef}
+            alunoId={printData.alunoId}
             alunoNome={printData.alunoNome}
-            caixaId={printData.caixaNome}
+            periodo={printData.periodo}        // <<< use a chave correta
+            caixaNome={printData.caixaNome}
+            caixaId={printData.caixaId}
             criadoEm={printData.criadoEm}
             recebidoPor={printData.recebidoPor}
           />
