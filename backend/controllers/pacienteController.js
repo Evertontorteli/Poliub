@@ -2,7 +2,11 @@
 const { getConnection } = require('../database');
 
 exports.criarOuBuscarPaciente = async (req, res) => {
-  const { nome, telefone, numero_prontuario } = req.body;
+  const {
+    nome, telefone, numero_prontuario,
+    numero_gaveta, rg, cpf, data_nascimento,
+    idade, cidade, endereco, numero, observacao
+  } = req.body;
   try {
     const conn = await getConnection();
     // Tenta buscar pelo telefone
@@ -16,15 +20,40 @@ exports.criarOuBuscarPaciente = async (req, res) => {
     }
     // Não existe, cria novo (incluindo numero_prontuario opcional)
     const [insertResult] = await conn.query(
-      'INSERT INTO pacientes (nome, telefone, numero_prontuario) VALUES (?, ?, ?)',
-      [nome, telefone, numero_prontuario || null]
+      `INSERT INTO pacientes
+        (nome, telefone, numero_prontuario, numero_gaveta, rg, cpf, data_nascimento,
+         idade, cidade, endereco, numero, observacao)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [
+        nome,
+        telefone,
+        numero_prontuario || null,
+        numero_gaveta || null,
+        rg || null,
+        cpf || null,
+        data_nascimento || null,
+        idade || null,
+        cidade || null,
+        endereco || null,
+        numero || null,
+        observacao || null
+      ]
     );
     conn.release();
     res.status(201).json({
       id: insertResult.insertId,
       nome,
       telefone,
-      numero_prontuario: numero_prontuario || null
+      numero_prontuario: numero_prontuario || null,
+      numero_gaveta: numero_gaveta || null,
+      rg: rg || null,
+      cpf: cpf || null,
+      data_nascimento: data_nascimento || null,
+      idade: idade || null,
+      cidade: cidade || null,
+      endereco: endereco || null,
+      numero: numero || null,
+      observacao: observacao || null
     });
   } catch (err) {
     res.status(500).json({ error: 'Erro ao criar ou buscar paciente', details: err });
@@ -64,15 +93,50 @@ exports.criarPaciente = async (req, res) => {
 
 exports.atualizarPaciente = async (req, res) => {
   const { id } = req.params;
-  const { nome, telefone, numero_prontuario } = req.body;
+  const {
+    nome, telefone, numero_prontuario,
+    numero_gaveta, rg, cpf, data_nascimento,
+    idade, cidade, endereco, numero, observacao
+  } = req.body;
   try {
     const conn = await getConnection();
     await conn.query(
-      'UPDATE pacientes SET nome = ?, telefone = ?, numero_prontuario = ? WHERE id = ?',
-      [nome, telefone, numero_prontuario || null, id]
+      `UPDATE pacientes SET
+         nome = ?, telefone = ?, numero_prontuario = ?, numero_gaveta = ?, rg = ?, cpf = ?,
+         data_nascimento = ?, idade = ?, cidade = ?, endereco = ?, numero = ?, observacao = ?
+       WHERE id = ?`,
+      [
+        nome,
+        telefone,
+        numero_prontuario || null,
+        numero_gaveta || null,
+        rg || null,
+        cpf || null,
+        data_nascimento || null,
+        idade || null,
+        cidade || null,
+        endereco || null,
+        numero || null,
+        observacao || null,
+        id
+      ]
     );
     conn.release();
-    res.send('Paciente atualizado!');
+    res.json({
+      id,
+      nome,
+      telefone,
+      numero_prontuario: numero_prontuario || null,
+      numero_gaveta: numero_gaveta || null,
+      rg: rg || null,
+      cpf: cpf || null,
+      data_nascimento: data_nascimento || null,
+      idade: idade || null,
+      cidade: cidade || null,
+      endereco: endereco || null,
+      numero: numero || null,
+      observacao: observacao || null
+    });
   } catch (err) {
     res.status(500).json({ error: 'Erro ao atualizar paciente', details: err });
   }
@@ -87,5 +151,20 @@ exports.deletarPaciente = async (req, res) => {
     res.send('Paciente deletado!');
   } catch (err) {
     res.status(500).json({ error: 'Erro ao deletar paciente', details: err });
+  }
+};
+
+exports.historicoPaciente = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const conn = await getConnection();
+    const [rows] = await conn.query(
+      'SELECT * FROM historico_pacientes WHERE paciente_id = ?',
+      [id]
+    );
+    conn.release();
+    res.json(rows);
+  } catch(err) {
+    res.status(500).json({ error: 'Erro ao buscar histórico', details: err });
   }
 };
