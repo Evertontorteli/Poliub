@@ -8,5 +8,6 @@ router.get('/', pacienteController.listarPacientes);
 router.post('/', pacienteController.criarOuBuscarPaciente);
 router.put('/:id', pacienteController.atualizarPaciente);
 router.delete('/:id', pacienteController.deletarPaciente);
+router.get('/:id/historico', pacienteController.historicoPaciente);
 
 module.exports = router;

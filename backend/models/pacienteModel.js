@@ -46,8 +46,23 @@ const Paciente = {
     const conn = await getConnection();
     try {
       const [result] = await conn.query(
-        'INSERT INTO pacientes (nome, telefone, numero_prontuario) VALUES (?, ?, ?)',
-        [dados.nome, dados.telefone, dados.numero_prontuario || null]
+        `INSERT INTO pacientes 
+        (nome, telefone, numero_prontuario, numero_gaveta, rg, cpf, data_nascimento, idade, cidade, endereco, numero, observacao)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+        [
+          dados.nome,
+          dados.telefone,
+          dados.numero_prontuario || null,
+          dados.numero_gaveta || null,
+          dados.rg || null,
+          dados.cpf || null,
+          dados.data_nascimento || null,
+          dados.idade || null,
+          dados.cidade || null,
+          dados.endereco || null,
+          dados.numero || null,
+          dados.observacao || null
+        ]
       );
       return result;
     } finally {
@@ -60,8 +75,25 @@ const Paciente = {
     const conn = await getConnection();
     try {
       const [result] = await conn.query(
-        'UPDATE pacientes SET nome = ?, telefone = ?, numero_prontuario = ? WHERE id = ?',
-        [dados.nome, dados.telefone, dados.numero_prontuario || null, id]
+        `UPDATE pacientes SET
+         nome = ?, telefone = ?, numero_prontuario = ?, numero_gaveta = ?, rg = ?, cpf = ?,
+         data_nascimento = ?, idade = ?, cidade = ?, endereco = ?, numero = ?, observacao = ?
+       WHERE id = ?`,
+        [
+          dados.nome,
+          dados.telefone,
+          dados.numero_prontuario || null,
+          dados.numero_gaveta || null,
+          dados.rg || null,
+          dados.cpf || null,
+          dados.data_nascimento || null,
+          dados.idade || null,
+          dados.cidade || null,
+          dados.endereco || null,
+          dados.numero || null,
+          dados.observacao || null,
+          id
+        ]
       );
       return result;
     } finally {

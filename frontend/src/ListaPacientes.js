@@ -7,6 +7,9 @@ function ListaPacientes({ reloadKey, onEditar }) {
   const [carregando, setCarregando] = useState(true);
   const [isAluno, setIsAluno] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [pagina, setPagina] = useState(1);
+
+  const POR_PAGINA = 100;
 
   // Detecta se o usuário logado é aluno
   useEffect(() => {
@@ -34,6 +37,9 @@ function ListaPacientes({ reloadKey, onEditar }) {
       .catch(() => setCarregando(false));
   }, [reloadKey]);
 
+  // Sempre volta para a página 1 ao buscar
+  useEffect(() => { setPagina(1); }, [searchTerm, pacientes.length]);
+
   const handleDeletar = (id) => {
     if (window.confirm('Deletar este paciente?')) {
       axios.delete(`/api/pacientes/${id}`)
@@ -44,11 +50,19 @@ function ListaPacientes({ reloadKey, onEditar }) {
   // Filtra resultados conforme pesquisa
   const filteredPacientes = pacientes.filter(p => {
     const term = searchTerm.toLowerCase();
-    const pront = p.numero_prontuario ? p.numero_prontuario.toString().toLowerCase() : '';
+    const pront = (p.numero_prontuario ? p.numero_prontuario.toString().toLowerCase() : '');
+    const nome = (p.nome || '').toLowerCase();
+    const telefone = (p.telefone || '');
     return pront.includes(term)
-      || p.nome.toLowerCase().includes(term)
-      || p.telefone.includes(term);
+      || nome.includes(term)
+      || telefone.includes(term);
   });
+
+  // Paginação
+  const totalPaginas = Math.ceil(filteredPacientes.length / POR_PAGINA);
+  const inicio = (pagina - 1) * POR_PAGINA;
+  const fim = inicio + POR_PAGINA;
+  const pacientesPagina = filteredPacientes.slice(inicio, fim);
 
   if (carregando) return <p>Carregando pacientes...</p>;
   if (pacientes.length === 0) return <p>Nenhum paciente cadastrado.</p>;
@@ -66,6 +80,27 @@ function ListaPacientes({ reloadKey, onEditar }) {
             className="w-full border rounded px-3 py-2"
           />
         </div>
+        {/* Paginação */}
+        <div className="flex justify-between items-center mb-4">
+          <button
+            onClick={() => setPagina(p => Math.max(1, p - 1))}
+            disabled={pagina === 1}
+            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+          >
+            Anterior
+          </button>
+          <span>
+            Página {pagina} de {totalPaginas} &nbsp;
+            <small>({filteredPacientes.length} pacientes)</small>
+          </span>
+          <button
+            onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
+            disabled={pagina === totalPaginas}
+            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+          >
+            Próxima
+          </button>
+        </div>
         {/* Cabeçalho das colunas (desktop) */}
         <div className="hidden md:grid grid-cols-5 gap-x-4 px-2 py-2 bg-gray-100 rounded-t-xl font-semibold text-gray-600 mb-2">
           <span>*</span>
@@ -76,14 +111,14 @@ function ListaPacientes({ reloadKey, onEditar }) {
         </div>
         {/* Lista */}
         <div className="space-y-3">
-          {filteredPacientes.map((p, idx) => (
+          {pacientesPagina.map((p, idx) => (
             <div
               key={p.id}
               className="flex flex-col md:grid md:grid-cols-5 gap-y-1 gap-x-4 items-start bg-gray-50 rounded-xl px-4 md:px-2 py-2 shadow-sm hover:bg-gray-100 transition"
             >
               {/* ==== MOBILE ==== */}
               <div className="md:hidden w-full mb-1">
-                <strong></strong> <span className="text-gray-500">{idx + 1}</span>
+                <strong></strong> <span className="text-gray-500">{inicio + idx + 1}</span>
               </div>
               <div className="md:hidden w-full mb-1">
                 <strong>Prontuário:</strong> <span className="text-gray-500">{p.numero_prontuario || '-'}</span>
@@ -112,7 +147,7 @@ function ListaPacientes({ reloadKey, onEditar }) {
               </div>
 
               {/* ==== DESKTOP ==== */}
-              <div className="hidden md:block w-full text-gray-600 truncate">{idx + 1}</div>
+              <div className="hidden md:block w-full text-gray-600 truncate">{inicio + idx + 1}</div>
               <div className="hidden md:block w-full text-gray-500 truncate">{p.numero_prontuario || '-'}</div>
               <div className="hidden md:block w-full font-medium text-gray-800 truncate">{p.nome}</div>
               <div className="hidden md:block w-full text-gray-500">{p.telefone}</div>
@@ -134,6 +169,26 @@ function ListaPacientes({ reloadKey, onEditar }) {
               </div>
             </div>
           ))}
+        </div>
+        {/* Paginação (de novo, se quiser embaixo também) */}
+        <div className="flex justify-between items-center my-4">
+          <button
+            onClick={() => setPagina(p => Math.max(1, p - 1))}
+            disabled={pagina === 1}
+            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+          >
+            Anterior
+          </button>
+          <span>
+            Página {pagina} de {totalPaginas}
+          </span>
+          <button
+            onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
+            disabled={pagina === totalPaginas}
+            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+          >
+            Próxima
+          </button>
         </div>
       </div>
     </div>
