@@ -126,4 +126,26 @@ exports.deletarMovimentacao = async (req, res) => {
     console.error('Erro ao deletar movimentação:', err);
     return res.status(500).json({ error: 'Erro ao deletar movimentação' });
   }
+
+};
+exports.estoquePorAluno = async (req, res) => {
+  try {
+    const { aluno_id } = req.params;
+    const rows = await Movimentacao.estoquePorAluno(aluno_id);
+    return res.json(rows);
+  } catch (err) {
+    console.error('Erro ao buscar estoque por aluno:', err);
+    return res.status(500).json({ error: 'Erro ao buscar estoque do aluno' });
+  }
+};
+
+exports.historicoPorAluno = async (req, res) => {
+  try {
+    const { aluno_id } = req.params;
+    const rows = await Movimentacao.historicoPorAluno(aluno_id);
+    return res.json(rows);
+  } catch (err) {
+    console.error('Erro ao buscar histórico do aluno:', err);
+    return res.status(500).json({ error: 'Erro ao buscar histórico do aluno' });
+  }
 };
