@@ -21,4 +21,10 @@ router.put('/:id', verificaToken, movController.atualizarMovimentacao);
 // Deleta uma movimentação existente
 router.delete('/:id', verificaToken, movController.deletarMovimentacao);
 
+// ...outras rotas acima
+
+router.get('/estoque/:aluno_id', verificaToken, movController.estoquePorAluno);
+router.get('/historico/:aluno_id', verificaToken, movController.historicoPorAluno);
+
 module.exports = router;
+

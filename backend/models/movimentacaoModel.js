@@ -85,6 +85,49 @@ class Movimentacao {
       conn.release();
     }
   }
+
+// Retorna saldo de caixas do aluno
+
+  // Agora SIM dentro da classe!
+  static async estoquePorAluno(aluno_id) {
+    const conn = await db.getConnection();
+    try {
+      const [rows] = await conn.execute(
+        `SELECT b.nome AS caixa_nome,
+                SUM(CASE WHEN m.tipo = 'entrada' THEN 1 ELSE -1 END) AS saldo
+           FROM movimentacoes_esterilizacao m
+           JOIN caixas b ON m.caixa_id = b.id
+          WHERE m.aluno_id = ?
+          GROUP BY b.nome
+          HAVING saldo > 0
+          ORDER BY b.nome`,
+        [aluno_id]
+      );
+      return rows;
+    } finally {
+      conn.release();
+    }
+  }
+
+  static async historicoPorAluno(aluno_id) {
+    const conn = await db.getConnection();
+    try {
+      const [rows] = await conn.execute(
+        `SELECT m.*, 
+                b.nome AS caixa_nome,
+                o.nome AS operador_nome
+           FROM movimentacoes_esterilizacao m
+           JOIN caixas b ON m.caixa_id = b.id
+           JOIN alunos o ON m.operador_id = o.id
+          WHERE m.aluno_id = ?
+          ORDER BY m.criado_em DESC`,
+        [aluno_id]
+      );
+      return rows;
+    } finally {
+      conn.release();
+    }
+  }
 }
 
 module.exports = Movimentacao;

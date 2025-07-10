@@ -157,7 +157,7 @@ function LayoutInterno() {
         <div className="hidden md:block">
           <Sidebar active={active} onMenuClick={setActive} />
         </div>
-        <main className="flex-1 ml-0 md:ml-64 mt-16 p-8 h-[calc(100vh-64px)] overflow-y-auto">
+        <main className="flex-1 ml-0 md:ml-64 mt-16 p-4 h-[calc(100vh-64px)] overflow-y-auto">
           <div className="mx-auto">
             {renderConteudo()}
           </div>
