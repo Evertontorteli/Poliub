@@ -17,7 +17,7 @@ export default function modal({ isOpen, onRequestClose, children }) {
         aria-label="Fechar"
       >×</button>
       {/* Conteúdo rola se passar do limite */}
-      <div className="overflow-y-auto p-8 w-full h-full" style={{ maxHeight: '90vh' }}>
+      <div className="overflow-y-auto pt-2 pb-8 px-8 w-full h-full" style={{ maxHeight: '90vh' }}>
         {children}
       </div>
     </Modal>

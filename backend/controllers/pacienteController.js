@@ -63,7 +63,12 @@ exports.criarOuBuscarPaciente = async (req, res) => {
 exports.listarPacientes = async (req, res) => {
   try {
     const conn = await getConnection();
-    const [rows] = await conn.query('SELECT * FROM pacientes');
+    let rows;
+    if (req.query.telefone) {
+      [rows] = await conn.query('SELECT * FROM pacientes WHERE telefone = ?', [req.query.telefone]);
+    } else {
+      [rows] = await conn.query('SELECT * FROM pacientes');
+    }
     conn.release();
     res.json(rows);
   } catch (err) {
@@ -92,14 +97,30 @@ exports.criarPaciente = async (req, res) => {
 };
 
 exports.atualizarPaciente = async (req, res) => {
-  const { id } = req.params;
+  const { id } = req.params; // declare antes de usar
   const {
     nome, telefone, numero_prontuario,
     numero_gaveta, rg, cpf, data_nascimento,
     idade, cidade, endereco, numero, observacao
   } = req.body;
+  
+  // Agora você pode usar as variáveis aqui:
+  console.log("ID recebendo update:", id, "Telefone:", telefone);
+
   try {
     const conn = await getConnection();
+
+    // Busca outro paciente com o mesmo telefone e id diferente
+    const [duplicados] = await conn.query(
+      'SELECT id FROM pacientes WHERE telefone = ? AND id != ?',
+      [telefone, id]
+    );
+    if (duplicados.length > 0) {
+      conn.release();
+      return res.status(400).json({ error: 'Já existe outro paciente com este telefone.' });
+    }
+
+    // Faz o update normalmente
     await conn.query(
       `UPDATE pacientes SET
          nome = ?, telefone = ?, numero_prontuario = ?, numero_gaveta = ?, rg = ?, cpf = ?,
@@ -141,6 +162,7 @@ exports.atualizarPaciente = async (req, res) => {
     res.status(500).json({ error: 'Erro ao atualizar paciente', details: err });
   }
 };
+
 
 exports.deletarPaciente = async (req, res) => {
   const { id } = req.params;
