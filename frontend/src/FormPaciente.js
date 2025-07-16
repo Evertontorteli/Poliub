@@ -2,12 +2,17 @@
 import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import { toast, ToastContainer } from 'react-toastify'
+import { useAuth } from './context/AuthContext' // ajuste o caminho conforme seu projeto
 import 'react-toastify/dist/ReactToastify.css'
 
 function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
+  const { user } = useAuth() // Obtem user do contexto
+  const isAluno = user?.role === 'aluno'
+
   const [numeroProntuario, setNumeroProntuario] = useState('')
   const [nome, setNome] = useState('')
   const [telefone, setTelefone] = useState('')
+  const [mensagemErro, setMensagemErro] = useState('')
   const [formData, setFormData] = useState({
     numero_gaveta: '',
     rg: '',
@@ -21,7 +26,6 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
     observacao: ''
   })
 
-  // Carrega dados para edição
   useEffect(() => {
     if (pacienteEditando) {
       setNumeroProntuario(pacienteEditando.numero_prontuario || '')
@@ -44,6 +48,7 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
     } else {
       resetForm()
     }
+    setMensagemErro('')
   }, [pacienteEditando])
 
   function resetForm() {
@@ -142,100 +147,134 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
     }))
   }
 
-  // dentro de FormPaciente.js, substitua seu handleSubmit por este inteiro:
-
   const handleSubmit = async e => {
-    e.preventDefault();
+    e.preventDefault()
+    setMensagemErro('')
 
-    // 1) valida telefone
-    const somenteDigitos = telefone.replace(/\D/g, '');
+    if (!validarNomeCompleto(nome)) {
+      setMensagemErro('Digite o nome completo (nome e sobrenome, pelo menos 2 letras cada).')
+      return
+    }
+
+    const somenteDigitos = telefone.replace(/\D/g, '')
     if (somenteDigitos.length !== 10 && somenteDigitos.length !== 11) {
-      toast.error('Telefone inválido. Use 10 ou 11 dígitos.');
-      return;
+      setMensagemErro('Telefone inválido. Use 10 ou 11 dígitos.')
+      return
     }
 
-    // 2) valida CPF se preenchido
-    if (formData.cpf && !validarCPF(formData.cpf)) {
-      toast.error('CPF inválido.');
-      return;
+    // ------------- Validação telefone duplicado --------------
+
+    try {
+      const { data } = await axios.get(`/api/pacientes?telefone=${somenteDigitos}`);
+      // log para debug
+      console.log('data retornado pela API:', data, 'pacienteEditando:', pacienteEditando);
+
+      const existeOutro = Array.isArray(data) && data.some(p =>
+        String(p.id) !== String(pacienteEditando?.id)
+      );
+
+      if (existeOutro) {
+        setMensagemErro('Já existe um paciente cadastrado com este telefone.');
+        return;
+      }
+    } catch (err) {
+      // ignora erro do endpoint
     }
 
-    // monta o payload
+
+
+
+    // --------------------------------------------------------
+
+    // Só valida CPF se não for aluno (pois campos ocultos)
+    if (!isAluno && formData.cpf && !validarCPF(formData.cpf)) {
+      setMensagemErro('CPF inválido.')
+      return
+    }
+
     const dados = {
-      numero_prontuario: numeroProntuario.trim() || null,
+      numero_prontuario: isAluno ? null : (numeroProntuario.trim() || null),
       nome: nome.trim(),
       telefone: somenteDigitos,
-      numero_gaveta: formData.numero_gaveta || null,
-      rg: formData.rg || null,
-      cpf: formData.cpf || null,
-      cep: formData.cep || null,
-      data_nascimento: formData.data_nascimento || null,
-      idade: formData.idade || null,
-      endereco: formData.endereco || null,
-      numero: formData.numero || null,
-      cidade: formData.cidade || null,
-      observacao: formData.observacao || null,
-    };
+      numero_gaveta: isAluno ? null : (formData.numero_gaveta || null),
+      rg: isAluno ? null : (formData.rg || null),
+      cpf: isAluno ? null : (formData.cpf || null),
+      cep: isAluno ? null : (formData.cep || null),
+      data_nascimento: isAluno ? null : (formData.data_nascimento || null),
+      idade: isAluno ? null : (formData.idade || null),
+      endereco: isAluno ? null : (formData.endereco || null),
+      numero: isAluno ? null : (formData.numero || null),
+      cidade: isAluno ? null : (formData.cidade || null),
+      observacao: isAluno ? null : (formData.observacao || null),
+    }
 
     try {
       if (pacienteEditando) {
-        await axios.put(`/api/pacientes/${pacienteEditando.id}`, dados);
-        toast.success(`Paciente ${nome.trim()} atualizado com sucesso!`);
+        await axios.put(`/api/pacientes/${pacienteEditando.id}`, dados)
+        toast.success(`Paciente ${nome.trim()} atualizado com sucesso!`)
       } else {
-        await axios.post('/api/pacientes', dados);
-        toast.success(`Paciente ${nome.trim()} cadastrado com sucesso!`);
-        resetForm();
-        setNome('');
-        setTelefone('');
-        setNumeroProntuario('');
+        await axios.post('/api/pacientes', dados)
+        toast.success(`Paciente ${nome.trim()} cadastrado com sucesso!`)
+        resetForm()
+        setNome('')
+        setTelefone('')
+        setNumeroProntuario('')
       }
-      // espera 200ms antes de atualizar a lista e desmontar o form
-      setTimeout(() => onNovoPaciente(), 200);
-    } catch {
-      toast.error(pacienteEditando
-        ? 'Erro ao atualizar paciente.'
-        : 'Erro ao cadastrar paciente.'
-      );
+      setTimeout(() => onNovoPaciente(), 200)
+    } catch (err) {
+      let msg = 'Erro ao cadastrar/atualizar paciente.'
+      if (err.response?.data) {
+        if (typeof err.response.data === 'string') {
+          msg = err.response.data
+        } else if (err.response.data.error) {
+          msg = err.response.data.error
+        } else if (err.response.data.message) {
+          msg = err.response.data.message
+        }
+      } else if (err.message) {
+        msg = err.message
+      }
+      setMensagemErro(msg)
     }
-  };
-
+  }
 
   return (
     <div className="bg-white mx-auto max-w-auto rounded-2xl p-6">
-      {/* ToastContainer só precisa aparecer uma vez */}
       <ToastContainer position="top-right" autoClose={5000} />
       <form onSubmit={handleSubmit} autoComplete="off">
         <h2 className="text-2xl font-bold mb-6 text-gray-800">
           {pacienteEditando ? 'Editar Paciente' : 'Novo Paciente'}
         </h2>
 
-        {/* Prontuário / Gaveta */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <div>
-            <label className="block mb-2 font-medium text-gray-700">
-              Número do Prontuário <small>(opcional)</small>
-            </label>
-            <input
-              type="text"
-              maxLength={8}
-              value={numeroProntuario}
-              onChange={e => setNumeroProntuario(e.target.value)}
-              className="w-full border rounded px-3 py-2"
-            />
+        {/* Campos visíveis só para outros perfis */}
+        {!isAluno && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+              <label className="block mb-2 font-medium text-gray-700">
+                Número do Prontuário <small>(opcional)</small>
+              </label>
+              <input
+                type="text"
+                maxLength={8}
+                value={numeroProntuario}
+                onChange={e => setNumeroProntuario(e.target.value)}
+                className="w-full border rounded px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="block mb-2 font-medium text-gray-700">
+                Nº Gaveta <small>(opcional)</small>
+              </label>
+              <input
+                type="text"
+                name="numero_gaveta"
+                value={formData.numero_gaveta}
+                onChange={handleChange}
+                className="w-full border rounded px-3 py-2"
+              />
+            </div>
           </div>
-          <div>
-            <label className="block mb-2 font-medium text-gray-700">
-              Nº Gaveta <small>(opcional)</small>
-            </label>
-            <input
-              type="text"
-              name="numero_gaveta"
-              value={formData.numero_gaveta}
-              onChange={handleChange}
-              className="w-full border rounded px-3 py-2"
-            />
-          </div>
-        </div>
+        )}
 
         {/* Nome */}
         <div className="mb-6">
@@ -250,7 +289,6 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
             className="w-full border rounded px-3 py-2"
           />
         </div>
-
         {/* Telefone */}
         <div className="mb-6">
           <label className="block mb-2 font-medium text-gray-700">
@@ -266,131 +304,132 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
           />
         </div>
 
-        {/* RG / CPF */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <div>
-            <label className="block mb-2 font-medium text-gray-700">
-              RG <small>(opcional)</small>
-            </label>
-            <input
-              type="text"
-              name="rg"
-              value={formData.rg}
-              onChange={handleChange}
-              className="w-full border rounded px-3 py-2"
-            />
-          </div>
-          <div>
-            <label className="block mb-2 font-medium text-gray-700">
-              CPF <small>(opcional)</small>
-            </label>
-            <input
-              type="text"
-              name="cpf"
-              value={formData.cpf}
-              onChange={handleChange}
-              placeholder="000.000.000-00"
-              className="w-full border rounded px-3 py-2"
-            />
-          </div>
-        </div>
-
-        {/* Nasc. / Idade */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <div>
-            <label className="block mb-2 font-medium text-gray-700">
-              Data de Nascimento <small>(opcional)</small>
-            </label>
-            <input
-              type="date"
-              name="data_nascimento"
-              value={formData.data_nascimento}
-              onChange={handleDateChange}
-              className="w-full border rounded px-3 py-2"
-            />
-          </div>
-          <div>
-            <label className="block mb-2 font-medium text-gray-700">
-              Idade
-            </label>
-            <input
-              type="number"
-              readOnly
-              name="idade"
-              value={formData.idade}
-              className="w-full bg-gray-100 border rounded px-3 py-2"
-            />
-          </div>
-        </div>
-
-        {/* CEP */}
-        <div className="mb-6">
-          <label className="block mb-2 font-medium text-gray-700">
-            CEP <small>(opcional)</small>
-          </label>
-          <input
-            type="text"
-            name="cep"
-            value={formData.cep}
-            onChange={handleChange}
-            onBlur={handleCepBlur}
-            placeholder="00000-000"
-            className="w-full border rounded px-3 py-2"
-          />
-        </div>
-
-        {/* Endereço / Nº / Cidade */}
-        <div className="mb-6">
-          <label className="block mb-2 font-medium text-gray-700">
-            Endereço <small>(opcional)</small>
-          </label>
-          <input
-            type="text"
-            name="endereco"
-            value={formData.endereco}
-            onChange={handleChange}
-            className="w-full border rounded px-3 py-2"
-          />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <div>
-            <label className="block mb-2 font-medium text-gray-700">
-              Número <small>(opcional)</small>
-            </label>
-            <input
-              type="text"
-              name="numero"
-              value={formData.numero}
-              onChange={handleChange}
-              className="w-full border rounded px-3 py-2"
-            />
-          </div>
-          <div>
-            <label className="block mb-2 font-medium text-gray-700">
-              Cidade <small>(opcional)</small>
-            </label>
-            <input
-              type="text"
-              name="cidade"
-              value={formData.cidade}
-              onChange={handleChange}
-              className="w-full border rounded px-3 py-2"
-            />
-          </div>
-        </div>
-
-        {/* Observações */}
-        <div className="mb-6">
-          <label className="block mb-2 font-medium text-gray-700">
-            Observações <small>(opcional)</small>
-          </label>
-          <textarea
-            name="observacao"
-            value={formData.observacao}
-            onChange={handleChange}
-            className="w-full border rounded px-3 py-2 h-24"
-          />
-        </div>
+        {/* Restante dos campos apenas se NÃO for aluno */}
+        {!isAluno && (
+          <>
+            {/* RG / CPF */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div>
+                <label className="block mb-2 font-medium text-gray-700">
+                  RG <small>(opcional)</small>
+                </label>
+                <input
+                  type="text"
+                  name="rg"
+                  value={formData.rg}
+                  onChange={handleChange}
+                  className="w-full border rounded px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block mb-2 font-medium text-gray-700">
+                  CPF <small>(opcional)</small>
+                </label>
+                <input
+                  type="text"
+                  name="cpf"
+                  value={formData.cpf}
+                  onChange={handleChange}
+                  placeholder="000.000.000-00"
+                  className="w-full border rounded px-3 py-2"
+                />
+              </div>
+            </div>
+            {/* Nasc. / Idade */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div>
+                <label className="block mb-2 font-medium text-gray-700">
+                  Data de Nascimento <small>(opcional)</small>
+                </label>
+                <input
+                  type="date"
+                  name="data_nascimento"
+                  value={formData.data_nascimento}
+                  onChange={handleDateChange}
+                  className="w-full border rounded px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block mb-2 font-medium text-gray-700">
+                  Idade
+                </label>
+                <input
+                  type="number"
+                  readOnly
+                  name="idade"
+                  value={formData.idade}
+                  className="w-full bg-gray-100 border rounded px-3 py-2"
+                />
+              </div>
+            </div>
+            {/* CEP */}
+            <div className="mb-6">
+              <label className="block mb-2 font-medium text-gray-700">
+                CEP <small>(opcional)</small>
+              </label>
+              <input
+                type="text"
+                name="cep"
+                value={formData.cep}
+                onChange={handleChange}
+                onBlur={handleCepBlur}
+                placeholder="00000-000"
+                className="w-full border rounded px-3 py-2"
+              />
+            </div>
+            {/* Endereço / Nº / Cidade */}
+            <div className="mb-6">
+              <label className="block mb-2 font-medium text-gray-700">
+                Endereço <small>(opcional)</small>
+              </label>
+              <input
+                type="text"
+                name="endereco"
+                value={formData.endereco}
+                onChange={handleChange}
+                className="w-full border rounded px-3 py-2"
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div>
+                <label className="block mb-2 font-medium text-gray-700">
+                  Número <small>(opcional)</small>
+                </label>
+                <input
+                  type="text"
+                  name="numero"
+                  value={formData.numero}
+                  onChange={handleChange}
+                  className="w-full border rounded px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="block mb-2 font-medium text-gray-700">
+                  Cidade <small>(opcional)</small>
+                </label>
+                <input
+                  type="text"
+                  name="cidade"
+                  value={formData.cidade}
+                  onChange={handleChange}
+                  className="w-full border rounded px-3 py-2"
+                />
+              </div>
+            </div>
+            {/* Observações */}
+            <div className="mb-6">
+              <label className="block mb-2 font-medium text-gray-700">
+                Observações <small>(opcional)</small>
+              </label>
+              <textarea
+                name="observacao"
+                value={formData.observacao}
+                onChange={handleChange}
+                className="w-full border rounded px-3 py-2 h-24"
+              />
+            </div>
+          </>
+        )}
 
         {/* Botões */}
         <div className="flex flex-col md:flex-row gap-4">
@@ -410,6 +449,14 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
             </button>
           )}
         </div>
+
+        {/* MENSAGEM DE ERRO AO FINAL DO MODAL */}
+        {mensagemErro && (
+          <div className="mt-4 text-center">
+            <span className="text-red-600 font-semibold">{mensagemErro}</span>
+          </div>
+        )}
+
       </form>
     </div>
   )

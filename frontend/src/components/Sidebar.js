@@ -9,7 +9,8 @@ import {
   Mail,
   Settings,
   HelpCircle,
-  Box,              // importe o ícone de caixa
+  Box,
+  PackagePlus,              // importe o ícone de caixa
   PieChart,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -82,7 +83,7 @@ export default function Sidebar({ active, onMenuClick }) {
             />
             {/* Novo item Esterilização */}
             <MenuItem
-              icon={<Box size={24} />}
+              icon={<PackagePlus size={24} />}
               label="Esterilização"
               active={active === "esterilizacao"}
               onClick={() => onMenuClick("esterilizacao")}
