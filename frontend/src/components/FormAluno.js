@@ -65,16 +65,17 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
 const handleSubmit = async (e) => {
   e.preventDefault();
 
+  // Validações de campos obrigatórios (mostra mensagem no modal)
   if (!validarNome(nome)) return setMensagem('Informe nome completo!');
   if (!validarRA(ra)) return setMensagem('RA inválido!');
   if (!usuario.trim()) return setMensagem('Insira usuário!');
   if (!alunoEditando && senha.length < 4) return setMensagem('Senha mínimo 4 chars!');
   if (!periodoId) return setMensagem('Selecione período!');
 
-  // --- Validação do PIN: só validar se o campo estiver preenchido ---
+  // Validação do PIN: só validar se o campo estiver preenchido
   if (pin && !/^\d{4}$/.test(pin)) return setMensagem('PIN deve ter exatamente 4 dígitos!');
 
-  // --- Validação de unicidade do PIN (só se preenchido) ---
+  // Validação de unicidade do PIN (só se preenchido)
   if (pin) {
     try {
       const { data } = await axios.get(`/api/alunos?pin=${pin}`, { headers });
@@ -91,6 +92,7 @@ const handleSubmit = async (e) => {
     }
   }
 
+  // Monta dados do aluno
   const alunoData = { nome, ra, periodo_id: periodoId, usuario, senha, role, pin: pin || null };
 
   if (alunoEditando) {
@@ -102,8 +104,8 @@ const handleSubmit = async (e) => {
         if (boxId) await axios.put(`/api/boxes/${boxId}`, { conteudo: box }, { headers });
         else await axios.post('/api/boxes', { aluno_id: alunoId, conteudo: box }, { headers });
       }
-      setMensagem('Aluno atualizado com sucesso!');
-      onNovoAluno();
+      // Chame o callback com mensagem de sucesso
+      onNovoAluno('Aluno atualizado com sucesso!');
       onFimEdicao();
     } catch (err) {
       setMensagem(err.response?.data?.error || 'Erro ao atualizar.');
@@ -113,14 +115,14 @@ const handleSubmit = async (e) => {
       const res = await axios.post('/api/alunos', alunoData, { headers });
       const newId = res.data.id;
       if (box) await axios.post('/api/boxes', { aluno_id: newId, conteudo: box }, { headers });
-      setMensagem('Aluno cadastrado com sucesso!');
-      onNovoAluno();
-      setTimeout(() => { onFimEdicao(); setMensagem(''); }, 1500);
+      onNovoAluno('Aluno cadastrado com sucesso!');
+      onFimEdicao();
     } catch (err) {
       setMensagem(err.response?.data?.error || 'Erro ao cadastrar.');
     }
   }
 };
+
 
 
 
