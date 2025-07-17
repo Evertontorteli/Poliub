@@ -2,10 +2,10 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import axios from "axios";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 // ▶️ Define baseURL para TODO o Axios:
-// Em produção, força o domínio do seu Back-end.
-// Em desenvolvimento (npm start), deixa vazio para usar o proxy do CRA.
 const isProd = process.env.NODE_ENV === "production";
 axios.defaults.baseURL = isProd
   ? "https://poliub-novo-ambiente-para-o-backend.up.railway.app"
@@ -31,4 +31,15 @@ axios.interceptors.response.use(
 );
 
 const root = createRoot(document.getElementById("root"));
-root.render(<App />);
+root.render(
+  <>
+    <ToastContainer
+      position="top-right"
+      autoClose={3000}
+      closeOnClick
+      pauseOnHover
+      draggable={false}
+    />
+    <App />
+  </>
+);

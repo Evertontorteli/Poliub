@@ -47,15 +47,28 @@ exports.buscarPorPin = async (req, res) => {
  */
 exports.listarAlunos = async (req, res) => {
   try {
+    // Se veio query pin, filtra por PIN e retorna array
+    if (req.query.pin) {
+      const conn = await getConnection();
+      const [rows] = await conn.query(
+        'SELECT id, nome, pin FROM alunos WHERE pin = ?',
+        [req.query.pin]
+      );
+      conn.release();
+      return res.json(rows);
+    }
+
+    // Listar todos normalmente se não tem filtro
     const lista = await Aluno.listarTodos();
-    // remove senhaHash antes de retornar
     const semSenha = lista.map(({ senhaHash, ...rest }) => rest);
     return res.json(semSenha);
+
   } catch (err) {
     console.error("Erro ao listar alunos:", err);
     return res.status(500).json({ error: 'Erro ao buscar alunos' });
   }
 };
+
 
 /**
  * 2) BUSCAR DADOS DO PRÓPRIO ALUNO
@@ -127,33 +140,41 @@ exports.buscarPerfil = async (req, res) => {
   }
 };
 
-/**
- * 4) CRIAR NOVO ALUNO
- */
+/** * 4) CRIAR NOVO ALUNO */
+
 exports.criarAluno = async (req, res) => {
   const { nome, ra, periodo_id, usuario, senha, role, pin } = req.body;
 
   // valida campos obrigatórios
-  if (!nome || !ra || !usuario || !senha || !pin) {
-    return res.status(400).json({ error: 'Campos obrigatórios faltando.' });
+  if (!nome || !ra || !usuario || !senha) {
+    return res.status(400).json({ error: 'Todos os campos obrigatórios devem ser preenchidos.' });
   }
-  // valida PIN de 4 dígitos
-  if (!/^\d{4}$/.test(pin)) {
+  // valida PIN de 4 dígitos só se vier preenchido
+  if (pin && !/^\d{4}$/.test(pin)) {
     return res.status(400).json({ error: 'PIN deve ter exatamente 4 dígitos.' });
   }
 
-  let papel;
-  if (req.user && req.user.role === 'recepcao' && role === 'recepcao') {
-    papel = 'recepcao';
-  } else {
-    papel = 'aluno';
-  }
+  let papel = (req.user && req.user.role === 'recepcao' && role === 'recepcao') ? 'recepcao' : 'aluno';
 
   try {
-    const existente = await Aluno.buscarPorUsuario(usuario);
-    if (existente) {
-      return res.status(400).json({ error: 'Usuário já existe.' });
+    // Verifica se RA já existe
+    const raExistente = await Aluno.buscarPorRA(ra);
+    if (raExistente) {
+      return res.status(400).json({ error: 'RA já cadastrado.' });
     }
+    // Verifica se usuário/login já existe
+    const loginExistente = await Aluno.buscarPorUsuario(usuario);
+    if (loginExistente) {
+      return res.status(400).json({ error: 'Usuário/login já existe.' });
+    }
+    // Verifica se PIN já existe (se informado)
+    if (pin) {
+      const pinExistente = await Aluno.buscarPorPin(pin);
+      if (pinExistente) {
+        return res.status(400).json({ error: 'PIN já em uso.' });
+      }
+    }
+
     const salt = await bcrypt.genSalt(10);
     const senhaHash = await bcrypt.hash(senha, salt);
     const novoId = await Aluno.inserir({
@@ -162,7 +183,7 @@ exports.criarAluno = async (req, res) => {
       periodo_id,
       usuario,
       senhaHash,
-      pin,         // novo campo
+      pin,
       role: papel
     });
     return res.status(201).json({
@@ -171,14 +192,15 @@ exports.criarAluno = async (req, res) => {
       ra,
       periodo_id,
       usuario,
-      pin,         // devolve também
+      pin,
       role: papel
     });
   } catch (err) {
     console.error("Erro ao criar aluno:", err);
-    return res.status(500).json({ error: 'Não foi possível cadastrar o aluno.' });
+    return res.status(500).json({ error: 'Não foi possível cadastrar o aluno. Erro interno.' });
   }
 };
+
 
 /**
  * 5) ATUALIZAR ALUNO
@@ -187,10 +209,12 @@ exports.atualizarAluno = async (req, res) => {
   const { id } = req.params;
   const { nome, ra, periodo_id, usuario, senha, role, pin } = req.body;
 
-  if (!nome || !ra || !usuario || !pin) {
-    return res.status(400).json({ error: 'Campos obrigatórios faltando.' });
+  // valida campos obrigatórios
+  if (!nome || !ra || !usuario) {
+    return res.status(400).json({ error: 'Todos os campos obrigatórios devem ser preenchidos.' });
   }
-  if (!/^\d{4}$/.test(pin)) {
+  // valida PIN de 4 dígitos só se vier preenchido
+  if (pin && !/^\d{4}$/.test(pin)) {
     return res.status(400).json({ error: 'PIN deve ter exatamente 4 dígitos.' });
   }
 
@@ -199,12 +223,25 @@ exports.atualizarAluno = async (req, res) => {
       return res.status(403).json({ error: 'Não autorizado a editar este cadastro.' });
     }
 
-    let papel;
-    if (req.user.role === 'aluno') {
-      papel = 'aluno';
-    } else {
-      papel = role === 'recepcao' ? 'recepcao' : 'aluno';
+    // Verifica se RA já existe em outro aluno
+    const raExistente = await Aluno.buscarPorRA(ra);
+    if (raExistente && String(raExistente.id) !== String(id)) {
+      return res.status(400).json({ error: 'RA já cadastrado.' });
     }
+    // Verifica se usuário/login já existe em outro aluno
+    const loginExistente = await Aluno.buscarPorUsuario(usuario);
+    if (loginExistente && String(loginExistente.id) !== String(id)) {
+      return res.status(400).json({ error: 'Usuário/login já existe.' });
+    }
+    // Verifica se PIN já existe em outro aluno (se informado)
+    if (pin) {
+      const pinExistente = await Aluno.buscarPorPin(pin);
+      if (pinExistente && String(pinExistente.id) !== String(id)) {
+        return res.status(400).json({ error: 'PIN já em uso.' });
+      }
+    }
+
+    let papel = (req.user.role === 'aluno') ? 'aluno' : (role === 'recepcao' ? 'recepcao' : 'aluno');
 
     let senhaHash = null;
     if (senha && senha.trim() !== '') {
@@ -218,16 +255,17 @@ exports.atualizarAluno = async (req, res) => {
       periodo_id,
       usuario,
       senhaHash,
-      pin,    // atualiza também
+      pin,
       role: papel
     });
 
     return res.json({ id, nome, ra, periodo_id, usuario, pin, role: papel });
   } catch (err) {
     console.error("Erro ao atualizar aluno:", err);
-    return res.status(500).json({ error: 'Não foi possível atualizar o aluno.' });
+    return res.status(500).json({ error: 'Não foi possível atualizar o aluno. Erro interno.' });
   }
 };
+
 
 /**
  * 6) DELETAR ALUNO → apenas recepção

@@ -1,9 +1,11 @@
 // src/components/FormPaciente.js
-import React, { useState, useEffect } from 'react'
-import axios from 'axios'
-import { toast, ToastContainer } from 'react-toastify'
-import { useAuth } from './context/AuthContext' // ajuste o caminho conforme seu projeto
-import 'react-toastify/dist/ReactToastify.css'
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { toast, ToastContainer } from 'react-toastify';
+import { useAuth } from './context/AuthContext'; 
+import 'react-toastify/dist/ReactToastify.css';
+
+
 
 function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
   const { user } = useAuth() // Obtem user do contexto
@@ -212,6 +214,7 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
       if (pacienteEditando) {
         await axios.put(`/api/pacientes/${pacienteEditando.id}`, dados)
         toast.success(`Paciente ${nome.trim()} atualizado com sucesso!`)
+         setTimeout(() => onNovoPaciente(), 500); 
       } else {
         await axios.post('/api/pacientes', dados)
         toast.success(`Paciente ${nome.trim()} cadastrado com sucesso!`)
@@ -219,8 +222,9 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
         setNome('')
         setTelefone('')
         setNumeroProntuario('')
+        setTimeout(() => onNovoPaciente(), 500);
       }
-      setTimeout(() => onNovoPaciente(), 200)
+      
     } catch (err) {
       let msg = 'Erro ao cadastrar/atualizar paciente.'
       if (err.response?.data) {
@@ -240,7 +244,6 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
 
   return (
     <div className="bg-white mx-auto max-w-auto rounded-2xl p-6">
-      <ToastContainer position="top-right" autoClose={5000} />
       <form onSubmit={handleSubmit} autoComplete="off">
         <h2 className="text-2xl font-bold mb-6 text-gray-800">
           {pacienteEditando ? 'Editar Paciente' : 'Novo Paciente'}

@@ -26,6 +26,19 @@ const Aluno = {
     conn.release();
     return rows;
   },
+    /**
+   * Busca um aluno pelo RA (retorna o primeiro encontrado ou null)
+   */
+  buscarPorRA: async (ra) => {
+    const conn = await pool.getConnection();
+    const [rows] = await conn.execute(
+      'SELECT * FROM alunos WHERE ra = ?',
+      [ra]
+    );
+    conn.release();
+    return rows[0] || null;
+  },
+
 
   /**
    * Busca por usuário de login (incluindo pin, caso precise)
