@@ -62,41 +62,67 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
   const validarNome = n => n.trim().split(' ').filter(p => p.length >= 2).length >= 2;
   const validarRA = r => /^\d{1,9}$/.test(r);
 
-  const handleSubmit = e => {
-    e.preventDefault();
-    if (!validarNome(nome)) return setMensagem('Informe nome completo!');
-    if (!validarRA(ra)) return setMensagem('RA inválido!');
-    if (!usuario.trim()) return setMensagem('Insira usuário!');
-    if (!alunoEditando && senha.length < 4) return setMensagem('Senha mínimo 4 chars!');
-    if (!periodoId) return setMensagem('Selecione período!');
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    const alunoData = { nome, ra, periodo_id: periodoId, usuario, senha, role, pin };
+  if (!validarNome(nome)) return setMensagem('Informe nome completo!');
+  if (!validarRA(ra)) return setMensagem('RA inválido!');
+  if (!usuario.trim()) return setMensagem('Insira usuário!');
+  if (!alunoEditando && senha.length < 4) return setMensagem('Senha mínimo 4 chars!');
+  if (!periodoId) return setMensagem('Selecione período!');
 
-    if (alunoEditando) {
-      const payload = { ...alunoData };
-      if (!senha) delete payload.senha;
-      axios.put(`/api/alunos/${alunoId}`, payload, { headers })
-        .then(() => {
-          if (box) {
-            if (boxId) axios.put(`/api/boxes/${boxId}`, { conteudo: box }, { headers });
-            else axios.post('/api/boxes', { aluno_id: alunoId, conteudo: box }, { headers });
-          }
-          setMensagem('Aluno atualizado com sucesso!');
-          onNovoAluno(); onFimEdicao();
-        })
-        .catch(err => setMensagem(err.response?.data?.error || 'Erro ao atualizar.'));
-    } else {
-      axios.post('/api/alunos', alunoData, { headers })
-        .then(res => {
-          const newId = res.data.id;
-          if (box) axios.post('/api/boxes', { aluno_id: newId, conteudo: box }, { headers });
-          setMensagem('Aluno cadastrado com sucesso!');
-          onNovoAluno();
-          setTimeout(() => { onFimEdicao(); setMensagem(''); }, 1500);
-        })
-        .catch(err => setMensagem(err.response?.data?.error || 'Erro ao cadastrar.'));
+  // --- Validação do PIN: só validar se o campo estiver preenchido ---
+  if (pin && !/^\d{4}$/.test(pin)) return setMensagem('PIN deve ter exatamente 4 dígitos!');
+
+  // --- Validação de unicidade do PIN (só se preenchido) ---
+  if (pin) {
+    try {
+      const { data } = await axios.get(`/api/alunos?pin=${pin}`, { headers });
+      const pinDuplicado = Array.isArray(data) && data.some(a =>
+        alunoEditando
+          ? String(a.id) !== String(alunoId) // em edição, ignora o próprio aluno
+          : true
+      );
+      if (pinDuplicado) {
+        return setMensagem('Já existe um aluno com este PIN.');
+      }
+    } catch (err) {
+      return setMensagem('Erro ao validar PIN.');
     }
-  };
+  }
+
+  const alunoData = { nome, ra, periodo_id: periodoId, usuario, senha, role, pin: pin || null };
+
+  if (alunoEditando) {
+    const payload = { ...alunoData };
+    if (!senha) delete payload.senha;
+    try {
+      await axios.put(`/api/alunos/${alunoId}`, payload, { headers });
+      if (box) {
+        if (boxId) await axios.put(`/api/boxes/${boxId}`, { conteudo: box }, { headers });
+        else await axios.post('/api/boxes', { aluno_id: alunoId, conteudo: box }, { headers });
+      }
+      setMensagem('Aluno atualizado com sucesso!');
+      onNovoAluno();
+      onFimEdicao();
+    } catch (err) {
+      setMensagem(err.response?.data?.error || 'Erro ao atualizar.');
+    }
+  } else {
+    try {
+      const res = await axios.post('/api/alunos', alunoData, { headers });
+      const newId = res.data.id;
+      if (box) await axios.post('/api/boxes', { aluno_id: newId, conteudo: box }, { headers });
+      setMensagem('Aluno cadastrado com sucesso!');
+      onNovoAluno();
+      setTimeout(() => { onFimEdicao(); setMensagem(''); }, 1500);
+    } catch (err) {
+      setMensagem(err.response?.data?.error || 'Erro ao cadastrar.');
+    }
+  }
+};
+
+
 
   return (
     <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl  space-y-6">
@@ -199,7 +225,7 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
           className="w-full border rounded px-3 py-2"
           value={pin}
           onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-          required
+          //required
         />
       </div>
 
