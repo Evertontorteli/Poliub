@@ -4,6 +4,7 @@ import axios from "axios";
 import Modal from "./Modal";
 import FormAluno from "./FormAluno";
 import { useAuth } from "../context/AuthContext";
+import { toast } from 'react-toastify';
 
 export default function TelaAlunos() {
   const { user } = useAuth();
@@ -82,6 +83,13 @@ export default function TelaAlunos() {
       a.box.toString().includes(term)
     );
   });
+
+  // Adicione essa função antes do return:
+  const handleNovoAluno = (mensagem) => {
+    if (mensagem) toast.success(mensagem);
+    fetchAlunos(); // atualiza a lista após cadastrar/editar
+  };
+
 
   return (
     <div className="mt-4 px-4 md:px-8">
@@ -175,7 +183,7 @@ export default function TelaAlunos() {
         <Modal isOpen={mostrarModal} onRequestClose={onFecharModal}>
           <FormAluno
             alunoEditando={alunoEditando}
-            onNovoAluno={fetchAlunos}
+            onNovoAluno={handleNovoAluno}  // aqui!
             onFimEdicao={onFecharModal}
           />
         </Modal>
