@@ -1,6 +1,7 @@
 // src/components/ListaAlunos.jsx
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { Pencil, Trash } from 'lucide-react';
 
 export default function ListaAlunos({ reloadKey, onEditar }) {
   const [alunos, setAlunos] = useState([]);
@@ -8,25 +9,17 @@ export default function ListaAlunos({ reloadKey, onEditar }) {
 
   useEffect(() => {
     setCarregando(true);
-
-    // Recupera token e role armazenados após login
     const token = localStorage.getItem('token');
-    const role  = localStorage.getItem('role'); // "aluno" ou "recepcao"
-
-        // Base da API (definida em Settings → Variables do Frontend)
+    const role = localStorage.getItem('role');
     const baseURL = process.env.REACT_APP_API_URL;
 
-    // Se for recepção → lista todos; se for aluno → busca apenas o próprio
     const url = role === 'recepcao'
       ? `${baseURL}/api/alunos`
       : `${baseURL}/api/alunos/me`;
 
     axios
-      .get(url, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      .get(url, { headers: { Authorization: `Bearer ${token}` } })
       .then((res) => {
-        // Para "aluno", res.data será um objeto único; normaliza para array
         const lista = role === 'aluno' ? [res.data] : res.data;
         setAlunos(lista);
         setCarregando(false);
@@ -37,18 +30,17 @@ export default function ListaAlunos({ reloadKey, onEditar }) {
       });
   }, [reloadKey]);
 
-  const handleDeletar = (id) => {
-    // Somente recepção pode deletar; mas deixamos a checagem no backend
-    if (!window.confirm('Tem certeza que deseja deletar este aluno?')) {
-      return;
-    }
+  // Botão deletar só aparece para recepção
+  const roleAtivo = localStorage.getItem('role');
+
+  const handleDeletar = (id, nome) => {
+    if (!window.confirm('Tem certeza que deseja deletar este aluno?')) return;
     const token = localStorage.getItem('token');
     axios
-      .delete(`/api/alunos/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      .delete(`/api/alunos/${id}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(() => {
         setAlunos(prev => prev.filter(aluno => aluno.id !== id));
+        // Aqui você pode adicionar um toast se quiser feedback
       })
       .catch((err) => {
         console.error('Erro ao deletar aluno:', err.response?.data || err.message);
@@ -59,55 +51,102 @@ export default function ListaAlunos({ reloadKey, onEditar }) {
   if (carregando) return <p>Carregando alunos...</p>;
   if (alunos.length === 0) return <p>Nenhum aluno cadastrado.</p>;
 
-  // Checa se o usuário logado é aluno, para ocultar botão Deletar
-  const roleAtivo = localStorage.getItem('role');
-
   return (
-    <div className="mx-auto py-8 px-4">
-      <div className="bg-white rounded-2xl p-6">
-        {/* Cabeçalho das colunas (desktop) */}
-        <div className="hidden md:grid grid-cols-4 gap-x-4 px-2 py-2 bg-gray-100 rounded-t-xl font-semibold text-gray-600 mb-2">
-          <span>Nome</span>
-          <span>RA</span>
-          <span>Box</span>
-          <span>Período</span>
-          <span className="text-right">Ações</span>
+    <div className="mx-auto py-2 px-2">
+      <div className="bg-white rounded-2xl p-2 shadow">
+        {/* Tabela (desktop) */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="min-w-full bg-white border-separate border-spacing-0">
+            <thead>
+              <tr className="bg-gray-100 text-gray-700 text-sm">
+                <th className="px-3 py-2 text-left font-semibold border-b">#</th>
+                <th className="px-3 py-2 text-left font-semibold border-b">Nome</th>
+                <th className="px-3 py-2 text-left font-semibold border-b">RA</th>
+                <th className="px-3 py-2 text-left font-semibold border-b">Box</th>
+                <th className="px-3 py-2 text-left font-semibold border-b">Período</th>
+                <th className="px-3 py-2 text-right font-semibold border-b">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {alunos.map((aluno, idx) => (
+                <React.Fragment key={aluno.id}>
+                  <tr className="border-none hover:bg-gray-50 transition">
+                    <td className="px-3 py-2 text-gray-500">{idx + 1}</td>
+                    <td className="px-3 py-2 font-medium text-gray-800">{aluno.nome}</td>
+                    <td className="px-3 py-2 text-gray-600">{aluno.ra}</td>
+                    <td className="px-3 py-2 text-gray-600">{aluno.box}</td>
+                    <td className="px-3 py-2 text-gray-500">
+                      {aluno.periodo_nome} {aluno.turno}
+                    </td>
+                    <td className="px-3 py-2 text-right flex gap-2 justify-end">
+                      <button
+                        onClick={() => onEditar(aluno)}
+                        className="p-2 rounded hover:bg-blue-100 text-blue-800 transition"
+                        title="Editar aluno"
+                        aria-label="Editar aluno"
+                      >
+                        <Pencil size={18} />
+                      </button>
+                      {roleAtivo === 'recepcao' && (
+                        <button
+                          onClick={() => handleDeletar(aluno.id, aluno.nome)}
+                          className="p-2 rounded hover:bg-red-100 text-red-700 transition"
+                          title="Deletar aluno"
+                          aria-label="Deletar aluno"
+                        >
+                          <Trash size={18} />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                  {/* Separador entre linhas, exceto a última */}
+                  {idx !== alunos.length - 1 && (
+                    <tr>
+                      <td colSpan={6}>
+                        <hr className="border-t border-gray-200 my-0" />
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
         </div>
-        {/* Lista */}
-        <div className="space-y-3">
-          {alunos.map((aluno) => (
+
+        {/* Lista em card (mobile) */}
+        <div className="md:hidden space-y-3">
+          {alunos.map((aluno, idx) => (
             <div
               key={aluno.id}
-              className="flex flex-col md:grid md:grid-cols-4 gap-y-1 gap-x-4 items-center bg-gray-50 rounded-xl px-4 md:px-2 py-2 shadow-sm hover:bg-gray-100 transition"
+              className="bg-gray-50 rounded-xl px-4 py-3 shadow-sm border border-gray-200"
             >
-              <div className="w-full font-medium text-gray-800 truncate">
-                {aluno.nome}
-              </div>
-              <div className="w-full text-gray-600">
-                {aluno.ra}
-              </div>
-              <div className="w-full text-gray-600">
-                {aluno.box}
-              </div>
-              <div className="w-full text-gray-500">
-                {aluno.periodo_nome} {aluno.turno}
-              </div>
-              <div className="flex flex-row justify-end gap-2 w-full md:justify-end">
-                <button
-                  onClick={() => onEditar(aluno)}
-                  className="px-4 py-1 rounded-lg bg-blue-100 text-blue-800 hover:bg-blue-200 font-semibold transition"
-                >
-                  Editar
-                </button>
-                {roleAtivo === 'recepcao' && (
+              <div className="flex justify-between mb-1 text-xs text-gray-500">
+                <span>#{idx + 1}</span>
+                <div className="flex gap-2">
                   <button
-                    onClick={() => handleDeletar(aluno.id)}
-                    className="px-4 py-1 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 font-semibold transition"
+                    onClick={() => onEditar(aluno)}
+                    className="p-1 rounded hover:bg-blue-100 text-blue-800"
+                    title="Editar aluno"
+                    aria-label="Editar aluno"
                   >
-                    Deletar
+                    <Pencil size={17} />
                   </button>
-                )}
+                  {roleAtivo === 'recepcao' && (
+                    <button
+                      onClick={() => handleDeletar(aluno.id, aluno.nome)}
+                      className="p-1 rounded hover:bg-red-100 text-red-700"
+                      title="Deletar aluno"
+                      aria-label="Deletar aluno"
+                    >
+                      <Trash size={17} />
+                    </button>
+                  )}
+                </div>
               </div>
+              <div><b>Nome:</b> <span className="text-gray-800">{aluno.nome}</span></div>
+              <div><b>RA:</b> <span className="text-gray-700">{aluno.ra}</span></div>
+              <div><b>Box:</b> <span className="text-gray-700">{aluno.box}</span></div>
+              <div><b>Período:</b> <span className="text-gray-700">{aluno.periodo_nome} {aluno.turno}</span></div>
             </div>
           ))}
         </div>
