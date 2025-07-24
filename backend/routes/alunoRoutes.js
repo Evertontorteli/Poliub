@@ -60,7 +60,8 @@ router.get(
 );
 
 // 3) CRIAR NOVO ALUNO → aberto (qualquer um pode criar; serve para cadastrar recepção ou alunos)
-router.post('/', alunoController.criarAluno);
+router.post('/', verificaToken, apenasRecepcao, alunoController.criarAluno);
+
 
 // 4) ATUALIZAR ALUNO → RECEPCAO ou PRÓPRIO ALUNO
 router.put(

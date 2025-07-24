@@ -85,7 +85,7 @@ function ListaPacientes({ reloadKey, onEditar }) {
           <button
             onClick={() => setPagina(p => Math.max(1, p - 1))}
             disabled={pagina === 1}
-            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+            className="text-blue-600 hover:underline rounded disabled:opacity-50"
           >
             Anterior
           </button>
@@ -96,7 +96,7 @@ function ListaPacientes({ reloadKey, onEditar }) {
           <button
             onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
             disabled={pagina === totalPaginas}
-            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+            className="text-blue-600 hover:underline rounded disabled:opacity-50"
           >
             Próxima
           </button>
@@ -175,7 +175,7 @@ function ListaPacientes({ reloadKey, onEditar }) {
           <button
             onClick={() => setPagina(p => Math.max(1, p - 1))}
             disabled={pagina === 1}
-            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+            className="text-blue-600 hover:underline rounded disabled:opacity-50"
           >
             Anterior
           </button>
@@ -185,7 +185,7 @@ function ListaPacientes({ reloadKey, onEditar }) {
           <button
             onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
             disabled={pagina === totalPaginas}
-            className="px-4 py-2 bg-gray-200 rounded disabled:opacity-50"
+            className="text-blue-600 hover:underline rounded disabled:opacity-50"
           >
             Próxima
           </button>

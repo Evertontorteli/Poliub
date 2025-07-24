@@ -2,6 +2,8 @@
 
 const Agendamento = require('../models/agendamentoModel');
 const db = require('../database'); // getConnection()
+const Log = require('../models/logModel.js');
+
 
 /**
  * Lê a tabela `boxes` e anexa a cada agendamento
@@ -124,6 +126,29 @@ exports.criarAgendamento = async (req, res) => {
       // normaliza para número caso venha ResultSetHeader
       const novoId = insertResult.insertId ?? insertResult;
 
+      //LOG
+      await Log.criar({
+        usuario_id: req.user.id,
+        usuario_nome: req.user.nome,
+        acao: 'criou',
+        entidade: 'agendamento',
+        entidade_id: novoId,
+        detalhes: {
+          aluno_id,
+          disciplina_id,
+          paciente_id,
+          data,
+          hora,
+          status,
+          solicitado_por_recepcao,
+          observacoes,
+          auxiliar1_id,
+          auxiliar2_id,
+          nome_paciente,
+          telefone
+        }
+      });
+
       // busca todos os campos necessários para a notificação
       const conn2 = await db.getConnection();
       try {
@@ -145,14 +170,14 @@ exports.criarAgendamento = async (req, res) => {
 
         const info = agRows[0] || {};
         io.emit('novoAgendamentoRecepcao', {
-          id:              novoId,
-          nome_aluno:      info.nome_aluno,
-          nome_paciente:   info.nome_paciente,
-          data:            info.data,
-          hora:            info.hora,
+          id: novoId,
+          nome_aluno: info.nome_aluno,
+          nome_paciente: info.nome_paciente,
+          data: info.data,
+          hora: info.hora,
           disciplina_nome: info.disciplina_nome,
-          periodo_nome:    info.periodo_nome,
-          periodo_turno:   info.periodo_turno
+          periodo_nome: info.periodo_nome,
+          periodo_turno: info.periodo_turno
         });
       } finally {
         conn2.release();
@@ -198,6 +223,30 @@ exports.criarAgendamento = async (req, res) => {
       });
       const novoId = insertResult.insertId ?? insertResult;
 
+      //LOG
+      await Log.criar({
+        usuario_id: req.user.id,
+        usuario_nome: req.user.nome,
+        acao: 'criou',
+        entidade: 'agendamento',
+        entidade_id: novoId,
+        detalhes: {
+          aluno_id,
+          disciplina_id,
+          paciente_id,
+          data,
+          hora,
+          status,
+          solicitado_por_recepcao,
+          observacoes,
+          auxiliar1_id,
+          auxiliar2_id,
+          nome_paciente,
+          telefone
+        }
+      });
+
+
       // se foi “Solicitar para Recepção”, notifica igual à recepção
       if (solicitado_por_recepcao) {
         const conn2 = await db.getConnection();
@@ -220,14 +269,14 @@ exports.criarAgendamento = async (req, res) => {
 
           const info = agRows[0] || {};
           io.emit('novoAgendamentoRecepcao', {
-            id:              novoId,
-            nome_aluno:      info.nome_aluno,
-            nome_paciente:   info.nome_paciente,
-            data:            info.data,
-            hora:            info.hora,
+            id: novoId,
+            nome_aluno: info.nome_aluno,
+            nome_paciente: info.nome_paciente,
+            data: info.data,
+            hora: info.hora,
             disciplina_nome: info.disciplina_nome,
-            periodo_nome:    info.periodo_nome,
-            periodo_turno:   info.periodo_turno
+            periodo_nome: info.periodo_nome,
+            periodo_turno: info.periodo_turno
           });
         } finally {
           conn2.release();
@@ -253,27 +302,67 @@ exports.atualizarAgendamento = async (req, res) => {
   dados.auxiliar2_id = dados.auxiliar2_id === '' ? null : dados.auxiliar2_id;
 
   try {
+    // Busca o estado atual do agendamento ANTES de alterar (para o log)
+    const conn = await db.getConnection();
+    const [antesRows] = await conn.execute(
+      'SELECT * FROM agendamentos WHERE id = ?',
+      [id]
+    );
+    const dadosAntes = antesRows[0] || null;
+
+    // Valida permissões e faz o update como já fazia
     if (req.user.role === 'recepcao') {
       await Agendamento.atualizar(id, dados);
+
+      // LOG (mostrando o antes e o depois)
+      await Log.criar({
+        usuario_id: req.user.id,
+        usuario_nome: req.user.nome,
+        acao: 'atualizou',
+        entidade: 'agendamento',
+        entidade_id: id,
+        detalhes: JSON.stringify({
+          antes: dadosAntes,
+          depois: dados
+        })
+      });
+
+      conn.release();
       return res.json({ mensagem: 'Agendamento atualizado!' });
     }
+
     if (req.user.role === 'aluno') {
-      const conn = await db.getConnection();
       const [rows] = await conn.execute(
         'SELECT aluno_id, auxiliar1_id, auxiliar2_id FROM agendamentos WHERE id = ?',
         [id]
       );
+      const permissoes = rows[0];
+
       conn.release();
 
       if (
-        rows.length === 0 ||
-        ![rows[0].aluno_id, rows[0].auxiliar1_id, rows[0].auxiliar2_id]
+        !permissoes ||
+        ![permissoes.aluno_id, permissoes.auxiliar1_id, permissoes.auxiliar2_id]
           .map(x => String(x))
           .includes(String(req.user.id))
       ) {
         return res.status(403).json({ error: 'Não autorizado a atualizar este agendamento.' });
       }
       await Agendamento.atualizar(id, dados);
+
+      // LOG (mostrando o antes e o depois)
+      await Log.criar({
+        usuario_id: req.user.id,
+        usuario_nome: req.user.nome,
+        acao: 'atualizou',
+        entidade: 'agendamento',
+        entidade_id: id,
+        detalhes: JSON.stringify({
+          antes: dadosAntes,
+          depois: dados
+        })
+      });
+
       return res.json({ mensagem: 'Agendamento atualizado!' });
     }
     return res.status(403).json({ error: 'Role não autorizado para atualizar agendamento.' });
@@ -283,30 +372,60 @@ exports.atualizarAgendamento = async (req, res) => {
   }
 };
 
+
 // 5) DELETAR AGENDAMENTO
 exports.deletarAgendamento = async (req, res) => {
   const { id } = req.params;
   try {
+    // 1. Busca dados atuais antes de deletar
+    const conn = await db.getConnection();
+    const [dadosAntes] = await conn.execute(
+      'SELECT * FROM agendamentos WHERE id = ?',
+      [id]
+    );
+
+    // 2. Deleta normalmente conforme papel
     if (req.user.role === 'recepcao') {
       await Agendamento.deletar(id);
+
+      // LOG
+      await Log.criar({
+        usuario_id: req.user.id,
+        usuario_nome: req.user.nome,
+        acao: 'deletou',
+        entidade: 'agendamento',
+        entidade_id: id,
+        detalhes: dadosAntes[0] || {}
+      });
+
+      conn.release();
       return res.json({ mensagem: 'Agendamento deletado!' });
     }
     if (req.user.role === 'aluno') {
-      const conn = await db.getConnection();
-      const [rows] = await conn.execute(
-        'SELECT aluno_id FROM agendamentos WHERE id = ?',
-        [id]
-      );
-      conn.release();
-      if (rows.length === 0 || String(rows[0].aluno_id) !== String(req.user.id)) {
+      if (dadosAntes.length === 0 || String(dadosAntes[0].aluno_id) !== String(req.user.id)) {
+        conn.release();
         return res.status(403).json({ error: 'Não autorizado a deletar este agendamento.' });
       }
       await Agendamento.deletar(id);
+
+      // LOG
+      await Log.criar({
+        usuario_id: req.user.id,
+        usuario_nome: req.user.nome,
+        acao: 'deletou',
+        entidade: 'agendamento',
+        entidade_id: id,
+        detalhes: dadosAntes[0] || {}
+      });
+
+      conn.release();
       return res.json({ mensagem: 'Agendamento deletado!' });
     }
+    conn.release();
     return res.status(403).json({ error: 'Role não autorizado para deletar agendamento.' });
   } catch (err) {
     console.error('Erro ao deletar agendamento:', err);
     return res.status(500).json({ error: 'Erro ao deletar agendamento.' });
   }
 };
+
