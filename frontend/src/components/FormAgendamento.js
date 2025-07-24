@@ -2,6 +2,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { toast } from 'react-toastify';
 
 export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando, onFimEdicao }) {
   const { user } = useAuth();
@@ -44,13 +45,11 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
     const headers = { Authorization: `Bearer ${token}` };
 
     if (role === 'aluno') {
-      // 1) Pega meu cadastro e filtra tudo pelo meu período
       axios.get('/api/alunos/me', { headers })
         .then(res => {
           setMe(res.data);
           const meuPeriodo = String(res.data.periodo_id);
 
-          // Disciplinas daquele período
           axios.get('/api/disciplinas', { headers })
             .then(r2 => {
               const fil = r2.data.filter(d => String(d.periodo_id) === meuPeriodo);
@@ -61,7 +60,6 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
               setMensagem('Não foi possível carregar suas disciplinas.');
             });
 
-          // Alunos daquele período
           axios.get('/api/alunos', { headers })
             .then(r3 => {
               const filA = r3.data.filter(a => String(a.periodo_id) === meuPeriodo);
@@ -77,7 +75,6 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
           setMensagem('Erro ao carregar usuário logado.');
         });
     } else {
-      // recepção: carrega tudo sem filtro de período
       axios.get('/api/disciplinas', { headers })
         .then(res => setDisciplinas(res.data))
         .catch(err => {
@@ -93,13 +90,11 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
         });
     }
 
-    // Pacientes (idem para ambos os perfis)
     axios.get('/api/pacientes', { headers })
       .then(res => setPacientes(res.data))
       .catch(err => console.error('Erro pacientes:', err));
   }, [token, role]);
 
-  // Fecha autocomplete ao clicar fora
   useEffect(() => {
     function handleClickOutside(e) {
       if (inputRef.current && !inputRef.current.contains(e.target)) {
@@ -110,7 +105,6 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Preenche campos em edição
   useEffect(() => {
     if (!agendamentoEditando) {
       setTipoAtendimento('Novo');
@@ -135,7 +129,6 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
     setShowLista(false);
   }, [agendamentoEditando]);
 
-  // Filtro rápido de pacientes
   const pacientesFiltrados = pacientes.filter(p => {
     const term = buscaPaciente.toLowerCase();
     return p.nome.toLowerCase().includes(term)
@@ -154,7 +147,6 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
   async function handleSubmit(e) {
     e.preventDefault();
     if (!operadorId) return setMensagem('Selecione um operador.');
-    // validação apenas para alunos
     if (role !== 'recepcao' && String(user.id) !== operadorId && String(user.id) !== auxiliar1Id) {
       return setMensagem('Você deve ser o Operador ou Auxiliar para realizar este agendamento.');
     }
@@ -179,15 +171,16 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
     try {
       if (agendamentoEditando) {
         await axios.put(`/api/agendamentos/${agendamentoEditando.id}`, payload, { headers });
-        setMensagem('Agendamento atualizado!');
+        toast.success('Agendamento atualizado com sucesso!');
         onFimEdicao();
       } else {
         await axios.post('/api/agendamentos', payload, { headers });
-        setMensagem('Agendamento cadastrado!');
+        toast.success('Agendamento cadastrado com sucesso!');
         setDisciplinaId(''); setPacienteId(''); setNomePaciente('');
         setTelefone(''); setData(''); setHora('19:00');
         setObservacoes(''); setOperadorId(''); setAuxiliar1Id('');
       }
+      setMensagem('');
       onNovoAgendamento && onNovoAgendamento();
     } catch (err) {
       console.error(err.response?.data || err.message);
