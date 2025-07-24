@@ -3,6 +3,10 @@
 const Aluno = require('../models/alunoModel');
 const bcrypt = require('bcryptjs');
 const { getConnection } = require('../database'); // para consultas diretas quando preciso validar propriedade
+const Log = require('../models/logModel'); // ATENÇÃO: nome correto, tudo minúsculo
+
+
+
 
 
 exports.buscarPorPin = async (req, res) => {
@@ -140,9 +144,10 @@ exports.buscarPerfil = async (req, res) => {
   }
 };
 
-/** * 4) CRIAR NOVO ALUNO */
 
+/** * 4) CRIAR NOVO ALUNO */
 exports.criarAluno = async (req, res) => {
+  console.log('req.user no criarAluno:', req.user); // <--- debug aqui
   const { nome, ra, periodo_id, usuario, senha, role, pin } = req.body;
 
   // valida campos obrigatórios
@@ -186,6 +191,17 @@ exports.criarAluno = async (req, res) => {
       pin,
       role: papel
     });
+
+    // REGISTRA O LOG (use sempre JSON.stringify)
+    await Log.criar({
+      usuario_id: req.user.id,
+      usuario_nome: req.user.nome,
+      acao: 'criou',
+      entidade: 'aluno',
+      entidade_id: novoId,
+      detalhes: JSON.stringify({ nome, ra, usuario, periodo_id, pin, role: papel })
+    });
+
     return res.status(201).json({
       id: novoId,
       nome,
@@ -259,6 +275,16 @@ exports.atualizarAluno = async (req, res) => {
       role: papel
     });
 
+    //REGISTRAR LOG ATUALIZAR
+    await Log.criar({
+      usuario_id: req.user.id,
+      usuario_nome: req.user.nome,
+      acao: 'atualizou',
+      entidade: 'aluno',
+      entidade_id: id,
+      detalhes: JSON.stringify({ nome, ra, usuario, periodo_id, pin, role: papel })
+    });
+
     return res.json({ id, nome, ra, periodo_id, usuario, pin, role: papel });
   } catch (err) {
     console.error("Erro ao atualizar aluno:", err);
@@ -267,13 +293,28 @@ exports.atualizarAluno = async (req, res) => {
 };
 
 
+
 /**
  * 6) DELETAR ALUNO → apenas recepção
  */
 exports.deletarAluno = async (req, res) => {
   const { id } = req.params;
   try {
+    // Busque o aluno antes de deletar (snapshot)
+    const alunoAntes = await Aluno.buscarPorId(id);
+
     await Aluno.deletar(id);
+
+    // REGISTRAR LOG (detalhes com snapshot, pode ser null ou vazio)
+    await Log.criar({
+      usuario_id: req.user.id,
+      usuario_nome: req.user.nome,
+      acao: 'deletou',
+      entidade: 'aluno',
+      entidade_id: id,
+      detalhes: JSON.stringify(alunoAntes || {})
+    });
+
     return res.json({ sucesso: true });
   } catch (err) {
     console.error("Erro ao deletar aluno:", err);

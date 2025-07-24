@@ -14,7 +14,7 @@ export default function Ajuda() {
   ];
 
   return (
-    <div className="max-w-4xl mx-auto py-12 px-4">
+    <div className="max-w-auto mx-auto py-12 px-4">
       <h1 className="text-3xl font-bold text-center mb-2">Entre em contato conosco</h1>
       <p className="text-center text-sm text-gray-600 mb-8">
         Horário de atendimento:<br/>

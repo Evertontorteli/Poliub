@@ -22,6 +22,7 @@ import TelaAgendamentos from './components/TelaAgendamentos'
 import TelaEsterilizacao from './components/TelaEsterilizacao'  // ← aqui
 import TelaCaixas from './components/TelaCaixas'
 import TelaDashboardEsterilizacao from './components/TelaDashboardEsterilizacao'
+import TelaLogs from "./components/TelaLogs"; // importe a tela de logs
 
 
 
@@ -140,6 +141,7 @@ function LayoutInterno() {
       case 'esterilizacao': return <TelaEsterilizacao />   // ← case existente
       case 'caixas': return <TelaCaixas />   // ← case existente
       case 'dashboard-esterilizacao':     return <TelaDashboardEsterilizacao />
+      case 'auditoria':     return <TelaLogs />
       case 'ajuda': return <Ajuda />
       default:
         return (

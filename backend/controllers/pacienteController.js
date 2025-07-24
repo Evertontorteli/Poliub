@@ -1,5 +1,7 @@
 // controllers/pacienteController.js
 const { getConnection } = require('../database');
+const Log = require('../models/logModel.js');
+
 
 exports.criarOuBuscarPaciente = async (req, res) => {
   const {
@@ -39,6 +41,19 @@ exports.criarOuBuscarPaciente = async (req, res) => {
         observacao || null
       ]
     );
+        // ==== CRIE O LOG AQUI ====
+    await Log.criar({
+      usuario_id: req.user.id,
+      usuario_nome: req.user.nome,
+      acao: 'criou',
+      entidade: 'paciente',
+      entidade_id: insertResult.insertId,
+      detalhes: {
+        nome, telefone, numero_prontuario, numero_gaveta, rg, cpf,
+        data_nascimento, idade, cidade, endereco, numero, observacao
+      }
+    });
+    
     conn.release();
     res.status(201).json({
       id: insertResult.insertId,
@@ -84,6 +99,19 @@ exports.criarPaciente = async (req, res) => {
       'INSERT INTO pacientes (nome, telefone, numero_prontuario) VALUES (?, ?, ?)',
       [nome, telefone, numero_prontuario || null]
     );
+    // LOG de criação:
+    await Log.criar({
+      usuario_id: req.user.id,
+      usuario_nome: req.user.nome,
+      acao: 'criou',
+      entidade: 'paciente',
+      entidade_id: insertResult.insertId,
+      detalhes: {
+        nome, telefone, numero_prontuario, numero_gaveta, rg, cpf,
+        data_nascimento, idade, cidade, endereco, numero, observacao
+      }
+    });
+
     conn.release();
     res.status(201).json({
       id: insertResult.insertId,
@@ -103,7 +131,7 @@ exports.atualizarPaciente = async (req, res) => {
     numero_gaveta, rg, cpf, data_nascimento,
     idade, cidade, endereco, numero, observacao
   } = req.body;
-  
+
   // Agora você pode usar as variáveis aqui:
   console.log("ID recebendo update:", id, "Telefone:", telefone);
 
@@ -142,6 +170,20 @@ exports.atualizarPaciente = async (req, res) => {
         id
       ]
     );
+
+    // LOG de atualização
+    await Log.criar({
+      usuario_id: req.user.id,
+      usuario_nome: req.user.nome,
+      acao: 'atualizou',
+      entidade: 'paciente',
+      entidade_id: id,
+      detalhes: {
+        nome, telefone, numero_prontuario, numero_gaveta, rg, cpf,
+        data_nascimento, idade, cidade, endereco, numero, observacao
+      }
+    });
+
     conn.release();
     res.json({
       id,
@@ -164,17 +206,32 @@ exports.atualizarPaciente = async (req, res) => {
 };
 
 
+//DELETAR PACIENTE
 exports.deletarPaciente = async (req, res) => {
   const { id } = req.params;
   try {
     const conn = await getConnection();
+    // BUSCA OS DADOS ANTES DE DELETAR para logar snapshot
+    const [dados] = await conn.query('SELECT * FROM pacientes WHERE id = ?', [id]);
     await conn.query('DELETE FROM pacientes WHERE id = ?', [id]);
+
+    // LOG de exclusão
+    await Log.criar({
+      usuario_id: req.user.id,
+      usuario_nome: req.user.nome,
+      acao: 'deletou',
+      entidade: 'paciente',
+      entidade_id: id,
+      detalhes: dados[0] || {}
+    });
+
     conn.release();
     res.send('Paciente deletado!');
   } catch (err) {
     res.status(500).json({ error: 'Erro ao deletar paciente', details: err });
   }
 };
+
 
 exports.historicoPaciente = async (req, res) => {
   const { id } = req.params;
@@ -186,7 +243,7 @@ exports.historicoPaciente = async (req, res) => {
     );
     conn.release();
     res.json(rows);
-  } catch(err) {
+  } catch (err) {
     res.status(500).json({ error: 'Erro ao buscar histórico', details: err });
   }
 };

@@ -12,6 +12,7 @@ import {
   Box,
   PackagePlus,              // importe o ícone de caixa
   PieChart,
+  LayoutList,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
@@ -67,6 +68,8 @@ export default function Sidebar({ active, onMenuClick }) {
               active={active === "periodos"}
               onClick={() => onMenuClick("periodos")}
             />
+            
+            <hr className="my-2 border-t border-gray-200" />   {/* ← Separador discreto */}
 
             <MenuItem
               icon={<PieChart size={24} />}
@@ -94,14 +97,22 @@ export default function Sidebar({ active, onMenuClick }) {
 
       {/* Base: Configurações e Ajuda */}
       <div className="flex flex-col gap-2 mb-10 px-4">
-        {role !== "aluno" && (
+        {/*{role !== "aluno" && (
           <MenuItem
             icon={<Settings size={24} />}
             label="Configurações"
             active={active === "configuracoes"}
             onClick={() => onMenuClick("configuracoes")}
           />
-        )}
+        )}*/}
+
+        <MenuItem
+          icon={<LayoutList size={24} />}
+          label="Auditoria"
+          active={active === "auditoria"}
+          onClick={() => onMenuClick("auditoria")}
+        />
+
 
         <MenuItem
           icon={<HelpCircle size={24} />}

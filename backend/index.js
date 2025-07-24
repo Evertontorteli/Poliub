@@ -60,6 +60,8 @@ io.on('connection', (socket) => {
     // Movimentações de esterilização
     app.use('/api/movimentacoes', require('./routes/movimentacaoRoutes'));
     app.use('/api/caixas', require('./routes/caixaRoutes'));
+    app.use('/api/logs', require('./routes/logRoutes'));
+
     
 
 
