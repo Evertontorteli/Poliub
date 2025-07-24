@@ -1,9 +1,9 @@
 // src/components/ListaAgendamentos.jsx
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { Pencil, Trash } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-
-const baseURL = process.env.REACT_APP_API_URL;
+import { toast } from "react-toastify";
 
 const STATUS_LABELS = {
   'Novo': 'Novo',
@@ -16,32 +16,25 @@ const STATUS_COLORS = {
   'Solicitado': "bg-[#DA3648] text-white",
 };
 
+const POR_PAGINA = 100;
 
 export default function ListaAgendamentos({ onEditar, reloadKey }) {
   const [agendamentos, setAgendamentos] = useState([]);
   const [carregando, setCarregando] = useState(true);
-
   const [busca, setBusca] = useState('');
   const [filtroData, setFiltroData] = useState('');
   const [filtroHora, setFiltroHora] = useState('');
+  const [pagina, setPagina] = useState(1);
 
   const navigate = useNavigate();
 
   useEffect(() => {
     setCarregando(true);
-
-    // Recupera token e role do localStorage (ou de onde você armazenou após login)
     const token = localStorage.getItem('token');
-    const role = localStorage.getItem('role'); // ex: "aluno" ou "recepcao"
-
-    // Escolhe a URL de listagem conforme o role:
-    // - recepcao → lista todos (/api/agendamentos)
-    // - aluno    → lista apenas os próprios (/api/agendamentos/meus)
+    const role = localStorage.getItem('role');
     const url = role === 'recepcao'
       ? '/api/agendamentos'
       : '/api/agendamentos/meus';
-
-
 
     axios.get(url, {
       headers: { Authorization: `Bearer ${token}` }
@@ -56,8 +49,8 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
       });
   }, [reloadKey]);
 
+  useEffect(() => { setPagina(1); }, [busca, filtroData, filtroHora, agendamentos.length]);
 
-  // Função para filtrar a lista localmente (por texto, data, hora)
   const filtrarAgendamentos = (lista) => {
     return lista.filter(ag => {
       const textoBusca = busca.toLowerCase();
@@ -76,56 +69,74 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
     });
   };
 
-  const agendamentosFiltrados = filtrarAgendamentos(agendamentos).slice(0, 100);
-  const disciplinaNome = agendamentosFiltrados[0]?.disciplinaNome || '';
-  //const dataAtual = agendamentosFiltrados[0]?.data
-  // ? agendamentosFiltrados[0].data.slice(0, 10).split('-').reverse().join('/')
-  //  : '';
-  //const semestre = ""; // se for relevante, preencha aqui
+  // Paginação
+  const agendamentosFiltrados = filtrarAgendamentos(agendamentos);
+  const totalPaginas = Math.ceil(agendamentosFiltrados.length / POR_PAGINA);
+  const inicio = (pagina - 1) * POR_PAGINA;
+  const fim = inicio + POR_PAGINA;
+  const agsPagina = agendamentosFiltrados.slice(inicio, fim);
 
   const handleImprimir = () => {
-    const disciplinaAtual = agendamentosFiltrados[0]?.disciplinaId || null;
-    const filtros = {
-      data: filtroData,
-      hora: filtroHora,
-      busca: busca
-    };
-
+    const disciplinaAtual = agsPagina[0]?.disciplinaId || null;
+    const filtros = { data: filtroData, hora: filtroHora, busca: busca };
     navigate('/print-agendamentos', {
       state: {
         disciplinaId: disciplinaAtual,
-        disciplinaNome,
+        disciplinaNome: agsPagina[0]?.disciplinaNome || "",
         filtros
       }
     });
   };
 
-  const handleDeletar = (id) => {
-    if (!window.confirm('Tem certeza que deseja deletar este agendamento?')) {
-      return;
-    }
+  const handleDeletar = (id, pacienteNome) => {
+    if (!window.confirm('Tem certeza que deseja deletar este agendamento?')) return;
     const token = localStorage.getItem('token');
     axios.delete(`/api/agendamentos/${id}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
-      .then(() => {
-        setAgendamentos(prev => prev.filter(a => a.id !== id));
-      })
-      .catch((err) => {
-        console.error('Erro ao deletar agendamento:', err.response?.data || err.message);
-        alert('Não foi possível deletar o agendamento.');
-      });
+       .then(() => {
+      setAgendamentos(prev => prev.filter(a => a.id !== id));
+      toast.success(`Agendamento de ${pacienteNome || 'paciente'} eliminado com sucesso!`);
+    })
+       .catch((err) => {
+      console.error('Erro ao deletar agendamento:', err.response?.data || err.message);
+      toast.error('Não foi possível deletar o agendamento.');
+    });
   };
+
+  // NÃO DISPARA MAIS TOAST AQUI!
+  const handleEditar = (agendamento) => {
+    if (onEditar) onEditar(agendamento);
+  };
+
+  // Paginador
+  function Paginador() {
+    return (
+      <div className="flex justify-between items-center my-4">
+        <button
+          onClick={() => setPagina(p => Math.max(1, p - 1))}
+          disabled={pagina === 1}
+          className="text-blue-600 hover:underline rounded disabled:opacity-50"
+        >Anterior</button>
+        <span>Página {pagina} de {totalPaginas} <small>({agendamentosFiltrados.length} agendamentos)</small></span>
+        <button
+          onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
+          disabled={pagina === totalPaginas}
+          className="text-blue-600 hover:underline rounded disabled:opacity-50"
+        >Próxima</button>
+      </div>
+    );
+  }
 
   if (carregando) return <p>Carregando agendamentos...</p>;
   if (agendamentos.length === 0) return <p>Nenhum agendamento cadastrado.</p>;
 
   return (
     <div className="mx-auto py-2 px-4">
-      <div className="bg-white rounded-2xl">
-        {/* Filtros de busca / data / hora / imprimir */}
-        <div className="flex flex-col md:flex-row md:items-end gap-3 p-0 pt-0 pb-2 rounded-2xl bg-white mb-2">
-          <div className="flex-1 relative">
+      <div className="bg-white rounded-2xl shadow p-2">
+        {/* Filtros */}
+        <div className="flex flex-col md:flex-row md:items-end gap-3 pt-0 pb-2">
+          <div className="flex-1">
             <input
               type="text"
               className="border rounded px-4 py-2 w-full rounded-2xl"
@@ -134,8 +145,7 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
               onChange={e => setBusca(e.target.value)}
             />
           </div>
-
-          <div className="flex items-center gap-4 mt-4 md:mt-0 relative">
+          <div className="flex items-center gap-4 mt-4 md:mt-0">
             {/* Filtro Data */}
             <div className="relative group flex items-center">
               <button
@@ -167,7 +177,6 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
                 onChange={e => setFiltroData(e.target.value)}
               />
             </div>
-
             {/* Filtro Hora */}
             <div className="relative group flex items-center">
               <button
@@ -199,8 +208,7 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
                 onChange={e => setFiltroHora(e.target.value)}
               />
             </div>
-
-            {/* Botão Imprimir */}
+            {/* Imprimir */}
             <div className="relative group flex items-center">
               <button
                 type="button"
@@ -228,79 +236,121 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
           </div>
         </div>
 
-        {/* ==== Lista de Agendamentos ==== */}
-        <div className="overflow-x-auto">
-          <div className="mt-0 space-y-3">
-            <div className="hidden md:grid md:grid-cols-[50px_50px_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-x-4 px-5 py-2 bg-gray-100 rounded-t-xl font-semibold text-gray-600 mb-2">
-              <span className="truncate">*</span>
-              <span className="truncate">Box</span>
-              <span className="truncate">Operador</span>
-              <span className="truncate">Auxiliar</span>
-              <span className="truncate">Disciplina</span>
-              <span className="truncate">Paciente</span>
-              <span className="truncate">Telefone</span>
-              <span className="truncate">Data e Hora</span>
+        {/* Separador discreto */}
+        <hr className="border-t border-gray-200 my-2" />
+        <Paginador />
 
-              <span className="truncate text-right">Ações</span>
-            </div>
+        {/* Tabela (desktop) */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="min-w-full bg-white border-separate border-spacing-0">
+            <thead>
+              <tr className="bg-gray-100 text-gray-700 text-sm">
+                <th className="px-3 py-2 text-left font-semibold border-b">#</th>
+                <th className="px-3 py-2 text-left font-semibold border-b">Box</th>
+                <th className="px-3 py-2 text-left font-semibold border-b">Operador</th>
+                <th className="px-3 py-2 text-left font-semibold border-b">Auxiliar</th>
+                <th className="px-3 py-2 text-left font-semibold border-b">Disciplina</th>
+                <th className="px-3 py-2 text-left font-semibold border-b">Paciente</th>
+                <th className="px-3 py-2 text-left font-semibold border-b">Telefone</th>
+                <th className="px-3 py-2 text-left font-semibold border-b">Data e Hora</th>
+                <th className="px-3 py-2 text-right font-semibold border-b">Status & Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {agsPagina.map((ag, idx) => (
+                <React.Fragment key={ag.id}>
+                  <tr className="border-none hover:bg-gray-50 transition">
+                    <td className="px-3 py-2 text-gray-500">{inicio + idx + 1}</td>
+                    <td className="px-3 py-2 text-gray-500">{ag.operadorBox ?? '-'}</td>
+                    <td className="px-3 py-2 font-medium text-gray-800">{ag.operadorNome || '-'}</td>
+                    <td className="px-3 py-2 text-gray-800">{ag.auxiliarNome || '-'}</td>
+                    <td className="px-3 py-2 text-gray-800">{ag.disciplinaNome || '-'}</td>
+                    <td className="px-3 py-2 text-gray-800">{ag.pacienteNome || '-'}</td>
+                    <td className="px-3 py-2 text-gray-500">{ag.telefone || '-'}</td>
+                    <td className="px-3 py-2 text-gray-800">
+                      {ag.data
+                        ? ag.data.slice(0, 10).split('-').reverse().join('/')
+                        : '-'} {ag.hora || '-'}
+                    </td>
+                    <td className="px-3 py-2 text-right flex gap-2 justify-end">
+                      <span className={`inline-block px-2 py-2 rounded-full text-xs font-semibold min-w-[34px] text-center ${STATUS_COLORS[ag.status] || 'bg-gray-200 text-gray-700'}`}>
+                        {STATUS_LABELS[ag.status] || '-'}
+                      </span>
+                      <button
+                        onClick={() => handleEditar(ag)}
+                        className="p-2 rounded hover:bg-blue-100 text-blue-800 transition"
+                        title="Editar agendamento"
+                        aria-label="Editar agendamento"
+                      >
+                        <Pencil size={18} />
+                      </button>
+                      <button
+                        onClick={() => handleDeletar(ag.id, ag.pacienteNome)}
+                        className="p-2 rounded hover:bg-red-100 text-red-700 transition"
+                        title="Deletar agendamento"
+                        aria-label="Deletar agendamento"
+                      >
+                        <Trash size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                  {/* Separador entre linhas, exceto a última */}
+                  {idx !== agsPagina.length - 1 && (
+                    <tr>
+                      <td colSpan={9}>
+                        <hr className="border-t border-gray-200 my-0" />
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
-            {agendamentosFiltrados.map((ag, idx) => (
-              
-              <div
-                key={ag.id || idx}
-                className="flex flex-col md:grid md:grid-cols-[50px_50px_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-y-1 gap-x-4 items-center bg-gray-50 rounded-xl px-4 md:px-5 py-2 shadow-sm hover:bg-gray-100 transition"
-              >
-                 {/* número da linha */}
-        <div className="text-gray-800 truncate">{idx + 1}</div>
-        {/* box do operador */}
-        <div className="truncate">{ag.operadorBox ?? '-'}</div>
-                <div className="w-full font-medium text-gray-800 truncate">
-                  {ag.operadorNome || '-'}
-                </div>
-                <div className="w-full text-gray-800 truncate">
-                  {ag.auxiliarNome || '-'}
-                </div>
-                <div className="w-full text-gray-800 truncate">
-                  {ag.disciplinaNome || '-'}
-                </div>
-                <div className="w-full text-gray-800 truncate">
-                  {ag.pacienteNome || '-'}
-                </div>
-                <div className="w-full text-gray-500 truncate">
-                  {ag.telefone || '-'}
-                </div>
-                <div className="w-full text-gray-800 truncate">
-                  {ag.data
-                    ? ag.data.slice(0, 10).split('-').reverse().join('/')
-                    : '-'} {ag.hora || '-'}
-                </div>
-
-                <div className="flex flex-row items-center gap-2 w-full md:justify-end">
-                  <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[ag.status] || 'bg-gray-200 text-gray-700'
-                    } min-w-[72px] text-center`}>
+        {/* Cards no mobile */}
+        <div className="md:hidden space-y-3">
+          {agsPagina.map((ag, idx) => (
+            <div
+              key={ag.id}
+              className="bg-gray-50 rounded-xl px-4 py-3 shadow-sm border border-gray-200"
+            >
+              <div className="flex justify-between mb-1 text-xs text-gray-500">
+                <span>#{inicio + idx + 1}</span>
+                <div className="flex gap-2">
+                  <span className={`inline-block px-2 py-2 rounded-full text-xs font-semibold ${STATUS_COLORS[ag.status] || 'bg-gray-200 text-gray-700'}`}>
                     {STATUS_LABELS[ag.status] || '-'}
                   </span>
                   <button
-                    onClick={() => onEditar && onEditar(ag)}
-                    className="px-3 py-1 rounded-lg bg-blue-100 text-blue-800 hover:bg-blue-200 font-semibold transition"
-                    title="Editar"
-                    type="button"
+                    onClick={() => handleEditar(ag)}
+                    className="p-1 rounded hover:bg-blue-100 text-blue-800"
+                    title="Editar agendamento"
+                    aria-label="Editar agendamento"
                   >
-                    Editar
+                    <Pencil size={17} />
                   </button>
                   <button
-                    onClick={() => handleDeletar(ag.id)}
-                    className="px-3 py-1 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 font-semibold transition"
-                    title="Deletar"
-                    type="button"
+                    onClick={() => handleDeletar(ag.id, ag.pacienteNome)}
+                    className="p-1 rounded hover:bg-red-100 text-red-700"
+                    title="Deletar agendamento"
+                    aria-label="Deletar agendamento"
                   >
-                    Deletar
+                    <Trash size={17} />
                   </button>
                 </div>
               </div>
-            ))}
-          </div>
+              <div><b>Box:</b> <span className="text-gray-800">{ag.operadorBox ?? '-'}</span></div>
+              <div><b>Operador:</b> <span className="text-gray-800">{ag.operadorNome || '-'}</span></div>
+              <div><b>Auxiliar:</b> <span className="text-gray-800">{ag.auxiliarNome || '-'}</span></div>
+              <div><b>Disciplina:</b> <span className="text-gray-800">{ag.disciplinaNome || '-'}</span></div>
+              <div><b>Paciente:</b> <span className="text-gray-800">{ag.pacienteNome || '-'}</span></div>
+              <div><b>Telefone:</b> <span className="text-gray-700">{ag.telefone || '-'}</span></div>
+              <div><b>Data:</b> <span className="text-gray-700">{ag.data ? ag.data.slice(0, 10).split('-').reverse().join('/') : '-'}</span></div>
+              <div><b>Hora:</b> <span className="text-gray-700">{ag.hora || '-'}</span></div>
+            </div>
+          ))}
         </div>
+        <Paginador />
       </div>
     </div>
   );
