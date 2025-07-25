@@ -5,6 +5,9 @@ import { useNavigate } from "react-router-dom";
 import Modal from "./components/Modal";
 import FormAgendamento from "./components/FormAgendamento";
 import { useAuth } from "./context/AuthContext";
+import { toast } from 'react-toastify';
+import { Pencil, Trash } from 'lucide-react';
+
 
 export default function DashboardRecepcao() {
   const [periodos, setPeriodos] = useState([]);
@@ -18,6 +21,10 @@ export default function DashboardRecepcao() {
   const [mostrarModal, setMostrarModal] = useState(false);
   const [agendamentoEditando, setAgendamentoEditando] = useState(null);
   const [swipedId, setSwipedId] = useState(null);
+
+  // Paginação
+  const [pagina, setPagina] = useState(1);
+  const POR_PAGINA = 30;
 
   const touchStartX = useRef(0);
   const dataInputRef = useRef();
@@ -37,46 +44,30 @@ export default function DashboardRecepcao() {
   };
 
   const cardColors = [
-    "bg-[#5956D6]",
-    "bg-[#2B8FF2]",
-    "bg-[#ECAD21]",
-    "bg-[#03A400]",
-    "bg-[#DA5D5C]",
-    "bg-[#926AFF]",
-    "bg-[#568BEF]",
-    "bg-[#ECAD21]",
-    "bg-[#FF7FAF]",
-    "bg-[#926AFF]",
-    "bg-[#009AF3]",
+    "bg-[#5956D6]", "bg-[#2B8FF2]", "bg-[#ECAD21]", "bg-[#03A400]", "bg-[#DA5D5C]", "bg-[#926AFF]", "bg-[#568BEF]", "bg-[#ECAD21]", "bg-[#FF7FAF]", "bg-[#926AFF]", "bg-[#009AF3]",
   ];
 
-  // Carrega períodos e disciplinas na inicialização
+  // Carrega períodos e disciplinas
   useEffect(() => {
     axios.get("/api/periodos")
       .then(res => {
-        const lista = res.data
-          // remove qualquer período cujo nome (ou número) seja zero
-          .filter(p => parseInt(p.nome, 10) !== 0)
-          // ordena numericamente pelo nome do período
+        const lista = res.data.filter(p => parseInt(p.nome, 10) !== 0)
           .sort((a, b) => parseInt(a.nome, 10) - parseInt(b.nome, 10));
         setPeriodos(lista);
-      })
-      .catch(() => console.error("Erro ao buscar períodos"));
-
+      });
     axios.get("/api/disciplinas")
-      .then(res => setDisciplinas(res.data))
-      .catch(() => console.error("Erro ao buscar disciplinas"));
+      .then(res => setDisciplinas(res.data));
   }, []);
 
   function buscarAgendamentosDaDisciplina(disciplina) {
     setDisciplinaSelecionada(disciplina);
+    setPagina(1);
     axios
       .get(`/api/agendamentos?disciplinaId=${disciplina.id}`)
-      .then((res) => setAgendamentosFiltrados(res.data))
-      .catch(() => console.error("Erro ao buscar agendamentos"));
+      .then((res) => setAgendamentosFiltrados(res.data));
   }
 
-  // Filtra agendamentos conforme busca/data/hora
+  // Filtro + paginação
   const agendamentosExibidos = agendamentosFiltrados.filter((ag) => {
     const textoBusca = busca.toLowerCase();
     const campos = [
@@ -91,6 +82,12 @@ export default function DashboardRecepcao() {
     const matchHora = filtroHora ? ag.hora?.startsWith(filtroHora) : true;
     return matchTexto && matchData && matchHora;
   });
+  const totalPaginas = Math.ceil(agendamentosExibidos.length / POR_PAGINA);
+  const inicio = (pagina - 1) * POR_PAGINA;
+  const fim = inicio + POR_PAGINA;
+  const agsPagina = agendamentosExibidos.slice(inicio, fim);
+
+  useEffect(() => { setPagina(1); }, [busca, filtroData, filtroHora, agendamentosFiltrados.length]);
 
   const handleImprimir = () => {
     navigate("/print-agendamentos", {
@@ -102,14 +99,15 @@ export default function DashboardRecepcao() {
     });
   };
 
-  const handleDeletarAgendamento = (id) => {
+const handleDeletarAgendamento = (id, pacienteNome) => {
     if (!window.confirm("Tem certeza que deseja deletar este agendamento?")) return;
     axios
       .delete(`/api/agendamentos/${id}`)
-      .then(() =>
-        setAgendamentosFiltrados((atual) => atual.filter((a) => a.id !== id))
-      )
-      .catch(() => alert("Erro ao deletar agendamento"));
+      .then(() => {
+        setAgendamentosFiltrados((atual) => atual.filter((a) => a.id !== id));
+        toast.success(`Agendamento${pacienteNome ? ' de ' + pacienteNome : ''} eliminado com sucesso!`);
+      })
+      .catch(() => toast.error("Erro ao deletar agendamento."));
   };
 
   const handleEditarAgendamento = (agendamento) => {
@@ -157,82 +155,107 @@ export default function DashboardRecepcao() {
     }
   };
 
-  // Determina quais disciplinas mostrar com base no período selecionado
+  // Disciplinas por período
   const disciplinasVisiveis = selectedPeriodo
     ? disciplinas.filter(d => d.periodo_id === selectedPeriodo)
     : disciplinas;
 
+  // Paginador
+  function Paginador() {
+    if (totalPaginas <= 1) return null;
+    return (
+      <div className="flex justify-between items-center my-4">
+        <button
+          onClick={() => setPagina(p => Math.max(1, p - 1))}
+          disabled={pagina === 1}
+          className="text-blue-600 hover:underline rounded disabled:opacity-50"
+        >
+          Anterior
+        </button>
+        <span>
+          Página {pagina} de {totalPaginas} &nbsp;
+          <small>({agendamentosExibidos.length} agendamentos)</small>
+        </span>
+        <button
+          onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
+          disabled={pagina === totalPaginas}
+          className="text-blue-600 hover:underline rounded disabled:opacity-50"
+        >
+          Próxima
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold mb-6 text-[#1d3557]">Períodos</h1>
-      {/* Tags de Períodos */}
-      <div className="flex flex-wrap gap-2 mb-8">
-        {periodos.map(p => (
-          <button
-            key={p.id}
-            onClick={() => {
-              setSelectedPeriodo(p.id);
-              setDisciplinaSelecionada(null);
-            }}
-            className={`
-              px-4 py-2 rounded-full border transition
-              ${selectedPeriodo === p.id
-                ? "bg-[#3172C0] text-white border-transparent"
-                : "bg-white text-gray-700 border-gray-300 hover:bg-[#3172C0] hover:text-white"
-              }
-            `}
-          >
-            {p.nome}
-          </button>
-        ))}
-        {selectedPeriodo && (
-          <button
-            onClick={() => setSelectedPeriodo(null)}
-            className="px-2 py-2 rounded-full text-red-600 hover:bg-red-100 transition"
-          >
-            Limpar
-          </button>
-        )}
+    <div className="mx-auto py-4 px-2">
+      {/* Periodos */}
+      <div className="mb-4">
+        <h2 className="text-xl font-bold mb-3 text-[#1d3557]">Períodos</h2>
+        <div className="flex flex-wrap gap-2">
+          {periodos.map(p => (
+            <button
+              key={p.id}
+              onClick={() => {
+                setSelectedPeriodo(p.id);
+                setDisciplinaSelecionada(null);
+              }}
+              className={`
+                px-4 py-2 rounded-full border transition
+                ${selectedPeriodo === p.id
+                  ? "bg-[#3172C0] text-white border-transparent"
+                  : "bg-white text-gray-700 border-gray-300 hover:bg-[#3172C0] hover:text-white"
+                }
+              `}
+            >
+              {p.nome}
+            </button>
+          ))}
+          {selectedPeriodo && (
+            <button
+              onClick={() => setSelectedPeriodo(null)}
+              className="px-2 py-2 rounded-full text-red-600 hover:bg-red-100 transition"
+            >
+              Limpar
+            </button>
+          )}
+        </div>
       </div>
-
-      <h1 className="text-2xl font-bold mb-6 text-[#1d3557]">Disciplinas</h1>
-      {/* Cards de Disciplinas filtrados por Período */}
-      <div className="flex flex-wrap gap-2 mb-8">
-        {disciplinasVisiveis.map((disc, idx) => (
-          <button
-            key={disc.id}
-            onClick={() => buscarAgendamentosDaDisciplina(disc)}
-            className={`
-              min-w-[150px] flex-full rounded-2xl px-6 py-8 text-left border-2 transition
-              ${disciplinaSelecionada?.id === disc.id
-                ? "border-[#CCD7E1] bg-[#8D8D8D] text-[white]"
-                : `border-transparent hover:border-[#CCD7E1] hover:bg-[#8D8D8D] ${cardColors[idx % cardColors.length]
-                } text-[white]`
-              }
-            `}
-          >
-            <div className="font-bold text-lg mb-1">{disc.nome}</div>
-            <div className="text-sm">{disc.periodo_nome} {disc.turno}</div>
-          </button>
-        ))}
+      {/* Disciplinas */}
+      <div className="mb-6">
+        <h2 className="text-xl font-bold mb-3 text-[#1d3557]">Disciplinas</h2>
+        <div className="flex flex-wrap gap-2">
+          {disciplinasVisiveis.map((disc, idx) => (
+            <button
+              key={disc.id}
+              onClick={() => buscarAgendamentosDaDisciplina(disc)}
+              className={`
+                min-w-[150px] flex-full rounded-2xl px-6 py-8 text-left border-2 transition
+                ${disciplinaSelecionada?.id === disc.id
+                  ? "border-[#CCD7E1] bg-[#8D8D8D] text-[white]"
+                  : `border-transparent hover:border-[#CCD7E1] hover:bg-[#8D8D8D] ${cardColors[idx % cardColors.length]
+                  } text-[white]`
+                }
+              `}
+            >
+              <div className="font-bold text-lg mb-1">{disc.nome}</div>
+              <div className="text-sm">{disc.periodo_nome} {disc.turno}</div>
+            </button>
+          ))}
+        </div>
       </div>
-
+      {/* Lista de Agendamentos */}
       {disciplinaSelecionada && (
-        <div className="bg-white rounded-2xl">
-          {/* Subtítulo */}
+        <div className="bg-white rounded-2xl shadow p-2">
           <h2 className="text-lg font-semibold px-4 pt-6 pb-2">
             Agendamentos de{" "}
             <span className="text-[#3172C0]">
               {disciplinaSelecionada.nome}
             </span>
           </h2>
-
           {/* Filtros */}
-          <div className="
-            flex flex-col md:flex-row md:items-end gap-3
-            p-4 pt-0 pb-4 rounded-2xl bg-white
-          ">
-            <div className="flex-1 relative">
+          <div className="flex flex-col md:flex-row md:items-end gap-3 pt-0 pb-2">
+            <div className="flex-1">
               <input
                 type="text"
                 className="border rounded px-4 py-2 w-full rounded-2xl"
@@ -241,8 +264,7 @@ export default function DashboardRecepcao() {
                 onChange={(e) => setBusca(e.target.value)}
               />
             </div>
-
-            <div className="flex items-center gap-4 mt-4 md:mt-0 relative">
+            <div className="flex items-center gap-4 mt-4 md:mt-0">
               {/* Data */}
               <div className="relative group flex items-center">
                 <button
@@ -250,14 +272,7 @@ export default function DashboardRecepcao() {
                   className="p-2 hover:bg-gray-200 rounded-full transition"
                   onClick={handleDataClick}
                 >
-                  {/* ícone de calendário */}
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6 text-[#3172C0]"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#3172C0]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <rect x="4" y="6" width="16" height="14" fill="white" stroke="currentColor" strokeWidth="2" />
                     <path d="M16 2v4M8 2v4M4 10h16" stroke="currentColor" strokeWidth="2" />
                   </svg>
@@ -271,7 +286,6 @@ export default function DashboardRecepcao() {
                   className="absolute opacity-0 w-0 h-0"
                 />
               </div>
-
               {/* Hora */}
               <div className="relative group flex items-center">
                 <button
@@ -279,14 +293,7 @@ export default function DashboardRecepcao() {
                   className="p-2 hover:bg-gray-200 rounded-full transition"
                   onClick={handleHoraClick}
                 >
-                  {/* ícone de relógio */}
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6 text-[#3172C0]"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#3172C0]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <circle cx="12" cy="12" r="9" fill="white" stroke="currentColor" strokeWidth="2" />
                     <path d="M12 7v5l3 3" stroke="currentColor" strokeWidth="2" />
                   </svg>
@@ -300,7 +307,6 @@ export default function DashboardRecepcao() {
                   className="absolute opacity-0 w-0 h-0"
                 />
               </div>
-
               {/* Impressão */}
               <div className="relative group flex items-center">
                 <button
@@ -308,14 +314,7 @@ export default function DashboardRecepcao() {
                   className="p-2 hover:bg-gray-200 rounded-full transition"
                   onClick={handleImprimir}
                 >
-                  {/* ícone de impressora */}
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-6 w-6 text-[#3172C0]"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#3172C0]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <rect x="6" y="9" width="12" height="7" fill="white" stroke="currentColor" strokeWidth="2" />
                     <path d="M6 9V5a2 2 0 012-2h8a2 2 0 012 2v4" stroke="currentColor" strokeWidth="2" />
                     <rect x="9" y="16" width="6" height="4" fill="white" stroke="currentColor" strokeWidth="2" />
@@ -326,143 +325,140 @@ export default function DashboardRecepcao() {
             </div>
           </div>
 
-          {/* Lista de Agendamentos */}
-          <div className="overflow-x-auto">
-            <div className="mt-2 space-y-3">
-              {/* Cabeçalho Desktop */}
-              <div className="
-                hidden md:grid md:grid-cols-[50px_50px_1fr_1fr_1fr_1fr_1fr_1fr_1fr_auto_30px] gap-x-4 px-5 py-2 bg-gray-100 rounded-t-xl font-semibold text-gray-600 mb-2
-              ">
-                <span className="truncate">*</span>
-                <span className="truncate">Box</span>
-                <span className="truncate">Operador</span>
-                <span className="truncate">Auxiliar</span>
-                <span className="truncate">Disciplina</span>
-                <span className="truncate">Paciente</span>
-                <span className="truncate">Telefone</span>
-                <span className="truncate">Data e Hora</span>
-                <span className="truncate text-right">Ações</span>
-              </div>
+          {/* Paginação */}
+          <Paginador />
 
-              {agendamentosExibidos.map((ag, idx) => (
-                <React.Fragment key={ag.id}>
-                  {/* ==== MOBILE CARD ==== */}
-                  <div
-                    className="block md:hidden relative overflow-hidden rounded-xl shadow-sm"
-                    onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
-                    onTouchEnd={(e) => {
-                      const dx = e.changedTouches[0].clientX - touchStartX.current;
-                      if (dx < -50) setSwipedId(ag.id);
-                      else if (dx > 50) setSwipedId(null);
-                    }}
-                  >
-                    {/* sliding content */}
-                    <div className={`bg-white p-4 transform transition-transform ${swipedId === ag.id ? "-translate-x-24" : ""}`}>
-                      <div className="flex items-center mb-3">
-                        {/* avatar com inicial do paciente */}
-                        <div className="w-10 h-10 rounded-full bg-blue-200 flex items-center justify-center text-white font-semibold mr-3">
-                          {ag.pacienteNome?.charAt(0).toUpperCase() || "?"}
-                        </div>
-                        <div className="flex-1">
-                          <div className="text-sm text-gray-500">
-                            {idx + 1} • {ag.operadorBox ?? "-"} • {ag.operadorNome || "-"}
-                          </div>
-                          <div className="font-medium text-gray-800 truncate">
-                            {disciplinaSelecionada.nome}
-                          </div>
-                        </div>
-                        <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold">
-                          {ag.status || "-"}
+          {/* Tabela Desktop */}
+          <div className="hidden md:block">
+            <table className="min-w-full bg-white border-separate border-spacing-0">
+              <thead>
+                <tr className="bg-gray-100 text-gray-700 text-sm">
+                  <th className="px-3 py-2 text-left font-semibold border-b">#</th>
+                  <th className="px-3 py-2 text-left font-semibold border-b">Box</th>
+                  <th className="px-3 py-2 text-left font-semibold border-b">Operador</th>
+                  <th className="px-3 py-2 text-left font-semibold border-b">Auxiliar</th>
+                  <th className="px-3 py-2 text-left font-semibold border-b">Disciplina</th>
+                  <th className="px-3 py-2 text-left font-semibold border-b">Paciente</th>
+                  <th className="px-3 py-2 text-left font-semibold border-b">Telefone</th>
+                  <th className="px-3 py-2 text-left font-semibold border-b">Data e Hora</th>
+                  <th className="px-3 py-2 text-right font-semibold border-b">Status & Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {agsPagina.map((ag, idx) => (
+                  <React.Fragment key={ag.id}>
+                    <tr className="border-none hover:bg-gray-50 transition">
+                      <td className="px-3 py-2 text-gray-500">{inicio + idx + 1}</td>
+                      <td className="px-3 py-2 text-gray-500">{ag.operadorBox ?? '-'}</td>
+                      <td className="px-3 py-2 font-medium text-gray-800">{ag.operadorNome || '-'}</td>
+                      <td className="px-3 py-2 text-gray-800">{ag.auxiliarNome || '-'}</td>
+                      <td className="px-3 py-2 text-gray-800">{disciplinaSelecionada.nome}</td>
+                      <td className="px-3 py-2 text-gray-800">{ag.pacienteNome || '-'}</td>
+                      <td className="px-3 py-2 text-gray-500">{ag.telefone || '-'}</td>
+                      <td className="px-3 py-2 text-gray-800">
+                        {ag.data
+                          ? ag.data.slice(0, 10).split("-").reverse().join("/")
+                          : "-"} {ag.hora || "-"}
+                      </td>
+                      <td className="px-3 py-2 text-right flex gap-2 justify-end">
+                        <span className={`inline-block px-2 py-2 rounded-full text-xs font-semibold min-w-[34px] text-center ${STATUS_COLORS[ag.status] || 'bg-gray-200 text-gray-700'}`}>
+                          {STATUS_LABELS[ag.status] || '-'}
                         </span>
-                      </div>
-                      <div className="text-gray-600 text-sm mb-3">
-                        Paciente: {ag.pacienteNome || "-"}
-                      </div>
-                      <div className="flex justify-between text-gray-600 text-sm">
-                        <span> {ag.telefone || "-"}</span>
-                        <span>
-                          {ag.data
-                            ? ag.data.slice(0, 10).split("-").reverse().join("/")
-                            : "-"}
-                        </span>
-                        <span> {ag.hora || "-"}</span>
-                      </div>
-                    </div>
-
-                    {/* ações à direita */}
-                    {swipedId === ag.id && (
-                      <div className="absolute top-0 right-0 h-full flex items-center pr-2 space-x-2">
-                        <button
-                          onClick={() => handleEditarAgendamento(ag)}
-                          className="bg-blue-100 text-blue-800 px-2 py-1 rounded"
-                        >
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => handleDeletarAgendamento(ag.id)}
-                          className="bg-red-100 text-red-700 px-2 py-1 rounded"
-                        >
-                          Excluir
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* ==== DESKTOP GRID ==== */}
-                  <div className="
-                    hidden md:grid md:grid-cols-[50px_50px_1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-y-1 gap-x-4 items-center bg-gray-50 rounded-xl px-4 md:px-5 py-2 shadow-sm hover:bg-gray-100 transition
-                  ">
-                    <div className="text-gray-800 truncate">{idx + 1}</div>
-                    <div className="truncate">{ag.operadorBox ?? "-"}</div>
-                    <div className="font-medium text-gray-800 truncate">
-                      {ag.operadorNome || "-"}
-                    </div>
-                    <div className="text-gray-800 truncate">
-                      {ag.auxiliarNome || "-"}
-                    </div>
-                    <div className="text-gray-800 truncate">
-                      {disciplinaSelecionada.nome}
-                    </div>
-                    <div className="text-gray-800 truncate">
-                      {ag.pacienteNome || "-"}
-                    </div>
-                    <div className="text-gray-500 truncate">
-                      {ag.telefone || "-"}
-                    </div>
-                    <div className="text-gray-800 truncate">
-                      {ag.data
-                        ? ag.data.slice(0, 10).split("-").reverse().join("/")
-                        : "-"} {ag.hora || "-"}
-                    </div>
-                    <div className="flex md:justify-end items-center space-x-2">
-                      <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[ag.status] || "bg-gray-200 text-gray-700"
-                        } min-w-[72px] text-center`}>
-                        {STATUS_LABELS[ag.status] || "-"}
-                      </span>
-                      {user.role === "recepcao" && (
-                        <>
+                        {/* Botão Editar */}
+                        <div className="relative group">
                           <button
                             onClick={() => handleEditarAgendamento(ag)}
-                            className="px-3 py-1 rounded-lg bg-blue-100 text-blue-800 hover:bg-blue-200 font-semibold transition"
+                            className="p-2 rounded hover:bg-blue-100 text-blue-800 transition"
+                            title="Editar agendamento"
+                            aria-label="Editar agendamento"
                           >
-                            Editar
+                            <Pencil size={18} />
                           </button>
+                          <Tooltip text="Editar" />
+                        </div>
+                        {/* Botão Eliminar */}
+                        <div className="relative group">
                           <button
-                            onClick={() => handleDeletarAgendamento(ag.id)}
-                            className="px-3 py-1 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 font-semibold transition"
+                            onClick={() => handleDeletarAgendamento(ag.id, ag.pacienteNome)}
+                            className="p-2 rounded hover:bg-red-100 text-red-700 transition"
+                            title="Deletar agendamento"
+                            aria-label="Deletar agendamento"
                           >
-                            Deletar
-            
+                            <Trash size={18} />
                           </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </React.Fragment>
-              ))}
-            </div>
+                          <Tooltip text="Eliminar" />
+                        </div>
+                      </td>
+                    </tr>
+                    {idx !== agsPagina.length - 1 && (
+                      <tr>
+                        <td colSpan={9}>
+                          <hr className="border-t border-gray-200 my-0" />
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
           </div>
 
+        {/* Cards Mobile */}
+          <div className="md:hidden space-y-3">
+            {agsPagina.map((ag, idx) => (
+              <div
+                key={ag.id}
+                className="bg-gray-50 rounded-xl px-4 py-3 shadow-sm border border-gray-200"
+              >
+                <div className="flex justify-between mb-1 text-xs text-gray-500">
+                  <span>#{inicio + idx + 1}</span>
+                  <div className="flex gap-2">
+                    {/* Botão Editar */}
+                    <div className="relative group">
+                      <button
+                        onClick={() => handleEditarAgendamento(ag)}
+                        className="p-1 rounded hover:bg-blue-100 text-blue-800"
+                        title="Editar agendamento"
+                        aria-label="Editar agendamento"
+                      >
+                        <Pencil size={17} />
+                      </button>
+                      <Tooltip text="Editar" />
+                    </div>
+                    {/* Botão Eliminar */}
+                    <div className="relative group">
+                      <button
+                        onClick={() => handleDeletarAgendamento(ag.id, ag.pacienteNome)}
+                        className="p-1 rounded hover:bg-red-100 text-red-700"
+                        title="Deletar agendamento"
+                        aria-label="Deletar agendamento"
+                      >
+                        <Trash size={17} />
+                      </button>
+                      <Tooltip text="Eliminar" />
+                    </div>
+                  </div>
+                  </div>
+
+                <div><b>Box:</b> <span className="text-gray-800">{ag.operadorBox ?? '-'}</span></div>
+                <div><b>Operador:</b> <span className="text-gray-800">{ag.operadorNome || '-'}</span></div>
+                <div><b>Auxiliar:</b> <span className="text-gray-800">{ag.auxiliarNome || '-'}</span></div>
+                <div><b>Disciplina:</b> <span className="text-gray-800">{disciplinaSelecionada.nome}</span></div>
+                <div><b>Paciente:</b> <span className="text-gray-800">{ag.pacienteNome || '-'}</span></div>
+                <div><b>Telefone:</b> <span className="text-gray-700">{ag.telefone || '-'}</span></div>
+                <div><b>Data e Hora:</b> <span className="text-gray-700">
+                  {ag.data ? ag.data.slice(0, 10).split("-").reverse().join("/") : "-"} {ag.hora || "-"}
+                </span></div>
+                <div>
+                  <span className={`inline-block mt-2 px-2 py-1 rounded-full text-xs font-semibold min-w-[40px] text-center ${STATUS_COLORS[ag.status] || 'bg-gray-200 text-gray-700'}`}>
+                    {STATUS_LABELS[ag.status] || '-'}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Paginação embaixo */}
+          <Paginador />
           {/* Modal de edição */}
           {mostrarModal && (
             <Modal
