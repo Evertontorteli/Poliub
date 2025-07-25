@@ -67,7 +67,7 @@ export default function FormPeriodo({ periodoEditando, onSalvar, onCancel }) {
           <option value="Noturno">Noturno</option>
         </select>
       </div>
-      <div class="flex flex-col md:flex-row gap-4">
+      <div className="flex flex-col md:flex-row gap-4">
       <button
         type="submit"
         className="bg-[#1A1C2C] hover:bg-[#3B4854] text-white font-bold px-4 py-2 rounded-full"
