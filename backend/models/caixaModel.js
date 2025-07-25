@@ -26,7 +26,24 @@ const Caixa = {
       conn.release();
     }
   },
-    /**
+
+  /**
+   * Atualiza uma caixa pelo ID.
+   */
+  async atualizar(id, { nome, codigo_barras }) {
+    const conn = await db.getConnection();
+    try {
+      const [result] = await conn.execute(
+        'UPDATE caixas SET nome = ?, codigo_barras = ? WHERE id = ?',
+        [nome, codigo_barras, id]
+      );
+      return result;
+    } finally {
+      conn.release();
+    }
+  },
+
+  /**
    * Deleta uma caixa pelo ID.
    */
   async deletar(id) {
@@ -53,7 +70,6 @@ const Caixa = {
       conn.release();
     }
   }
-  
 };
 
 module.exports = Caixa;

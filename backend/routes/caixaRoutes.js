@@ -1,7 +1,7 @@
 // backend/routes/caixaRoutes.js
 const express = require('express');
 const router = express.Router();
-const { listarCaixas, criarCaixa, buscarPorCodigo, deletarCaixa } = require('../controllers/caixaController');
+const { listarCaixas, criarCaixa, buscarPorCodigo, deletarCaixa, editarCaixa } = require('../controllers/caixaController');
 const {
     verificaToken,
     apenasRecepcao,
@@ -19,5 +19,8 @@ router.delete('/:id', deletarCaixa);
 
 // busca pelo código de barras
 router.get('/codigo/:codigo', /*authorize(),*/ buscarPorCodigo);
+
+//Edita caixa
+router.put('/:id', editarCaixa);
 
 module.exports = router;

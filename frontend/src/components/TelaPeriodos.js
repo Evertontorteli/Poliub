@@ -36,7 +36,7 @@ export default function TelaPeriodos() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-2">
+      <div className="flex justify-between items-center mb-4">
         {/*<h1 className="text-3xl font-bold">Períodos</h1>*/}
         <button
           onClick={handleNovo}
