@@ -68,7 +68,7 @@ export default function Sidebar({ active, onMenuClick }) {
               active={active === "periodos"}
               onClick={() => onMenuClick("periodos")}
             />
-            
+
             <hr className="my-2 border-t border-gray-200" />   {/* ← Separador discreto */}
 
             <MenuItem
@@ -105,13 +105,15 @@ export default function Sidebar({ active, onMenuClick }) {
             onClick={() => onMenuClick("configuracoes")}
           />
         )}*/}
-
-        <MenuItem
-          icon={<LayoutList size={24} />}
-          label="Auditoria"
-          active={active === "auditoria"}
-          onClick={() => onMenuClick("auditoria")}
-        />
+        
+        {/* Auditoria só para quem NÃO é aluno */}
+        {role !== "aluno" && (
+          <MenuItem
+            icon={<LayoutList size={24} />}
+            label="Auditoria"
+            active={active === "auditoria"}
+            onClick={() => onMenuClick("auditoria")}
+          />)}
 
 
         <MenuItem
