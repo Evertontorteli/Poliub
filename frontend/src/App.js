@@ -21,7 +21,7 @@ import TelaDisciplinas from './components/TelaDisciplinas'
 import TelaAgendamentos from './components/TelaAgendamentos'
 import TelaEsterilizacao from './components/TelaEsterilizacao'  // ← aqui
 import TelaCaixas from './components/TelaCaixas'
-import TelaDashboardEsterilizacao from './components/TelaDashboardEsterilizacao'
+import TelaDashboardEsterilizacao from './components/DashboardEsterilizacao'
 import TelaLogs from "./components/TelaLogs"; // importe a tela de logs
 
 
