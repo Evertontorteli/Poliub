@@ -83,3 +83,27 @@ exports.buscarPorCodigo = async (req, res) => {
     res.status(500).json({ error: 'Erro na busca por código' });
   }
 };
+
+exports.editarCaixa = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { nome, codigo_barras } = req.body;
+
+    if (!nome) {
+      return res.status(400).json({ error: 'O campo "nome" é obrigatório.' });
+    }
+
+    // Você pode (opcional) validar o código de barras aqui.
+
+    const result = await Caixa.atualizar(id, { nome, codigo_barras });
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Caixa não encontrada.' });
+    }
+
+    return res.json({ sucesso: true, id, nome, codigo_barras });
+  } catch (err) {
+    console.error('Erro ao atualizar caixa:', err);
+    return res.status(500).json({ error: 'Erro ao atualizar caixa.' });
+  }
+};

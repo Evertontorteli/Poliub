@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { toast } from "react-toastify";
 
 export default function FormPeriodo({ periodoEditando, onSalvar, onCancel }) {
   const [nome, setNome] = useState("");
-  const [turno, setTurno] = useState(""); // Ex: Diurno, Noturno
-  const [mensagem, setMensagem] = useState("");
+  const [turno, setTurno] = useState("");
 
   useEffect(() => {
     if (periodoEditando) {
@@ -19,7 +19,7 @@ export default function FormPeriodo({ periodoEditando, onSalvar, onCancel }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!nome || !turno) {
-      setMensagem("Preencha todos os campos.");
+      toast.error("Preencha todos os campos.");
       return;
     }
 
@@ -27,16 +27,16 @@ export default function FormPeriodo({ periodoEditando, onSalvar, onCancel }) {
     try {
       if (periodoEditando && periodoEditando.id) {
         await axios.put(`/api/periodos/${periodoEditando.id}`, dados);
-        setMensagem("Período atualizado com sucesso!");
+        toast.success("Período atualizado com sucesso!");
       } else {
         await axios.post("/api/periodos", dados);
-        setMensagem("Período cadastrado com sucesso!");
+        toast.success("Período cadastrado com sucesso!");
       }
       onSalvar && onSalvar();
       setNome("");
       setTurno("");
     } catch (err) {
-      setMensagem("Erro ao salvar período.");
+      toast.error("Erro ao salvar período.");
     }
   };
 
@@ -67,22 +67,23 @@ export default function FormPeriodo({ periodoEditando, onSalvar, onCancel }) {
           <option value="Noturno">Noturno</option>
         </select>
       </div>
+      <div class="flex flex-col md:flex-row gap-4">
       <button
         type="submit"
         className="bg-[#1A1C2C] hover:bg-[#3B4854] text-white font-bold px-4 py-2 rounded-full"
       >
-        Cadastrar
+        {periodoEditando ? "Atualizar" : "Cadastrar"}
       </button>
       {periodoEditando && (
         <button
           type="button"
-          className="ml-2 bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded"
+          className="bg-[#DA3648] text-white hover:bg-[#BC3140] px-4 py-2 rounded-full"
           onClick={onCancel}
         >
           Cancelar
         </button>
-      )}
-      {mensagem && <p className="mt-2 text-red-600">{mensagem}</p>}
+        
+      )}</div>
     </form>
   );
 }

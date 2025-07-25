@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 
 function FormDisciplina({ onNovaDisciplina, disciplinaEditando, onFimEdicao }) {
   const [nome, setNome] = useState('');
@@ -28,7 +29,8 @@ function FormDisciplina({ onNovaDisciplina, disciplinaEditando, onFimEdicao }) {
     if (disciplinaEditando) {
       axios.put(`/api/disciplinas/${disciplinaEditando.id}`, { nome, periodo_id: periodoId })
         .then(() => {
-          setMensagem('Disciplina atualizada!');
+          toast.success('Disciplina atualizada com sucesso!');
+          setMensagem('');
           setNome('');
           setPeriodoId('');
           onNovaDisciplina();
@@ -38,7 +40,8 @@ function FormDisciplina({ onNovaDisciplina, disciplinaEditando, onFimEdicao }) {
     } else {
       axios.post('/api/disciplinas', { nome, periodo_id: periodoId })
         .then(() => {
-          setMensagem('Disciplina cadastrada!');
+          toast.success('Disciplina cadastrada com sucesso!');
+          setMensagem('');
           setNome('');
           setPeriodoId('');
           onNovaDisciplina();
