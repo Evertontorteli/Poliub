@@ -42,8 +42,8 @@ export default function FormPeriodo({ periodoEditando, onSalvar, onCancel }) {
 
   return (
     <form onSubmit={handleSubmit} className="mb-4">
-      <h2 className="text-lg font-bold mb-2">
-        {periodoEditando ? "Editar Período" : "Cadastrar Período"}
+      <h2 className="text-2xl font-bold mb-2">
+        {periodoEditando ? "Editar Período" : "Cadastrar Novo Período"}
       </h2>
       <div className="mb-2">
         <label className="block mb-1 font-medium">Nome do Período</label>
