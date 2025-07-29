@@ -15,7 +15,6 @@ export default function ListaTratamentos({ tratamentos, onFinalizar }) {
             <tr className="bg-gray-50">
               <th>Tratamento</th>
               <th>Dente</th>
-              <th>Valor</th>
               <th>Profissional</th>
               <th>Status</th>
               <th></th>
@@ -26,7 +25,6 @@ export default function ListaTratamentos({ tratamentos, onFinalizar }) {
               <tr key={t.id}>
                 <td>{t.tratamento}</td>
                 <td>{t.dente}</td>
-                <td>R$ {Number(t.valor).toFixed(2)}</td>
                 <td>{t.profissional}</td>
                 <td>
                   {t.status === "aberto" ? (

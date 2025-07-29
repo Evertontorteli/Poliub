@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useAuth } from '../context/AuthContext'; // ajuste o caminho conforme sua estrutura
+import { useAuth } from '../context/AuthContext'; // ajuste se necessário
 
 export default function FormTratamento({
   denteSelecionado,
@@ -31,7 +31,7 @@ export default function FormTratamento({
     if (!form.tratamento || !form.dente || regioesSelecionadas.length === 0) return;
     onAdicionarTratamento({
       ...form,
-      regioes: regioesSelecionadas, // Salva array!
+      regioes: regioesSelecionadas,
       status: "aberto",
       criadoEm: new Date().toISOString(),
       id: Math.random().toString(36).slice(2),
@@ -40,7 +40,6 @@ export default function FormTratamento({
       ...f,
       tratamento: "",
       dente: "",
-      // profissional mantém user logado
     }));
   }
 
