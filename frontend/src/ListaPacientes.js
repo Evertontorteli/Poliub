@@ -4,7 +4,7 @@ import axios from 'axios';
 import { Pencil, Trash } from 'lucide-react';
 import { toast } from 'react-toastify';
 
-function ListaPacientes({ reloadKey, onEditar }) {
+function ListaPacientes({ reloadKey, onEditar, onSelcionar }) {
   const [pacientes, setPacientes] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [isAluno, setIsAluno] = useState(false);

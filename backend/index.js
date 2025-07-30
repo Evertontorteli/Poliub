@@ -61,6 +61,7 @@ io.on('connection', (socket) => {
     app.use('/api/movimentacoes', require('./routes/movimentacaoRoutes'));
     app.use('/api/caixas', require('./routes/caixaRoutes'));
     app.use('/api/logs', require('./routes/logRoutes'));
+    app.use('/api/tratamentos', require('./routes/tratamentoRoutes'));
 
     
 

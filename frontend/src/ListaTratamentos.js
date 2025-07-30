@@ -4,7 +4,7 @@ export default function ListaTratamentos({ tratamentos, onFinalizar }) {
   return (
     <div className="bg-white rounded shadow p-4 mb-6">
       <h3 className="text-lg font-semibold mb-2">Tratamentos</h3>
-      {tratamentos.length === 0 ? (
+      {(!tratamentos || tratamentos.length === 0) ? (
         <div className="text-center text-gray-400 py-10">
           <p className="mb-2 text-lg">Nenhum tratamento cadastrado ainda.</p>
           <span className="text-xs text-gray-400">Comece adicionando um tratamento acima.</span>
@@ -15,7 +15,6 @@ export default function ListaTratamentos({ tratamentos, onFinalizar }) {
             <tr className="bg-gray-50">
               <th>Tratamento</th>
               <th>Dente</th>
-              <th>Profissional</th>
               <th>Status</th>
               <th></th>
             </tr>
@@ -25,7 +24,6 @@ export default function ListaTratamentos({ tratamentos, onFinalizar }) {
               <tr key={t.id}>
                 <td>{t.tratamento}</td>
                 <td>{t.dente}</td>
-                <td>{t.profissional}</td>
                 <td>
                   {t.status === "aberto" ? (
                     <span className="text-yellow-600">Aberto</span>

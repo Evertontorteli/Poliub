@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import OdontogramaAvancado from '../components/OdontogramaAvancado';
 import FormTratamento from '../components/FormTratamento';
 import ListaTratamentos from '../ListaTratamentos';
@@ -11,18 +12,32 @@ const ICONES = [
   { key: "extracao", icon: <img src="/img/icones/extracao.svg" alt="Extração" style={{ width: 22 }} />, label: "Extração" },
 ];
 
-export default function PaginaTratamento() {
+export default function PaginaTratamento({ pacienteSelecionado }) {
   const [tratamentos, setTratamentos] = useState([]);
   const [evolucoes, setEvolucoes] = useState([]);
   const [denteSelecionado, setDenteSelecionado] = useState("");
   const [facesSelecionadas, setFacesSelecionadas] = useState({});
   const [tipoDente, setTipoDente] = useState({});
+  const [reloadTratamentos, setReloadTratamentos] = useState(0);
 
-  function handleAdicionarTratamento(trat) {
-    setTratamentos(prev => [...prev, trat]);
+  // Busque tratamentos do paciente ao abrir ou mudar paciente
+  useEffect(() => {
+    if (!pacienteSelecionado?.id) {
+      setTratamentos([]);
+      return;
+    }
+    axios.get(`/api/tratamentos?paciente_id=${pacienteSelecionado.id}`)
+      .then(res => setTratamentos(res.data || []))
+      .catch(() => setTratamentos([]));
+  }, [pacienteSelecionado?.id, reloadTratamentos]);
+
+  // Quando adicionar, força reload
+  function handleAdicionarTratamento() {
+    setReloadTratamentos(k => k + 1);
   }
 
   function handleFinalizar(id) {
+    // Apenas front, se quiser atualizar backend, faça PATCH/PUT
     setTratamentos(prev =>
       prev.map(t =>
         t.id === id ? { ...t, status: "finalizado" } : t
@@ -34,13 +49,12 @@ export default function PaginaTratamento() {
       {
         id: Math.random().toString(36).slice(2),
         data: new Date().toISOString(),
-        texto: `Tratamento ${t.tratamento} do dente ${t.dente} foi finalizado`,
-        profissional: t.profissional,
+        texto: `Tratamento ${t?.tratamento} do dente ${t?.dente} foi finalizado`,
+        profissional: t?.profissional,
       },
     ]);
   }
 
-  // Array de regiões selecionadas do dente atual
   const regioesSelecionadas = Object.entries(facesSelecionadas[denteSelecionado] || {})
     .filter(([_, val]) => val)
     .map(([face]) => face);
@@ -55,13 +69,12 @@ export default function PaginaTratamento() {
 
   return (
     <div className="w-full max-w-[1500px] mx-auto px-4 py-8">
-      {/* 1 - Formulário */}
       <FormTratamento
         denteSelecionado={denteSelecionado}
         regioesSelecionadas={regioesSelecionadas}
         onAdicionarTratamento={handleAdicionarTratamento}
+        pacienteId={pacienteSelecionado?.id}
       />
-      {/* 2 - Ícones entre formulário e odontograma */}
       {denteSelecionado && (
         <div className="flex gap-2 justify-center mb-6">
           {ICONES.map(ic => (
@@ -78,7 +91,6 @@ export default function PaginaTratamento() {
           ))}
         </div>
       )}
-      {/* 3 - Odontograma */}
       <div className="flex justify-center">
         <OdontogramaAvancado
           tratamentos={tratamentos}
@@ -89,7 +101,6 @@ export default function PaginaTratamento() {
           tipoDente={tipoDente}
         />
       </div>
-      {/* 4 - Grid abaixo do odontograma */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
         <div>
           <ListaTratamentos tratamentos={tratamentos} onFinalizar={handleFinalizar} />
