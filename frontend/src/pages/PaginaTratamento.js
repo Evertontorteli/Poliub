@@ -14,21 +14,28 @@ const ICONES = [
 
 export default function PaginaTratamento({ pacienteSelecionado }) {
   const [tratamentos, setTratamentos] = useState([]);
-  const [evolucoes, setEvolucoes] = useState([]);
   const [denteSelecionado, setDenteSelecionado] = useState("");
   const [facesSelecionadas, setFacesSelecionadas] = useState({});
   const [tipoDente, setTipoDente] = useState({});
   const [reloadTratamentos, setReloadTratamentos] = useState(0);
 
-  // Busque tratamentos do paciente ao abrir ou mudar paciente
-  useEffect(() => {
+  // Busca tratamentos
+  async function fetchTratamentos() {
     if (!pacienteSelecionado?.id) {
       setTratamentos([]);
       return;
     }
-    axios.get(`/api/tratamentos?paciente_id=${pacienteSelecionado.id}`)
-      .then(res => setTratamentos(res.data || []))
-      .catch(() => setTratamentos([]));
+    try {
+      const res = await axios.get(`/api/tratamentos?paciente_id=${pacienteSelecionado.id}`);
+      setTratamentos(res.data || []);
+    } catch {
+      setTratamentos([]);
+    }
+  }
+
+  useEffect(() => {
+    fetchTratamentos();
+    // eslint-disable-next-line
   }, [pacienteSelecionado?.id, reloadTratamentos]);
 
   // Quando adicionar, força reload
@@ -36,23 +43,13 @@ export default function PaginaTratamento({ pacienteSelecionado }) {
     setReloadTratamentos(k => k + 1);
   }
 
-  function handleFinalizar(id) {
-    // Apenas front, se quiser atualizar backend, faça PATCH/PUT
-    setTratamentos(prev =>
-      prev.map(t =>
-        t.id === id ? { ...t, status: "finalizado" } : t
-      )
-    );
-    const t = tratamentos.find(t => t.id === id);
-    setEvolucoes(prev => [
-      ...prev,
-      {
-        id: Math.random().toString(36).slice(2),
-        data: new Date().toISOString(),
-        texto: `Tratamento ${t?.tratamento} do dente ${t?.dente} foi finalizado`,
-        profissional: t?.profissional,
-      },
-    ]);
+  async function handleFinalizar(id) {
+    try {
+      await axios.put(`/api/tratamentos/${id}/finalizar`);
+      setReloadTratamentos(k => k + 1);
+    } catch (err) {
+      alert('Erro ao finalizar tratamento');
+    }
   }
 
   const regioesSelecionadas = Object.entries(facesSelecionadas[denteSelecionado] || {})
@@ -106,7 +103,7 @@ export default function PaginaTratamento({ pacienteSelecionado }) {
           <ListaTratamentos tratamentos={tratamentos} onFinalizar={handleFinalizar} />
         </div>
         <div>
-          <Evolucoes evolucoes={evolucoes} />
+          <Evolucoes pacienteId={pacienteSelecionado?.id} />
         </div>
       </div>
     </div>

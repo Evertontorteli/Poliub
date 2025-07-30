@@ -4,6 +4,7 @@ const cors = require('cors');
 const authRouter = require('./routes/auth');
 const { initDb, getConnection } = require('./database');
 const boxRoutes = require('./routes/boxRoutes');
+const evolucaoRoutes = require('./routes/evolucaoRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -61,7 +62,10 @@ io.on('connection', (socket) => {
     app.use('/api/movimentacoes', require('./routes/movimentacaoRoutes'));
     app.use('/api/caixas', require('./routes/caixaRoutes'));
     app.use('/api/logs', require('./routes/logRoutes'));
+    //cadastro Paciente
     app.use('/api/tratamentos', require('./routes/tratamentoRoutes'));
+    app.use('/api/evolucoes', evolucaoRoutes);
+
 
     
 
