@@ -54,11 +54,6 @@ export default function TelaPacientes() {
           onFimEdicao={handleCancelar}
         />
       </Modal>
-
-      {/* Exibe o tratamento para o paciente selecionado */}
-      {pacienteSelecionado && (
-        <PaginaTratamento pacienteSelecionado={pacienteSelecionado} />
-      )}
     </div>
   );
 }
