@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const evolucaoController = require('../controllers/evolucaoController');
-console.log("CONTROLLER DEBUG:", evolucaoController);
+//console.log("CONTROLLER DEBUG:", evolucaoController);
 
 // Lista evoluções por tratamento (via query param)
 router.get('/tratamento', evolucaoController.listarPorTratamento);

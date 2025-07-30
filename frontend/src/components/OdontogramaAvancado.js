@@ -1,4 +1,6 @@
-import React from "react";
+// src/components/OdontogramaAvancado.jsx
+import React, { useEffect, useRef } from "react";
+import axios from "axios";
 
 // SVG do quadrado anatômico
 function OdontoQuadrado({ faces, onClickFace }) {
@@ -39,24 +41,22 @@ function OdontoQuadrado({ faces, onClickFace }) {
   );
 }
 
+// Import dinâmico seguro
 function getSvgDente(num, tipo = "normal") {
-  if (tipo && tipo !== "normal") {
-    try { return require(`../img/dentes/${num}_${tipo}.svg`); } catch {}
-    try { return require(`../img/dentes/${tipo}.svg`); } catch {}
-  }
+  try { return require(`../img/dentes/${num}_${tipo}.svg`); } catch {}
+  try { return require(`../img/dentes/${tipo}.svg`); } catch {}
   try { return require(`../img/dentes/${num}.svg`); } catch {}
   try { return require(`../img/dentes/generico.svg`); } catch {}
   return "";
 }
 
-// Quadrantes FDI
 const Q_SUP_DIR = [18,17,16,15,14,13,12,11];
 const Q_SUP_ESQ = [21,22,23,24,25,26,27,28];
-const Q_INF_DIR = [48,47,46,45,44,43,42,41];
 const Q_INF_ESQ = [31,32,33,34,35,36,37,38];
+const Q_INF_DIR = [48,47,46,45,44,43,42,41];
 
 function renderQuadrante({
-  arr, facesSelecionadas, denteSelecionado, setDenteSelecionado, tipoDente, facesHandler
+  arr, facesSelecionadas, denteSelecionado, onSelecionarDente, tipoDente, facesHandler, tipoHandler
 }) {
   return (
     <div className="flex flex-row flex-wrap justify-center gap-2">
@@ -64,8 +64,8 @@ function renderQuadrante({
         <div key={num} className="flex flex-col items-center mx-1" style={{ minWidth: 48 }}>
           <input
             type="checkbox"
-            checked={denteSelecionado === num}
-            onChange={() => setDenteSelecionado(denteSelecionado === num ? "" : num)}
+            checked={denteSelecionado === String(num)}
+            onChange={() => onSelecionarDente(denteSelecionado === String(num) ? "" : String(num))}
             className="accent-blue-600 mb-1"
             style={{ width: 16, height: 16 }}
           />
@@ -81,6 +81,8 @@ function renderQuadrante({
               opacity: tipoDente[num] === "extracao" ? 0.5 : 1,
               transition: "0.2s"
             }}
+            // Clique direto na imagem pode mudar tipo se quiser
+            // onClick={() => tipoHandler(num, "implante")} // Exemplo se quiser
           />
           <OdontoQuadrado
             faces={facesSelecionadas[num] || {}}
@@ -94,72 +96,146 @@ function renderQuadrante({
 }
 
 export default function OdontogramaAvancado({
+  pacienteId,
   denteSelecionado,
   setDenteSelecionado,
   facesSelecionadas,
   setFacesSelecionadas,
-  tipoDente
+  tipoDente,
+  setTipoDente
 }) {
-  function handleToggleFace(num, face) {
-    setFacesSelecionadas(fs => ({
-      ...fs,
-      [num]: {
-        ...fs[num],
-        [face]: !fs[num]?.[face]
+  const odontogramaCarregado = useRef(false);
+
+  // Pegue o id do usuário logado (quem alterou)
+  const userStr = localStorage.getItem("user");
+  const user = userStr ? JSON.parse(userStr) : null;
+  const alteradoPor = user?.id;
+
+  // Carrega o odontograma do paciente ao selecionar
+  useEffect(() => {
+    if (!pacienteId) return;
+    odontogramaCarregado.current = false;
+    axios.get(`/api/odontogramas/paciente/${pacienteId}`).then(res => {
+      const faces = {};
+      const tipos = {};
+      for (const od of res.data) {
+        faces[od.dente] = od.faces || {};
+        tipos[od.dente] = od.tipo_dente || "normal";
       }
-    }));
+      setFacesSelecionadas(faces);
+      setTipoDente(tipos);
+      odontogramaCarregado.current = true;
+    });
+  }, [pacienteId, setFacesSelecionadas, setTipoDente]);
+
+  // Salva ou atualiza um dente no backend
+  function salvarNoBackend(dente, newFaces, newTipoDente) {
+    if (!pacienteId || !alteradoPor) return;
+    if (!odontogramaCarregado.current) return;
+    axios.post('/api/odontogramas', {
+      paciente_id: pacienteId,
+      dente,
+      faces: newFaces,
+      tipo_dente: newTipoDente,
+      alterado_por: alteradoPor,
+    }).catch(e => {
+      // Você pode dar um toast de erro se quiser aqui
+    });
+  }
+
+  function handleToggleFace(num, face) {
+    setFacesSelecionadas(fs => {
+      const next = {
+        ...fs,
+        [num]: {
+          ...fs[num],
+          [face]: !fs[num]?.[face]
+        }
+      };
+      salvarNoBackend(
+        num,
+        next[num],
+        tipoDente[num] || "normal"
+      );
+      return next;
+    });
+  }
+
+  function handleToggleTipo(num, tipo) {
+    setTipoDente(td => {
+      const nextTipo = {
+        ...td,
+        [num]: td[num] === tipo ? "normal" : tipo
+      };
+      salvarNoBackend(
+        num,
+        facesSelecionadas[num] || {},
+        nextTipo[num]
+      );
+      return nextTipo;
+    });
   }
 
   return (
     <div className="w-full max-w-6xl mx-auto p-2 bg-white rounded-xl shadow">
       <div className="text-lg font-bold text-center mb-4">Odontograma</div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full justify-center items-center">
-        <div>
-          <div className="text-center text-xs font-semibold text-gray-500 mb-1">Quadrante 1</div>
-          {renderQuadrante({
-            arr: Q_SUP_DIR,
-            facesSelecionadas,
-            denteSelecionado,
-            setDenteSelecionado,
-            tipoDente,
-            facesHandler: handleToggleFace
-          })}
+      <div className="flex flex-col gap-4 items-center">
+        {/* Topo: Quadrante 1 esquerda, Quadrante 2 direita */}
+        <div className="flex flex-row gap-10 w-full justify-center">
+          <div>
+            <div className="text-center text-xs font-semibold text-gray-500 mb-1">Quadrante 1</div>
+            {renderQuadrante({
+              arr: Q_SUP_DIR,
+              facesSelecionadas,
+              denteSelecionado,
+              onSelecionarDente: setDenteSelecionado,
+              tipoDente,
+              facesHandler: handleToggleFace,
+              tipoHandler: handleToggleTipo
+            })}
+          </div>
+          <div>
+            <div className="text-center text-xs font-semibold text-gray-500 mb-1">Quadrante 2</div>
+            {renderQuadrante({
+              arr: Q_SUP_ESQ,
+              facesSelecionadas,
+              denteSelecionado,
+              onSelecionarDente: setDenteSelecionado,
+              tipoDente,
+              facesHandler: handleToggleFace,
+              tipoHandler: handleToggleTipo
+            })}
+          </div>
         </div>
-        <div>
-          <div className="text-center text-xs font-semibold text-gray-500 mb-1">Quadrante 2</div>
-          {renderQuadrante({
-            arr: Q_SUP_ESQ,
-            facesSelecionadas,
-            denteSelecionado,
-            setDenteSelecionado,
-            tipoDente,
-            facesHandler: handleToggleFace
-          })}
-        </div>
-        <div>
-          <div className="text-center text-xs font-semibold text-gray-500 mb-1">Quadrante 4</div>
-          {renderQuadrante({
-            arr: Q_INF_DIR,
-            facesSelecionadas,
-            denteSelecionado,
-            setDenteSelecionado,
-            tipoDente,
-            facesHandler: handleToggleFace
-          })}
-        </div>
-        <div>
-          <div className="text-center text-xs font-semibold text-gray-500 mb-1">Quadrante 3</div>
-          {renderQuadrante({
-            arr: Q_INF_ESQ,
-            facesSelecionadas,
-            denteSelecionado,
-            setDenteSelecionado,
-            tipoDente,
-            facesHandler: handleToggleFace
-          })}
+        {/* Embaixo: Quadrante 4 esquerda, Quadrante 3 direita */}
+        <div className="flex flex-row gap-10 w-full justify-center mt-4">
+          <div>
+            <div className="text-center text-xs font-semibold text-gray-500 mb-1">Quadrante 4</div>
+            {renderQuadrante({
+              arr: Q_INF_DIR,
+              facesSelecionadas,
+              denteSelecionado,
+              onSelecionarDente: setDenteSelecionado,
+              tipoDente,
+              facesHandler: handleToggleFace,
+              tipoHandler: handleToggleTipo
+            })}
+          </div>
+          <div>
+            <div className="text-center text-xs font-semibold text-gray-500 mb-1">Quadrante 3</div>
+            {renderQuadrante({
+              arr: Q_INF_ESQ,
+              facesSelecionadas,
+              denteSelecionado,
+              onSelecionarDente: setDenteSelecionado,
+              tipoDente,
+              facesHandler: handleToggleFace,
+              tipoHandler: handleToggleTipo
+            })}
+          </div>
         </div>
       </div>
-      {/* Legenda de seleção */}
+      {/* Legenda */}
       <div className="flex flex-wrap gap-6 mt-6 justify-center text-sm">
         <div>
           <span className="inline-block w-4 h-4 mr-1 align-middle rounded bg-orange-400 border border-gray-400" /> Selecionado
