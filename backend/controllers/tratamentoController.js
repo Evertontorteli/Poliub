@@ -1,8 +1,12 @@
-const TratamentoModel = require('../models/tratamentoModel');
+// controllers/tratamentoController.js
+const tratamentoModel = require('../models/tratamentoModel');
+const evolucaoModel = require('../models/evolucaoModel');
 
 exports.listarPorPaciente = async (req, res) => {
   try {
-    const tratamentos = await TratamentoModel.findAllByPaciente(req.query.paciente_id);
+    const paciente_id = req.query.paciente_id;
+    if (!paciente_id) return res.status(400).json({ error: 'paciente_id é obrigatório' });
+    const tratamentos = await tratamentoModel.findAllByPaciente(paciente_id);
     res.json(tratamentos);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -11,18 +15,20 @@ exports.listarPorPaciente = async (req, res) => {
 
 exports.criar = async (req, res) => {
   try {
-    const tratamento = await TratamentoModel.create(req.body);
-    res.status(201).json(tratamento);
+    const dados = req.body;
+    const novo = await tratamentoModel.create(dados);
+    res.status(201).json(novo);
   } catch (err) {
-    console.error('Erro ao salvar tratamento:', err); // <-- ADICIONE ISSO
     res.status(500).json({ error: err.message });
   }
 };
 
 exports.atualizar = async (req, res) => {
   try {
-    const tratamento = await TratamentoModel.update(req.params.id, req.body);
-    res.json(tratamento);
+    const { id } = req.params;
+    const dados = req.body;
+    const atualizado = await tratamentoModel.update(id, dados);
+    res.json(atualizado);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -30,8 +36,30 @@ exports.atualizar = async (req, res) => {
 
 exports.remover = async (req, res) => {
   try {
-    await TratamentoModel.delete(req.params.id);
-    res.status(204).end();
+    const { id } = req.params;
+    await tratamentoModel.delete(id);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// FINALIZA tratamento E cria uma evolução!
+exports.finalizar = async (req, res) => {
+  try {
+    const { id } = req.params;
+    // 1) Atualiza o status do tratamento para 'finalizado'
+    const tratamento = await tratamentoModel.update(id, { status: 'finalizado' });
+
+    // 2) Cria uma evolução com os dados do tratamento
+    const evolucao = await evolucaoModel.create({
+      tratamento_id: id,
+      texto: `Tratamento ${tratamento.tratamento} do dente ${tratamento.dente} foi finalizado`,
+      aluno_id: tratamento.aluno_id,
+      data: new Date(),
+    });
+
+    res.json({ sucesso: true, tratamento, evolucao });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

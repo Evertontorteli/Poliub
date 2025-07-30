@@ -1,5 +1,6 @@
+// models/tratamentoModel.js
 const { getConnection } = require('../database');
-const { v4: uuidv4 } = require('uuid'); // Adicione essa linha
+const { v4: uuidv4 } = require('uuid');
 
 // Listar tratamentos por paciente
 async function findAllByPaciente(paciente_id) {
@@ -14,7 +15,7 @@ async function findAllByPaciente(paciente_id) {
 // Criar novo tratamento
 async function create(dados) {
   const conn = await getConnection();
-  const id = uuidv4(); // Gera o ID único aqui
+  const id = uuidv4();
   const [result] = await conn.query(
     `INSERT INTO tratamentos 
       (id, paciente_id, dente, regioes, tratamento, aluno_id, status, criado_em)
@@ -37,18 +38,22 @@ async function create(dados) {
 // Atualizar tratamento
 async function update(id, dados) {
   const conn = await getConnection();
+  // Busca o tratamento antigo
+  const [oldRows] = await conn.query('SELECT * FROM tratamentos WHERE id = ?', [id]);
   await conn.query(
     `UPDATE tratamentos SET tratamento=?, regioes=?, dente=?, status=? WHERE id=?`,
     [
-      dados.tratamento,
-      Array.isArray(dados.regioes) ? dados.regioes.join(',') : dados.regioes,
-      dados.dente,
-      dados.status,
+      dados.tratamento || oldRows[0].tratamento,
+      Array.isArray(dados.regioes) ? dados.regioes.join(',') : (dados.regioes || oldRows[0].regioes),
+      dados.dente || oldRows[0].dente,
+      dados.status || oldRows[0].status,
       id
     ]
   );
+  // Retorna o tratamento atualizado
+  const [rows] = await conn.query('SELECT * FROM tratamentos WHERE id = ?', [id]);
   conn.release();
-  return { id, ...dados };
+  return rows[0];
 }
 
 // Remover tratamento
@@ -62,5 +67,5 @@ module.exports = {
   findAllByPaciente,
   create,
   update,
-  delete: remove // <- para evitar conflito com palavra reservada
+  delete: remove
 };
