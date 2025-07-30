@@ -4,6 +4,7 @@ import OdontogramaAvancado from '../components/OdontogramaAvancado';
 import FormTratamento from '../components/FormTratamento';
 import ListaTratamentos from '../ListaTratamentos';
 import Evolucoes from '../Evolucoes';
+import { toast } from "react-toastify";
 
 const ICONES = [
   { key: "normal", icon: "Normal", label: "Normal" },
@@ -18,6 +19,7 @@ export default function PaginaTratamento({ pacienteSelecionado }) {
   const [facesSelecionadas, setFacesSelecionadas] = useState({});
   const [tipoDente, setTipoDente] = useState({});
   const [reloadTratamentos, setReloadTratamentos] = useState(0);
+  const [reloadEvolucoes, setReloadEvolucoes] = useState(0);
 
   // Busca tratamentos
   async function fetchTratamentos() {
@@ -32,6 +34,15 @@ export default function PaginaTratamento({ pacienteSelecionado }) {
       setTratamentos([]);
     }
   }
+  async function handleRemoverTratamento(id) {
+  try {
+    await axios.delete(`/api/tratamentos/${id}`);
+    toast.success("Tratamento excluído com sucesso!");
+    setReloadTratamentos(k => k + 1);
+  } catch {
+    toast.error("Erro ao excluir tratamento.");
+  }
+}
 
   useEffect(() => {
     fetchTratamentos();
@@ -43,12 +54,19 @@ export default function PaginaTratamento({ pacienteSelecionado }) {
     setReloadTratamentos(k => k + 1);
   }
 
+  // Chama reload das evoluções pelo estado
+  function atualizarEvolucoes() {
+    setReloadEvolucoes(k => k + 1);
+  }
+
   async function handleFinalizar(id) {
     try {
       await axios.put(`/api/tratamentos/${id}/finalizar`);
-      setReloadTratamentos(k => k + 1);
+      toast.success("Tratamento finalizado com sucesso!");
+      setReloadTratamentos(k => k + 1); // Atualiza lista de tratamentos
+      atualizarEvolucoes();             // Atualiza evoluções automaticamente
     } catch (err) {
-      alert('Erro ao finalizar tratamento');
+      toast.error("Erro ao finalizar tratamento.");
     }
   }
 
@@ -100,10 +118,15 @@ export default function PaginaTratamento({ pacienteSelecionado }) {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
         <div>
-          <ListaTratamentos tratamentos={tratamentos} onFinalizar={handleFinalizar} />
+          <ListaTratamentos
+            tratamentos={tratamentos}
+            onFinalizar={handleFinalizar}
+            onRemover={handleRemoverTratamento} // você vai criar essa função!
+          />
         </div>
         <div>
-          <Evolucoes pacienteId={pacienteSelecionado?.id} />
+          {/* Passa reloadEvolucoes como key para forçar atualização */}
+          <Evolucoes pacienteId={pacienteSelecionado?.id} key={reloadEvolucoes} />
         </div>
       </div>
     </div>

@@ -51,10 +51,19 @@ exports.finalizar = async (req, res) => {
     // 1) Atualiza o status do tratamento para 'finalizado'
     const tratamento = await tratamentoModel.update(id, { status: 'finalizado' });
 
-    // 2) Cria uma evolução com os dados do tratamento
+    // 2) Monta frase de regiões
+    let regioesMsg = "";
+    if (tratamento.regioes) {
+      const lista = tratamento.regioes.split(',').map(s => s.trim()).filter(Boolean);
+      if (lista.length > 0) {
+        regioesMsg = ` nas regiões ${lista.join(', ')}`;
+      }
+    }
+
+    // 3) Cria uma evolução com os dados do tratamento
     const evolucao = await evolucaoModel.create({
       tratamento_id: id,
-      texto: `Tratamento ${tratamento.tratamento} do dente ${tratamento.dente} foi finalizado`,
+      texto: `Tratamento "${tratamento.tratamento}" do dente ${tratamento.dente}${regioesMsg} foi finalizado.`,
       aluno_id: tratamento.aluno_id,
       data: new Date(),
     });

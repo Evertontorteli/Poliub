@@ -1,4 +1,3 @@
-// src/components/Evolucoes.js
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
@@ -23,6 +22,15 @@ export default function Evolucoes({ pacienteId }) {
       .finally(() => setLoading(false));
   }, [pacienteId]);
 
+  // Função para montar o texto da evolução usando os campos do objeto
+  function getTextoEvolucao(e) {
+    if (e.tratamento && e.dente && e.regioes) {
+      return `Tratamento ${e.tratamento} do dente ${e.dente}, regiões: ${e.regioes} foi finalizado.`;
+    }
+    // Fallback: usa o texto salvo, se existir
+    return e.texto || '';
+  }
+
   return (
     <div className="bg-white rounded shadow p-4">
       <h3 className="text-lg font-semibold mb-2">Evoluções</h3>
@@ -37,7 +45,7 @@ export default function Evolucoes({ pacienteId }) {
               <div className="text-xs text-gray-500 mb-1">
                 {e.data ? new Date(e.data).toLocaleDateString("pt-BR") : ""}
               </div>
-              <div className="mb-1">{e.texto}</div>
+              <div className="mb-1">{getTextoEvolucao(e)}</div>
               <div className="text-xs text-gray-600">
                 {e.profissional ? `Dr(a). ${e.profissional}` : e.aluno_id ? `Profissional: #${e.aluno_id}` : ""}
               </div>
