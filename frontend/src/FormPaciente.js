@@ -480,8 +480,9 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
 
       {/* Aba Tratamento */}
       {abaAtiva === 'tratamento' && pacienteEditando && (
-        <PaginaTratamento pacienteId={pacienteEditando.id} />
+        <PaginaTratamento pacienteSelecionado={pacienteEditando} />
       )}
+
     </div>
   );
 }

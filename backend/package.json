@@ -19,7 +19,8 @@
     "react-input-mask": "^2.0.4",
     "react-router-dom": "^7.6.2",
     "react-to-print": "^3.1.1",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
