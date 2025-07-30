@@ -5,6 +5,7 @@ const authRouter = require('./routes/auth');
 const { initDb, getConnection } = require('./database');
 const boxRoutes = require('./routes/boxRoutes');
 const evolucaoRoutes = require('./routes/evolucaoRoutes');
+const odontogramaRoutes = require('./routes/odontogramaRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -65,9 +66,12 @@ io.on('connection', (socket) => {
     //cadastro Paciente
     app.use('/api/tratamentos', require('./routes/tratamentoRoutes'));
     app.use('/api/evolucoes', evolucaoRoutes);
+    app.use('/api/odontogramas', odontogramaRoutes);
 
 
-    
+
+
+
 
 
 
@@ -89,7 +93,7 @@ io.on('connection', (socket) => {
       console.log(`🔌 Servidor HTTP + Socket.IO rodando na porta ${PORT}`)
     );
   } catch (err) {
-    console.error('❌ Falha ao inicializar DB:', err.message);
+    console.error('❌ Falha ao inicializar o Banco de Dados:', err.message);
     process.exit(1);
   }
 })();
