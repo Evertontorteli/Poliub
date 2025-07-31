@@ -71,10 +71,6 @@ io.on('connection', (socket) => {
 
 
 
-
-
-
-
     app.get('/health-db', async (_req, res) => {
       try {
         const conn = await getConnection();
