@@ -15,6 +15,7 @@ exports.listarPorPaciente = async (req, res) => {
 // Cria/atualiza um dente do odontograma
 exports.salvar = async (req, res) => {
   try {
+    console.log("BODY:", req.body); // ADICIONE ESTA LINHA
     const { paciente_id, dente, faces, tipo_dente, alterado_por } = req.body;
     if (!paciente_id || !dente || !faces || !tipo_dente || !alterado_por) {
       return res.status(400).json({ error: 'Campos obrigatórios: paciente_id, dente, faces, tipo_dente, alterado_por' });

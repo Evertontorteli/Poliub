@@ -1,3 +1,4 @@
+// src/pages/PaginaTratamento.js
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import OdontogramaAvancado from '../components/OdontogramaAvancado';
@@ -8,7 +9,7 @@ import { toast } from "react-toastify";
 
 const ICONES = [
   { key: "normal", icon: "Normal", label: "Normal" },
-  { key: "implante", icon: <img src="/img/dentes/implante.svg" alt="Implante" style={{ width: 22 }} />, label: "Implante" },
+  { key: "implante", icon: <img src="." alt="Implante" style={{ width: 22 }} />, label: "Implante" },
   { key: "coroa", icon: <img src="/img/icones/coroa.svg" alt="Coroa" style={{ width: 22 }} />, label: "Coroa" },
   { key: "extracao", icon: <img src="/img/icones/extracao.svg" alt="Extração" style={{ width: 22 }} />, label: "Extração" },
 ];
@@ -43,8 +44,7 @@ export default function PaginaTratamento({ pacienteSelecionado }) {
       return;
     }
     try {
-      const res = await axios.get(`/api/odontogramas/${pacienteSelecionado.id}`);
-      // Monta os estados
+      const res = await axios.get(`/api/odontogramas/paciente/${pacienteSelecionado.id}`);
       let faces = {};
       let tipos = {};
       for (const item of res.data) {
@@ -63,14 +63,16 @@ export default function PaginaTratamento({ pacienteSelecionado }) {
   async function saveOdontogramaDente(num, faces, tipo) {
     if (!pacienteSelecionado?.id) return;
     try {
+      // Adicione quem alterou (opcional, se backend aceitar)
+      const userStr = localStorage.getItem("user");
+      const user = userStr ? JSON.parse(userStr) : null;
       await axios.post(`/api/odontogramas`, {
         paciente_id: pacienteSelecionado.id,
         dente: num,
         faces,
         tipo_dente: tipo,
-        // alterado_por: ... (pegue o aluno logado se quiser auditar)
+        alterado_por: user?.id,
       });
-      // toast.info("Odontograma salvo.");
     } catch {
       toast.error("Erro ao salvar odontograma.");
     }
@@ -86,7 +88,6 @@ export default function PaginaTratamento({ pacienteSelecionado }) {
           [face]: !fs[num]?.[face]
         }
       };
-      // Salva no backend
       saveOdontogramaDente(num, novo[num], tipoDente[num] || "normal");
       return novo;
     });
@@ -101,7 +102,7 @@ export default function PaginaTratamento({ pacienteSelecionado }) {
     });
   }
 
-  // Remover tratamento (apenas se status = 'aberto')
+  // Remove tratamento
   async function handleRemoverTratamento(id) {
     try {
       await axios.delete(`/api/tratamentos/${id}`);
@@ -112,7 +113,7 @@ export default function PaginaTratamento({ pacienteSelecionado }) {
     }
   }
 
-  // Finalizar tratamento
+  // Finaliza tratamento
   async function handleFinalizar(id) {
     try {
       await axios.put(`/api/tratamentos/${id}/finalizar`);
@@ -127,10 +128,8 @@ export default function PaginaTratamento({ pacienteSelecionado }) {
   useEffect(() => {
     fetchTratamentos();
     fetchOdontograma();
-    // eslint-disable-next-line
-  }, [pacienteSelecionado?.id, reloadTratamentos]);
+  }, [pacienteSelecionado?.id, reloadTratamentos, fetchOdontograma]);
 
-  // Para FormTratamento
   function handleAdicionarTratamento() {
     setReloadTratamentos(k => k + 1);
   }
@@ -166,13 +165,12 @@ export default function PaginaTratamento({ pacienteSelecionado }) {
       )}
       <div className="flex justify-center">
         <OdontogramaAvancado
-          tratamentos={tratamentos}
           denteSelecionado={denteSelecionado}
           setDenteSelecionado={setDenteSelecionado}
           facesSelecionadas={facesSelecionadas}
-          setFacesSelecionadas={(_novo) => {}} // Não usa mais, toda manipulação agora é local + backend
           tipoDente={tipoDente}
           onClickFace={handleToggleFace}
+          onTipoDente={handleTipoDente}
         />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">

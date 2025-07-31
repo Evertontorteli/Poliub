@@ -1,6 +1,4 @@
-// src/components/OdontogramaAvancado.jsx
-import React, { useEffect, useRef } from "react";
-import axios from "axios";
+import React from "react";
 
 // SVG do quadrado anatômico
 function OdontoQuadrado({ faces, onClickFace }) {
@@ -36,24 +34,23 @@ function OdontoQuadrado({ faces, onClickFace }) {
         strokeWidth={1.2}
         onClick={() => onClickFace("coroa")}
       />
-      <rect x="3" y="3" width="30" height="30" fill="none" stroke="#858E9B" strokeWidth={2} rx={7} ry={7} />
+      <rect x="3" y="3" width="30" height="30" fill="none" stroke="#858E9B" strokeWidth={2} rx={0} ry={0} />
     </svg>
   );
 }
 
-// Import dinâmico seguro
 function getSvgDente(num, tipo = "normal") {
-  try { return require(`../img/dentes/${num}_${tipo}.svg`); } catch {}
-  try { return require(`../img/dentes/${tipo}.svg`); } catch {}
-  try { return require(`../img/dentes/${num}.svg`); } catch {}
-  try { return require(`../img/dentes/generico.svg`); } catch {}
+  try { return require(`../img/dentes/${num}_${tipo}.svg`); } catch { }
+  try { return require(`../img/dentes/${tipo}.svg`); } catch { }
+  try { return require(`../img/dentes/${num}.svg`); } catch { }
+  try { return require(`../img/dentes/generico.svg`); } catch { }
   return "";
 }
 
-const Q_SUP_DIR = [18,17,16,15,14,13,12,11];
-const Q_SUP_ESQ = [21,22,23,24,25,26,27,28];
-const Q_INF_ESQ = [31,32,33,34,35,36,37,38];
-const Q_INF_DIR = [48,47,46,45,44,43,42,41];
+const Q_SUP_DIR = [18, 17, 16, 15, 14, 13, 12, 11];
+const Q_SUP_ESQ = [21, 22, 23, 24, 25, 26, 27, 28];
+const Q_INF_ESQ = [31, 32, 33, 34, 35, 36, 37, 38];
+const Q_INF_DIR = [48, 47, 46, 45, 44, 43, 42, 41];
 
 function renderQuadrante({
   arr, facesSelecionadas, denteSelecionado, onSelecionarDente, tipoDente, facesHandler, tipoHandler
@@ -81,8 +78,6 @@ function renderQuadrante({
               opacity: tipoDente[num] === "extracao" ? 0.5 : 1,
               transition: "0.2s"
             }}
-            // Clique direto na imagem pode mudar tipo se quiser
-            // onClick={() => tipoHandler(num, "implante")} // Exemplo se quiser
           />
           <OdontoQuadrado
             faces={facesSelecionadas[num] || {}}
@@ -96,86 +91,13 @@ function renderQuadrante({
 }
 
 export default function OdontogramaAvancado({
-  pacienteId,
   denteSelecionado,
   setDenteSelecionado,
   facesSelecionadas,
-  setFacesSelecionadas,
   tipoDente,
-  setTipoDente
+  onClickFace,
+  onTipoDente
 }) {
-  const odontogramaCarregado = useRef(false);
-
-  // Pegue o id do usuário logado (quem alterou)
-  const userStr = localStorage.getItem("user");
-  const user = userStr ? JSON.parse(userStr) : null;
-  const alteradoPor = user?.id;
-
-  // Carrega o odontograma do paciente ao selecionar
-  useEffect(() => {
-    if (!pacienteId) return;
-    odontogramaCarregado.current = false;
-    axios.get(`/api/odontogramas/paciente/${pacienteId}`).then(res => {
-      const faces = {};
-      const tipos = {};
-      for (const od of res.data) {
-        faces[od.dente] = od.faces || {};
-        tipos[od.dente] = od.tipo_dente || "normal";
-      }
-      setFacesSelecionadas(faces);
-      setTipoDente(tipos);
-      odontogramaCarregado.current = true;
-    });
-  }, [pacienteId, setFacesSelecionadas, setTipoDente]);
-
-  // Salva ou atualiza um dente no backend
-  function salvarNoBackend(dente, newFaces, newTipoDente) {
-    if (!pacienteId || !alteradoPor) return;
-    if (!odontogramaCarregado.current) return;
-    axios.post('/api/odontogramas', {
-      paciente_id: pacienteId,
-      dente,
-      faces: newFaces,
-      tipo_dente: newTipoDente,
-      alterado_por: alteradoPor,
-    }).catch(e => {
-      // Você pode dar um toast de erro se quiser aqui
-    });
-  }
-
-  function handleToggleFace(num, face) {
-    setFacesSelecionadas(fs => {
-      const next = {
-        ...fs,
-        [num]: {
-          ...fs[num],
-          [face]: !fs[num]?.[face]
-        }
-      };
-      salvarNoBackend(
-        num,
-        next[num],
-        tipoDente[num] || "normal"
-      );
-      return next;
-    });
-  }
-
-  function handleToggleTipo(num, tipo) {
-    setTipoDente(td => {
-      const nextTipo = {
-        ...td,
-        [num]: td[num] === tipo ? "normal" : tipo
-      };
-      salvarNoBackend(
-        num,
-        facesSelecionadas[num] || {},
-        nextTipo[num]
-      );
-      return nextTipo;
-    });
-  }
-
   return (
     <div className="w-full max-w-6xl mx-auto p-2 bg-white rounded-xl shadow">
       <div className="text-lg font-bold text-center mb-4">Odontograma</div>
@@ -190,8 +112,8 @@ export default function OdontogramaAvancado({
               denteSelecionado,
               onSelecionarDente: setDenteSelecionado,
               tipoDente,
-              facesHandler: handleToggleFace,
-              tipoHandler: handleToggleTipo
+              facesHandler: onClickFace,
+              tipoHandler: onTipoDente,
             })}
           </div>
           <div>
@@ -202,8 +124,8 @@ export default function OdontogramaAvancado({
               denteSelecionado,
               onSelecionarDente: setDenteSelecionado,
               tipoDente,
-              facesHandler: handleToggleFace,
-              tipoHandler: handleToggleTipo
+              facesHandler: onClickFace,
+              tipoHandler: onTipoDente,
             })}
           </div>
         </div>
@@ -217,8 +139,8 @@ export default function OdontogramaAvancado({
               denteSelecionado,
               onSelecionarDente: setDenteSelecionado,
               tipoDente,
-              facesHandler: handleToggleFace,
-              tipoHandler: handleToggleTipo
+              facesHandler: onClickFace,
+              tipoHandler: onTipoDente,
             })}
           </div>
           <div>
@@ -229,8 +151,8 @@ export default function OdontogramaAvancado({
               denteSelecionado,
               onSelecionarDente: setDenteSelecionado,
               tipoDente,
-              facesHandler: handleToggleFace,
-              tipoHandler: handleToggleTipo
+              facesHandler: onClickFace,
+              tipoHandler: onTipoDente,
             })}
           </div>
         </div>
