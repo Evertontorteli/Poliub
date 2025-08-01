@@ -1,14 +1,26 @@
+// src/models/movimentacaoModel.js
+
 const db = require('../database');
 
 class Movimentacao {
-  static async inserir({ caixa_id, aluno_id, operador_id, tipo }) {
+  /**
+   * Insere uma nova movimentação, gravando também o período do aluno.
+   * @param {Object} dados
+   * @param {number} dados.caixa_id
+   * @param {number} dados.aluno_id
+   * @param {number} dados.operador_id
+   * @param {string} dados.tipo         // 'entrada' ou 'saida'
+   * @param {number} dados.periodo_id   // id do período do aluno
+   * @returns {Promise<number>}         // id da movimentação criada
+   */
+  static async inserir({ caixa_id, aluno_id, operador_id, tipo, periodo_id }) {
     const conn = await db.getConnection();
     try {
       const [res] = await conn.execute(
         `INSERT INTO movimentacoes_esterilizacao
-         (caixa_id, aluno_id, operador_id, tipo)
-         VALUES (?, ?, ?, ?)`,
-        [caixa_id, aluno_id, operador_id, tipo]
+           (caixa_id, aluno_id, operador_id, tipo, periodo_id)
+         VALUES (?, ?, ?, ?, ?)`,
+        [caixa_id, aluno_id, operador_id, tipo, periodo_id]
       );
       return res.insertId;
     } finally {
@@ -16,19 +28,35 @@ class Movimentacao {
     }
   }
 
+  /**
+   * Retorna todas as movimentações, incluindo nomes de caixa, aluno, período e operador,
+   * com criado_em já convertido para horário de Brasília.
+   * Ordena por data decrescente.
+   */
   static async listarTodos() {
     const conn = await db.getConnection();
     try {
       const [rows] = await conn.execute(
-        `SELECT 
-           m.*,
-           c.nome       AS caixaNome,
-           a.nome       AS alunoNome,
-           o.nome       AS operadorNome
+        `SELECT
+           m.id,
+           m.caixa_id,
+           m.aluno_id,
+           m.operador_id,
+           m.tipo,
+           m.periodo_id,
+           DATE_FORMAT(
+             CONVERT_TZ(m.criado_em, '+00:00', 'America/Sao_Paulo'),
+             '%Y-%m-%d %H:%i:%s'
+           ) AS criado_em,
+           c.nome      AS caixaNome,
+           a.nome      AS alunoNome,
+           p.nome      AS periodoNome,
+           o.nome      AS operadorNome
          FROM movimentacoes_esterilizacao m
-         JOIN caixas c ON m.caixa_id    = c.id
-         JOIN alunos a ON m.aluno_id     = a.id
-         JOIN alunos o ON m.operador_id  = o.id
+         JOIN caixas   c ON m.caixa_id    = c.id
+         JOIN alunos   a ON m.aluno_id     = a.id
+         JOIN periodos p ON m.periodo_id   = p.id
+         JOIN alunos   o ON m.operador_id  = o.id
          ORDER BY m.criado_em DESC`
       );
       return rows;
@@ -37,17 +65,36 @@ class Movimentacao {
     }
   }
 
+  /**
+   * Retorna todas as movimentações de uma determinada caixa,
+   * incluindo nomes de caixa, aluno, período e operador,
+   * com criado_em no horário de Brasília.
+   * @param {number} caixa_id
+   */
   static async listarPorCaixa(caixa_id) {
     const conn = await db.getConnection();
     try {
       const [rows] = await conn.execute(
-        `SELECT 
-           m.*,
-           a.nome       AS alunoNome,
-           o.nome       AS operadorNome
+        `SELECT
+           m.id,
+           m.caixa_id,
+           m.aluno_id,
+           m.operador_id,
+           m.tipo,
+           m.periodo_id,
+           DATE_FORMAT(
+             CONVERT_TZ(m.criado_em, '+00:00', 'America/Sao_Paulo'),
+             '%Y-%m-%d %H:%i:%s'
+           ) AS criado_em,
+           c.nome      AS caixaNome,
+           a.nome      AS alunoNome,
+           p.nome      AS periodoNome,
+           o.nome      AS operadorNome
          FROM movimentacoes_esterilizacao m
-         JOIN alunos a ON m.aluno_id    = a.id
-         JOIN alunos o ON m.operador_id = o.id
+         JOIN caixas   c ON m.caixa_id    = c.id
+         JOIN alunos   a ON m.aluno_id     = a.id
+         JOIN periodos p ON m.periodo_id   = p.id
+         JOIN alunos   o ON m.operador_id  = o.id
          WHERE m.caixa_id = ?
          ORDER BY m.criado_em DESC`,
         [caixa_id]
@@ -58,22 +105,36 @@ class Movimentacao {
     }
   }
 
-  // ←── NOVO: atualiza tipo/aluno/operação ──→
-  static async atualizar(id, { tipo, aluno_id, operador_id }) {
+  /**
+   * Atualiza tipo, aluno, operador e período de uma movimentação.
+   * @param {number} id
+   * @param {Object} dados
+   * @param {string} dados.tipo
+   * @param {number} dados.aluno_id
+   * @param {number} dados.operador_id
+   * @param {number} dados.periodo_id
+   */
+  static async atualizar(id, { tipo, aluno_id, operador_id, periodo_id }) {
     const conn = await db.getConnection();
     try {
       await conn.execute(
         `UPDATE movimentacoes_esterilizacao
-         SET tipo = ?, aluno_id = ?, operador_id = ?
+           SET tipo        = ?,
+               aluno_id    = ?,
+               operador_id = ?,
+               periodo_id  = ?
          WHERE id = ?`,
-        [tipo, aluno_id, operador_id, id]
+        [tipo, aluno_id, operador_id, periodo_id, id]
       );
     } finally {
       conn.release();
     }
   }
 
-  // ←── NOVO: exclui uma movimentação ──→
+  /**
+   * Exclui uma movimentação pelo seu ID.
+   * @param {number} id
+   */
   static async deletar(id) {
     const conn = await db.getConnection();
     try {
@@ -86,21 +147,24 @@ class Movimentacao {
     }
   }
 
-// Retorna saldo de caixas do aluno
-
-  // Agora SIM dentro da classe!
+  /**
+   * Retorna o saldo de cada caixa para um aluno específico.
+   * @param {number} aluno_id
+   * @returns {Promise<Array<{caixa_nome: string, saldo: number}>>}
+   */
   static async estoquePorAluno(aluno_id) {
     const conn = await db.getConnection();
     try {
       const [rows] = await conn.execute(
-        `SELECT b.nome AS caixa_nome,
-                SUM(CASE WHEN m.tipo = 'entrada' THEN 1 ELSE -1 END) AS saldo
-           FROM movimentacoes_esterilizacao m
-           JOIN caixas b ON m.caixa_id = b.id
-          WHERE m.aluno_id = ?
-          GROUP BY b.nome
-          HAVING saldo > 0
-          ORDER BY b.nome`,
+        `SELECT
+           c.nome AS caixa_nome,
+           SUM(CASE WHEN m.tipo = 'entrada' THEN 1 ELSE -1 END) AS saldo
+         FROM movimentacoes_esterilizacao m
+         JOIN caixas c ON m.caixa_id = c.id
+         WHERE m.aluno_id = ?
+         GROUP BY c.nome
+         HAVING saldo > 0
+         ORDER BY c.nome`,
         [aluno_id]
       );
       return rows;
@@ -109,18 +173,38 @@ class Movimentacao {
     }
   }
 
+  /**
+   * Histórico completo de movimentações de um aluno,
+   * incluindo nomes de caixa, aluno, período e operador,
+   * com criado_em no horário de Brasília.
+   * @param {number} aluno_id
+   */
   static async historicoPorAluno(aluno_id) {
     const conn = await db.getConnection();
     try {
       const [rows] = await conn.execute(
-        `SELECT m.*, 
-                b.nome AS caixa_nome,
-                o.nome AS operador_nome
-           FROM movimentacoes_esterilizacao m
-           JOIN caixas b ON m.caixa_id = b.id
-           JOIN alunos o ON m.operador_id = o.id
-          WHERE m.aluno_id = ?
-          ORDER BY m.criado_em DESC`,
+        `SELECT
+           m.id,
+           m.caixa_id,
+           m.aluno_id,
+           m.operador_id,
+           m.tipo,
+           m.periodo_id,
+           DATE_FORMAT(
+             CONVERT_TZ(m.criado_em, '+00:00', 'America/Sao_Paulo'),
+             '%Y-%m-%d %H:%i:%s'
+           ) AS criado_em,
+           c.nome      AS caixaNome,
+           a.nome      AS alunoNome,
+           p.nome      AS periodoNome,
+           o.nome      AS operadorNome
+         FROM movimentacoes_esterilizacao m
+         JOIN caixas   c ON m.caixa_id    = c.id
+         JOIN alunos   a ON m.aluno_id     = a.id
+         JOIN periodos p ON m.periodo_id   = p.id
+         JOIN alunos   o ON m.operador_id  = o.id
+         WHERE m.aluno_id = ?
+         ORDER BY m.criado_em DESC`,
         [aluno_id]
       );
       return rows;

@@ -19,13 +19,10 @@ import TelaAlunos from './components/TelaAlunos'
 import TelaPacientes from './components/TelaPacientes'
 import TelaDisciplinas from './components/TelaDisciplinas'
 import TelaAgendamentos from './components/TelaAgendamentos'
-import TelaEsterilizacao from './components/TelaEsterilizacao'  // ← aqui
+import TelaEsterilizacao from './components/TelaEsterilizacao'
 import TelaCaixas from './components/TelaCaixas'
 import TelaDashboardEsterilizacao from './components/DashboardEsterilizacao'
-import TelaLogs from "./components/TelaLogs"; // importe a tela de logs
-
-
-
+import TelaLogs from './components/TelaLogs'
 
 import DashboardAluno from './DashboardAluno'
 import DashboardRecepcao from './DashboardRecepcao'
@@ -33,6 +30,7 @@ import Ajuda from './components/Ajuda'
 
 import Login from './Login'
 import PrintAgendamentos from './pages/PrintAgendamentos'
+import PrintMovimentacoes from './pages/PrintMovimentacoes'  // ← import adicionado
 
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthProvider, useAuth } from './context/AuthContext'
@@ -41,9 +39,6 @@ import { io } from 'socket.io-client'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
-/**
- * Escolhe o dashboard certo conforme o perfil do usuário
- */
 function Dashboards() {
   const { user } = useAuth()
   return user?.role === 'recepcao'
@@ -51,29 +46,19 @@ function Dashboards() {
     : <DashboardAluno />
 }
 
-/**
- * LayoutInterno exibe Header, Sidebar/BottomNavBar e troca o conteúdo,
- * além de tratar:
- *  1) notificações de agendamento (socket 'novoAgendamentoRecepcao')
- *  2) presença online (socket 'onlineUsers')
- */
 function LayoutInterno() {
   const [active, setActive] = useState('dashboard')
   const { user } = useAuth()
   const [onlineUsers, setOnlineUsers] = useState([])
 
-  // 1) PRESENÇA: identifica e ouve 'onlineUsers'
   useEffect(() => {
     if (!user) return
-
     const backendUrl = process.env.REACT_APP_API_URL ||
       'https://poliub-novo-ambiente-para-o-backend.up.railway.app'
-
     const presSocket = io(backendUrl, {
       path: '/socket.io',
       transports: ['websocket']
     })
-
     presSocket.on('connect', () =>
       presSocket.emit('identify', {
         id: user.id,
@@ -87,22 +72,17 @@ function LayoutInterno() {
     presSocket.on('connect_error', err =>
       console.error('❌ presenca connect error:', err)
     )
-
     return () => presSocket.disconnect()
   }, [user])
 
-  // 2) NOTIFICAÇÕES: só 'recepcao' escuta novo agendamento
   useEffect(() => {
     if (user?.role !== 'recepcao') return
-
     const backendUrl = process.env.REACT_APP_API_URL ||
       'https://poliub-novo-ambiente-para-o-backend.up.railway.app'
-
     const socket = io(backendUrl, {
       path: '/socket.io',
       transports: ['websocket']
     })
-
     socket.on('connect', () =>
       console.log('🔌 socket conectado:', socket.id)
     )
@@ -120,13 +100,11 @@ function LayoutInterno() {
     }) => {
       const [yyyy, mm, dd] = data.slice(0, 10).split('-')
       const dataFmt = `${dd}/${mm}/${yyyy}`
-
       toast.info(
         `Nova Solicitação: ${nome_aluno} em ${dataFmt} às ${hora}` +
         ` — Disciplina: ${disciplina_nome} (${periodo_nome} ${periodo_turno})`
       )
     })
-
     return () => socket.disconnect()
   }, [user])
 
@@ -138,10 +116,10 @@ function LayoutInterno() {
       case 'pacientes': return <TelaPacientes />
       case 'alunos': return <TelaAlunos />
       case 'periodos': return <TelaPeriodos />
-      case 'esterilizacao': return <TelaEsterilizacao />   // ← case existente
-      case 'caixas': return <TelaCaixas />   // ← case existente
-      case 'dashboard-esterilizacao':     return <TelaDashboardEsterilizacao />
-      case 'auditoria':     return <TelaLogs />
+      case 'esterilizacao': return <TelaEsterilizacao />
+      case 'caixas': return <TelaCaixas />
+      case 'dashboard-esterilizacao': return <TelaDashboardEsterilizacao />
+      case 'auditoria': return <TelaLogs />
       case 'ajuda': return <Ajuda />
       default:
         return (
@@ -170,24 +148,16 @@ function LayoutInterno() {
   )
 }
 
-/**
- * Wrapper de login para usar o hook e redirecionar
- */
 function LoginWrapper() {
   const { login } = useAuth()
   const navigate = useNavigate()
-
   function onLoginHandler(dadosDoLogin) {
     login(dadosDoLogin)
     navigate('/', { replace: true })
   }
-
   return <Login onLogin={onLoginHandler} />
 }
 
-/**
- * App: define rotas públicas e protegidas e engloba tudo no AuthProvider
- */
 export default function App() {
   return (
     <AuthProvider>
@@ -203,6 +173,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginWrapper />} />
           <Route path="/print-agendamentos" element={<PrintAgendamentos />} />
+          <Route path="/print-movimentacoes" element={<PrintMovimentacoes />} />{/* rota adicionada */}
           <Route
             path="/*"
             element={
