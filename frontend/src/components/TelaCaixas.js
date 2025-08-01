@@ -129,7 +129,8 @@ export default function TelaCaixas() {
   return (
     <div className="mx-auto py-2 px-2">
       {/* Botão novo no topo */}
-      <div className="flex justify-start mb-3">
+      <div className="flex justify-between px-2 items-center mb-4">
+        <h1 className="text-2xl font-medium">Lista de Caixas</h1>
         <button
           onClick={() => openModal()}
           className="bg-[#1A1C2C] text-white px-4 py-2 rounded-full hover:bg-[#3B4854] transition font-bold"

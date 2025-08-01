@@ -173,7 +173,7 @@ export default function TelaLogs() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-6 text-[#23263A]">Auditoria do Sistema</h2>
+      <h2 className="text-2xl font-medium px-2 mb-6 text-[#23263A]">Auditoria do Sistema</h2>
       <div className="max-w-auto mx-auto mt-4 p-3 sm:p-6 bg-white rounded-2xl shadow">
 
         {/* FILTROS DROPDOWN EM CIMA */}
