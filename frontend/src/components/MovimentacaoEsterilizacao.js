@@ -129,7 +129,7 @@ export default function MovimentacaoEsterilizacao() {
   return (
     <div className="max-w-auto mx-auto py-8 px-4">
       <div className="bg-white rounded-2xl shadow p-6">
-        <h2 className="text-lg font-semibold mb-4 text-[#1d3557]">Histórico de Movimentações</h2>
+        <h2 className="text-lg font-medium mb-4 text-[#1d3557]">Histórico de Movimentações</h2>
         {/* Filtros busca + data */}
         <div className="flex flex-col md:flex-row md:items-end gap-3 pt-0 pb-2">
           <div className="flex-1">
@@ -188,18 +188,18 @@ export default function MovimentacaoEsterilizacao() {
                 movsPagina.map((m, idx) => (
                   <React.Fragment key={m.id}>
                     <tr className="hover:bg-gray-50 transition">
-                      <td className="px-3 py-2 font-medium">{m.caixaNome}</td>
+                      <td className="px-3 text-gray-500 py-2 font-medium">{m.caixaNome}</td>
                       <td className="px-3 py-2">
                         <span className="inline-flex items-center">
-                          {m.tipo === 'entrada'
-                            ? <Plus size={16} className="mr-1" />
-                            : <Minus size={16} className="mr-1" />}
+                          {m.tipo === 'entrada' 
+                            ? <Plus size={16} className="mr-1 " />
+                            : <Minus size={16} className="mr-1 " />}
                           {m.tipo === 'entrada' ? 'Entrada' : 'Saída'}
                         </span>
                       </td>
-                      <td className="px-3 py-2">{m.alunoNome}</td>
-                      <td className="px-3 py-2">{m.operadorNome}</td>
-                      <td className="px-3 py-2">{format(new Date(m.criado_em), 'dd/MM/yyyy HH:mm')}</td>
+                      <td className="px-3 text-gray-800 py-2">{m.alunoNome}</td>
+                      <td className="px-3 text-gray-500 py-2">{m.operadorNome}</td>
+                      <td className="px-3 text-gray-500 py-2">{format(new Date(m.criado_em), 'dd/MM/yyyy HH:mm')}</td>
                       <td className="px-3 py-2 text-right flex gap-2 justify-end">
                         <button
                           onClick={() => handlePrint(m)}
@@ -271,10 +271,10 @@ export default function MovimentacaoEsterilizacao() {
                     </button>
                   </div>
                 </div>
-                <div><b>Caixa:</b> <span className="text-gray-800">{m.caixaNome}</span></div>
-                <div><b>Aluno:</b> <span className="text-gray-800">{m.alunoNome}</span></div>
-                <div><b>Operador:</b> <span className="text-gray-800">{m.operadorNome}</span></div>
-                <div><b>Data:</b> <span className="text-gray-700">{format(new Date(m.criado_em), 'dd/MM/yyyy HH:mm')}</span></div>
+                <div><b>Caixa:</b> <span className="text-gray-500">{m.caixaNome}</span></div>
+                <div><b>Aluno:</b> <span className="text-gray-500">{m.alunoNome}</span></div>
+                <div><b>Operador:</b> <span className="text-gray-500">{m.operadorNome}</span></div>
+                <div><b>Data:</b> <span className="text-gray-500">{format(new Date(m.criado_em), 'dd/MM/yyyy HH:mm')}</span></div>
               </div>
             ))
           )}

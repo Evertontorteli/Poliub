@@ -59,7 +59,7 @@ export default function Header({ onlineUsers = [] }) {
   return (
     <header className="fixed top-0 left-0 right-0 h-16 bg-white shadow flex items-center justify-between px-6 z-50">
       {/* Título */}
-      <h1 className="text-xl font-bold text-[#152A3F]">PoliUB Atendimentos</h1>
+      <h1 className="text-2xl font-bold text-[#0095DA]">PoliUB Atendimentos</h1>
 
       {/* Container da direita: avatares + dropdown */}
       <div className="flex items-center space-x-4">

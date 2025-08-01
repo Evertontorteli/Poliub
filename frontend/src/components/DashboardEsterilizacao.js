@@ -113,7 +113,7 @@ export default function DashboardEsterilizacao() {
     <div className="max-w-auto mx-auto py-10 px-4 space-y-8">
       {/* Cabeçalho e abas */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Painel de Esterilização</h1>
+        <h1 className="text-2xl font-medium">Painel de Esterilização</h1>
       </div>
       {/* Abas (padrão minimalista, pode personalizar com Tailwind) */}
       <div className="flex gap-2 mb-6">
