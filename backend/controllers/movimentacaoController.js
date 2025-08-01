@@ -1,4 +1,5 @@
 // backend/controllers/movimentacaoController.js
+
 const Movimentacao = require('../models/movimentacaoModel');
 const { getConnection } = require('../database');
 
@@ -27,7 +28,7 @@ async function resolveAlunoId(aluno_id, aluno_pin, res) {
     }
     return rows[0].id;
   } finally {
-    await conn.release();
+    conn.release();
   }
 }
 
@@ -36,15 +37,38 @@ exports.registrarEntrada = async (req, res) => {
     const operador_id = req.user.id;
     const { caixa_id, aluno_id, aluno_pin } = req.body;
 
+    // 1) resolve o ID do aluno
     const finalAlunoId = await resolveAlunoId(aluno_id, aluno_pin, res);
     if (!finalAlunoId) return; // já respondeu
 
+    // 2) busca o período do aluno
+    const connPeriodo = await getConnection();
+    let periodo_id;
+    try {
+      const [periodoRows] = await connPeriodo.execute(
+        'SELECT periodo_id FROM alunos WHERE id = ?',
+        [finalAlunoId]
+      );
+      periodo_id = periodoRows[0]?.periodo_id ?? null;
+    } finally {
+      connPeriodo.release();
+    }
+
+    if (periodo_id === null) {
+      return res
+        .status(400)
+        .json({ error: 'Não foi possível determinar o período do aluno.' });
+    }
+
+    // 3) insere a movimentação de entrada, incluindo periodo_id
     const id = await Movimentacao.inserir({
       caixa_id,
       aluno_id: finalAlunoId,
       operador_id,
-      tipo: 'entrada'
+      tipo: 'entrada',
+      periodo_id
     });
+
     return res.status(201).json({ id });
   } catch (err) {
     console.error('Erro ao registrar entrada:', err);
@@ -57,15 +81,65 @@ exports.registrarSaida = async (req, res) => {
     const operador_id = req.user.id;
     const { caixa_id, aluno_id, aluno_pin } = req.body;
 
+    // 1) resolve o ID do aluno
     const finalAlunoId = await resolveAlunoId(aluno_id, aluno_pin, res);
     if (!finalAlunoId) return; // já respondeu
 
+    // 2) busca o período do aluno
+    const connPeriodo = await getConnection();
+    let periodo_id;
+    try {
+      const [periodoRows] = await connPeriodo.execute(
+        'SELECT periodo_id FROM alunos WHERE id = ?',
+        [finalAlunoId]
+      );
+      periodo_id = periodoRows[0]?.periodo_id ?? null;
+    } finally {
+      connPeriodo.release();
+    }
+
+    if (periodo_id === null) {
+      return res
+        .status(400)
+        .json({ error: 'Não foi possível determinar o período do aluno.' });
+    }
+
+    // 3) verifica se há estoque suficiente para esta caixa
+    const connSaldo = await getConnection();
+    let saldo;
+    try {
+      const [rows] = await connSaldo.execute(
+        `SELECT COALESCE(SUM(
+           CASE WHEN tipo = 'entrada' THEN 1
+                WHEN tipo = 'saida'   THEN -1
+                ELSE 0 END
+         ), 0) AS saldo
+         FROM movimentacoes_esterilizacao
+         WHERE aluno_id = ? AND caixa_id = ?`,
+        [finalAlunoId, caixa_id]
+      );
+      saldo = rows[0].saldo;
+    } finally {
+      connSaldo.release();
+    }
+
+    if (saldo <= 0) {
+      return res
+        .status(400)
+        .json({
+          error: 'Impossível registrar saída: não há estoque disponível para esta caixa.'
+        });
+    }
+
+    // 4) insere a movimentação de saída, incluindo periodo_id
     const id = await Movimentacao.inserir({
       caixa_id,
       aluno_id: finalAlunoId,
       operador_id,
-      tipo: 'saida'
+      tipo: 'saida',
+      periodo_id
     });
+
     return res.status(201).json({ id });
   } catch (err) {
     console.error('Erro ao registrar saída:', err);
@@ -94,7 +168,6 @@ exports.listarPorCaixa = async (req, res) => {
   }
 };
 
-// ←── NOVO: atualiza uma movimentação ──→
 exports.atualizarMovimentacao = async (req, res) => {
   if (req.user.role !== 'recepcao') {
     return res.status(403).json({ error: 'Acesso restrito a recepção.' });
@@ -103,7 +176,8 @@ exports.atualizarMovimentacao = async (req, res) => {
   const { tipo, aluno_id } = req.body;
   try {
     const operador_id = req.user.id;
-    await Movimentacao.atualizar(id, { tipo, aluno_id, operador_id });
+    // opcional: poderia recarregar periodo_id aqui também
+    await Movimentacao.atualizar(id, { tipo, aluno_id, operador_id, periodo_id: null });
     const lista = await Movimentacao.listarTodos();
     const atualizado = lista.find(m => m.id === Number(id));
     return res.json(atualizado);
@@ -113,7 +187,6 @@ exports.atualizarMovimentacao = async (req, res) => {
   }
 };
 
-// ←── NOVO: deleta uma movimentação ──→
 exports.deletarMovimentacao = async (req, res) => {
   if (req.user.role !== 'recepcao') {
     return res.status(403).json({ error: 'Acesso restrito a recepção.' });
@@ -126,8 +199,8 @@ exports.deletarMovimentacao = async (req, res) => {
     console.error('Erro ao deletar movimentação:', err);
     return res.status(500).json({ error: 'Erro ao deletar movimentação' });
   }
-
 };
+
 exports.estoquePorAluno = async (req, res) => {
   try {
     const { aluno_id } = req.params;
