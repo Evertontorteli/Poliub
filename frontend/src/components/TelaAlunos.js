@@ -135,20 +135,21 @@ export default function TelaAlunos() {
   }
 
   return (
-    <div className="mt-4 px-4 md:px-8">
+    <div className="px-4 md:px-2">
 
       {/* Cadastrar só para recepção */}
       {role === "recepcao" && (
-        <div className="flex justify-left mb-4">
+        <div className="flex justify-between px-2 items-center mb-4">
+          <h1 className="text-2xl font-medium">Lista de Alunos</h1>
           <button
-            className="bg-[#1A1C2C] text-white px-4 py-2 rounded-full hover:bg-[#3B4854] transition"
+            className="bg-[#1A1C2C] text-white px-2 py-2 rounded-full hover:bg-[#3B4854] transition"
             onClick={() => setMostrarModal(true)}
           >
             Novo Aluno
           </button>
         </div>
       )}
-      <div className="bg-white rounded-2xl shadow p-2 md:p-6">
+      <div className="bg-white rounded-2xl shadow p-2 md:p-2">
         {/* Barra de pesquisa */}
         <div className="mb-4">
           <input

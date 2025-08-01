@@ -34,8 +34,8 @@ export default function TelaDisciplinas() {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-4">
-        {/*<h1 className="text-3xl font-bold">Disciplinas</h1>*/}
+      <div className="flex justify-between px-4 items-center mb-4">
+        <h1 className="text-2xl font-medium">Lista de Disciplinas</h1>
         <button
           onClick={handleNovo}
           className="bg-[#1A1C2C] text-white px-4 py-2 rounded-full hover:bg-[#3B4854] transition"
