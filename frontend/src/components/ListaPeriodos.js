@@ -94,7 +94,7 @@ export default function ListaPeriodos({ onEditar, reloadKey }) {
   }
 
   return (
-    <div className="mx-auto py-0 px-4 shadow">
+    <div className="mx-auto py-0 px-4 shadow rounded-2xl">
       {/* Campo de busca */}
       <div className="mb-4">
         <input

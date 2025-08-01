@@ -5,7 +5,7 @@ import { format } from 'date-fns'
 import ptBR from 'date-fns/locale/pt-BR'
 import DatePicker, { registerLocale } from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
-import { Calendar, QrCode, Trash2, Plus, Minus } from 'lucide-react'
+import { Calendar, QrCode, Trash2, Plus, Minus, CirclePlus, CircleMinus,} from 'lucide-react'
 import Etiqueta from './Etiqueta'
 import { toast } from 'react-toastify'
 
@@ -194,8 +194,8 @@ export default function MovimentacaoEsterilizacao() {
                       <td className="px-3 py-2">
                         <span className="inline-flex items-center">
                           {m.tipo === 'entrada' 
-                            ? <Plus size={16} className="mr-1 " />
-                            : <Minus size={16} className="mr-1 " />}
+                            ? <CirclePlus size={16} className="mr-1 " />
+                            : <CircleMinus size={16} className="mr-1 " />}
                           {m.tipo === 'entrada' ? 'Entrada' : 'Saída'}
                         </span>
                       </td>
@@ -252,8 +252,8 @@ export default function MovimentacaoEsterilizacao() {
                 <div className="flex justify-between mb-1 text-xs text-gray-500">
                   <span className="flex items-center gap-1">
                     {m.tipo === 'entrada'
-                      ? <Plus size={16} />
-                      : <Minus size={16} />}
+                      ? <CirclePlus size={16} />
+                      : <CircleMinus size={16} />}
                     {m.tipo === 'entrada' ? 'Entrada' : 'Saída'}
                   </span>
                   <div className="flex gap-2">

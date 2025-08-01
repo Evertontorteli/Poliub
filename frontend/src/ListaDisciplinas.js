@@ -81,7 +81,7 @@ function ListaDisciplinas({ reloadKey, onEditar }) {
   }
 
   return (
-    <div className="mx-auto py-2 px-4">
+    <div className="mx-auto py-2 px-2">
       {/* Barra de pesquisa */}
       <div className="mb-4">
         <input
@@ -93,7 +93,7 @@ function ListaDisciplinas({ reloadKey, onEditar }) {
         />
       </div>
 
-      <div className="bg-white rounded-2xl shadow p-2 md:p-6">
+      <div className="bg-white rounded-2xl shadow p-2">
         <Paginador />
         <hr className="border-t border-gray-200 my-2" />
 
