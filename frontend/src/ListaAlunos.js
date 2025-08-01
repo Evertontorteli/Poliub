@@ -58,7 +58,7 @@ export default function ListaAlunos({ reloadKey, onEditar }) {
         <div className="hidden md:block overflow-x-auto">
           <table className="min-w-full bg-white border-separate border-spacing-0">
             <thead>
-              <tr className="bg-gray-100 text-gray-700 text-sm">
+              <tr className="bg-gray-100 text-gray-600 text-sm">
                 <th className="px-3 py-2 text-left font-semibold border-b">#</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">Nome</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">RA</th>

@@ -256,7 +256,7 @@ export default function TelaEsterilizacao() {
 
   return (
     <div className="max-w-4xl mx-auto py-10 px-4">
-      <h2 className="text-2xl font-bold mb-6">Controle de Esterilização</h2>
+      <h2 className="text-2xl font-medium mb-6">Controle de Esterilização</h2>
 
       {/* timeline */}
       <div className="flex items-center mb-4">
@@ -327,7 +327,7 @@ export default function TelaEsterilizacao() {
       {/* TELA 2: PIN do aluno */}
       {step === 2 && (
         <div className="bg-white rounded-2xl shadow p-6 mb-6">
-          <h3 className="text-xl font-bold mb-4">Informe o PIN do aluno</h3>
+          <h3 className="text-xl text-gray-800 font-bold mb-4">Informe o PIN do aluno</h3>
           <div className="flex gap-4">
             <input
               type="password"
@@ -345,9 +345,8 @@ export default function TelaEsterilizacao() {
             </button>
           </div>
           {pinValidated && (
-            <div className="mt-4 text-gray-800 space-y-1">
-              <p>Aluno: <strong>{alunoNome}</strong></p>
-              <p>Período: <strong>{alunoPeriodo || '—'}</strong></p>
+            <div className="mt-4 font-ligth ext-gray-600 space-y-1">
+              <p>Aluno(a): {alunoNome}, Período: {alunoPeriodo || '—'}</p>
             </div>
           )}
         </div>
@@ -420,7 +419,7 @@ export default function TelaEsterilizacao() {
       {/* TELA 4: impressão de etiquetas */}
       {step === 4 && (
         <div className="bg-white rounded-2xl shadow p-6">
-          <h3 className="font-bold mb-4">Lista de Impressão de Etiquetas</h3>
+          <h3 className="font-medium  mb-4">Lista de Impressão de Etiquetas</h3>
           <div className="flex flex-wrap gap-4 mb-6">
             {uniqueCaixas.map(c => (
               <div key={c.id} className="flex items-center gap-2 bg-gray-50 p-2 rounded-full">
