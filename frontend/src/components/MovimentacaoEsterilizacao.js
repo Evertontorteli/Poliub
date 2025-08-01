@@ -169,11 +169,13 @@ export default function MovimentacaoEsterilizacao() {
           <table className="min-w-full bg-white border-separate border-spacing-0">
             <thead>
               <tr className="bg-gray-100 text-gray-700 text-sm">
-                <th className="px-3 py-2 text-left font-semibold border-b">Caixa</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">Tipo</th>
+                <th className="px-3 py-2 text-left font-semibold border-b">Caixa</th>
+                
                 <th className="px-3 py-2 text-left font-semibold border-b">Aluno</th>
-                <th className="px-3 py-2 text-left font-semibold border-b">Operador</th>
+                
                 <th className="px-3 py-2 text-left font-semibold border-b">Data</th>
+                <th className="px-3 py-2 text-left font-semibold border-b">Operador</th>
                 <th className="px-3 py-2 text-right font-semibold border-b">Ações</th>
               </tr>
             </thead>
@@ -188,7 +190,7 @@ export default function MovimentacaoEsterilizacao() {
                 movsPagina.map((m, idx) => (
                   <React.Fragment key={m.id}>
                     <tr className="hover:bg-gray-50 transition">
-                      <td className="px-3 text-gray-500 py-2 font-medium">{m.caixaNome}</td>
+                      
                       <td className="px-3 py-2">
                         <span className="inline-flex items-center">
                           {m.tipo === 'entrada' 
@@ -197,9 +199,11 @@ export default function MovimentacaoEsterilizacao() {
                           {m.tipo === 'entrada' ? 'Entrada' : 'Saída'}
                         </span>
                       </td>
+                      <td className="px-3 text-gray-500 py-2 font-medium">{m.caixaNome}</td>
                       <td className="px-3 text-gray-800 py-2">{m.alunoNome}</td>
-                      <td className="px-3 text-gray-500 py-2">{m.operadorNome}</td>
+                      
                       <td className="px-3 text-gray-500 py-2">{format(new Date(m.criado_em), 'dd/MM/yyyy HH:mm')}</td>
+                      <td className="px-3 text-gray-500 py-2">{m.operadorNome}</td>
                       <td className="px-3 py-2 text-right flex gap-2 justify-end">
                         <button
                           onClick={() => handlePrint(m)}
