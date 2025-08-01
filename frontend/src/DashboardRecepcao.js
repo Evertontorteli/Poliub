@@ -191,7 +191,7 @@ const handleDeletarAgendamento = (id, pacienteNome) => {
     <div className="mx-auto py-4 px-2">
       {/* Periodos */}
       <div className="mb-4">
-        <h2 className="text-xl font-bold mb-3 text-[#1d3557]">Períodos</h2>
+        <h2 className="text-2xl font-medium mb-3 text-[#344054]">Períodos</h2>
         <div className="flex flex-wrap gap-2">
           {periodos.map(p => (
             <button
@@ -223,7 +223,7 @@ const handleDeletarAgendamento = (id, pacienteNome) => {
       </div>
       {/* Disciplinas */}
       <div className="mb-6">
-        <h2 className="text-xl font-bold mb-3 text-[#1d3557]">Disciplinas</h2>
+        <h2 className="text-2xl font-medium mb-3 text-[#344054]">Disciplinas</h2>
         <div className="flex flex-wrap gap-2">
           {disciplinasVisiveis.map((disc, idx) => (
             <button
@@ -247,7 +247,7 @@ const handleDeletarAgendamento = (id, pacienteNome) => {
       {/* Lista de Agendamentos */}
       {disciplinaSelecionada && (
         <div className="bg-white rounded-2xl shadow p-2">
-          <h2 className="text-lg font-semibold px-4 pt-6 pb-2">
+          <h2 className="text-lg font-medium px-4 pt-6 pb-2">
             Agendamentos de{" "}
             <span className="text-[#3172C0]">
               {disciplinaSelecionada.nome}
@@ -332,7 +332,7 @@ const handleDeletarAgendamento = (id, pacienteNome) => {
           <div className="hidden md:block">
             <table className="min-w-full bg-white border-separate border-spacing-0">
               <thead>
-                <tr className="bg-gray-100 text-gray-700 text-sm">
+                <tr className="bg-gray-100 text-[#344054] text-sm">
                   <th className="px-3 py-2 text-left font-semibold border-b">#</th>
                   <th className="px-3 py-2 text-left font-semibold border-b">Box</th>
                   <th className="px-3 py-2 text-left font-semibold border-b">Operador</th>
@@ -350,12 +350,12 @@ const handleDeletarAgendamento = (id, pacienteNome) => {
                     <tr className="border-none hover:bg-gray-50 transition">
                       <td className="px-3 py-2 text-gray-500">{inicio + idx + 1}</td>
                       <td className="px-3 py-2 text-gray-500">{ag.operadorBox ?? '-'}</td>
-                      <td className="px-3 py-2 font-medium text-gray-800">{ag.operadorNome || '-'}</td>
-                      <td className="px-3 py-2 text-gray-800">{ag.auxiliarNome || '-'}</td>
-                      <td className="px-3 py-2 text-gray-800">{disciplinaSelecionada.nome}</td>
+                      <td className="px-3 py-2 font-medium text-gray-500">{ag.operadorNome || '-'}</td>
+                      <td className="px-3 py-2 text-gray-500">{ag.auxiliarNome || '-'}</td>
+                      <td className="px-3 py-2 text-gray-500">{disciplinaSelecionada.nome}</td>
                       <td className="px-3 py-2 text-gray-800">{ag.pacienteNome || '-'}</td>
                       <td className="px-3 py-2 text-gray-500">{ag.telefone || '-'}</td>
-                      <td className="px-3 py-2 text-gray-800">
+                      <td className="px-3 py-2 text-gray-500">
                         {ag.data
                           ? ag.data.slice(0, 10).split("-").reverse().join("/")
                           : "-"} {ag.hora || "-"}

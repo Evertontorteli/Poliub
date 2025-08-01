@@ -118,7 +118,7 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
           disabled={pagina === 1}
           className="text-blue-600 hover:underline rounded disabled:opacity-50"
         >Anterior</button>
-        <span>Página {pagina} de {totalPaginas} <small>({agendamentosFiltrados.length} agendamentos)</small></span>
+        <span class=" text-gray-500">Página {pagina} de {totalPaginas} <small>({agendamentosFiltrados.length} agendamentos)</small></span>
         <button
           onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
           disabled={pagina === totalPaginas}
@@ -263,11 +263,11 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
                     <td className="px-3 py-2 text-gray-500">{inicio + idx + 1}</td>
                     <td className="px-3 py-2 text-gray-500">{ag.operadorBox ?? '-'}</td>
                     <td className="px-3 py-2 font-medium text-gray-800">{ag.operadorNome || '-'}</td>
-                    <td className="px-3 py-2 text-gray-800">{ag.auxiliarNome || '-'}</td>
-                    <td className="px-3 py-2 text-gray-800">{ag.disciplinaNome || '-'}</td>
+                    <td className="px-3 py-2 text-gray-500">{ag.auxiliarNome || '-'}</td>
+                    <td className="px-3 py-2 text-gray-500">{ag.disciplinaNome || '-'}</td>
                     <td className="px-3 py-2 text-gray-800">{ag.pacienteNome || '-'}</td>
                     <td className="px-3 py-2 text-gray-500">{ag.telefone || '-'}</td>
-                    <td className="px-3 py-2 text-gray-800">
+                    <td className="px-3 py-2 text-gray-500">
                       {ag.data
                         ? ag.data.slice(0, 10).split('-').reverse().join('/')
                         : '-'} {ag.hora || '-'}
