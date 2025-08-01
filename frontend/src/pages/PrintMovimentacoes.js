@@ -5,39 +5,39 @@ import axios from 'axios'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 export default function PrintMovimentacoes() {
-  const { state: { filters } = {} } = useLocation()
+  const { state: filters = {} } = useLocation()  
   const navigate = useNavigate()
-  const [lista, setLista] = useState([])
+  const [todos, setTodos] = useState([])
   const [loading, setLoading] = useState(true)
 
-  // formata “YYYY-MM-DD” → “DD/MM/YYYY”
-  function formatarData(iso) {
-    const [yyyy, mm, dd] = iso.split('-')
+  // utilitário para formatar "YYYY-MM-DD" → "DD/MM/YYYY"
+  function formatarData(isoDate) {
+    const [yyyy, mm, dd] = isoDate.split('-')
     return `${dd}/${mm}/${yyyy}`
   }
 
-  // 1) Busca movimentações filtradas
+  // 1) busca todas movimentações
   useEffect(() => {
-    async function fetch() {
+    async function fetchAll() {
       try {
         setLoading(true)
-        const res = await axios.get('/api/movimentacoes', { params: filters })
-        setLista(res.data)
+        const res = await axios.get('/api/movimentacoes')
+        setTodos(res.data)
       } catch (err) {
-        console.error(err)
+        console.error('Erro ao buscar movimentações:', err)
       } finally {
         setLoading(false)
       }
     }
-    fetch()
-  }, [filters])
+    fetchAll()
+  }, [])
 
-  // 2) Dispara impressão e volta pra esterilização
+  // 2) dispara impressão e volta para esterilização
   useEffect(() => {
     if (loading) return
     setTimeout(() => {
       window.print()
-      navigate('/', { replace: true })
+      navigate('/esterilizacao', { replace: true })
     }, 200)
   }, [loading, navigate])
 
@@ -49,19 +49,43 @@ export default function PrintMovimentacoes() {
     )
   }
 
+  // 3) aplica os filtros do usuário
+  const listaFiltrada = todos.filter(m => {
+    const term = filters.searchTerm?.toLowerCase() || ''
+    const matchTxt = [
+      m.caixaNome,
+      m.alunoNome,
+      m.operadorNome,
+      m.periodoNome,
+      m.tipo
+    ].some(f => f?.toLowerCase().includes(term))
+
+    const matchPeriodo = !filters.filterPeriodo
+      || m.periodoNome?.toLowerCase().includes(filters.filterPeriodo.toLowerCase())
+
+    const dataIso = m.criado_em.slice(0, 10)  // "YYYY-MM-DD"
+    const matchDate = !filters.filterDate
+      || dataIso === filters.filterDate
+
+    return matchTxt && matchPeriodo && matchDate
+  })
+
   return (
     <div className="printable bg-white p-8">
       <h2 className="text-2xl font-bold mb-4">Lista de Movimentações</h2>
 
-      {filters?.filterDate && (
-        <p className="text-gray-700 mb-2">
-          <span className="font-semibold">Data:</span> {formatarData(filters.filterDate)}
-        </p>
-      )}
-      {filters?.filterPeriodo && (
-        <p className="text-gray-700 mb-4">
-          <span className="font-semibold">Período:</span> {filters.filterPeriodo}
-        </p>
+      {/* exibe filtros usados */}
+      {(filters.searchTerm || filters.filterPeriodo || filters.filterDate) && (
+        <div className="mb-4 text-gray-700">
+          <span className="font-semibold">Filtros aplicados:</span>
+          <ul className="list-disc list-inside ml-4">
+            {filters.searchTerm && <li>Busca: "{filters.searchTerm}"</li>}
+            {filters.filterPeriodo && <li>Período: {filters.filterPeriodo}</li>}
+            {filters.filterDate && (
+              <li>Data: {formatarData(filters.filterDate)}</li>
+            )}
+          </ul>
+        </div>
       )}
 
       <div className="overflow-x-auto">
@@ -78,7 +102,7 @@ export default function PrintMovimentacoes() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {lista.map((m, idx) => (
+            {listaFiltrada.map((m, idx) => (
               <tr key={m.id} className="hover:bg-gray-50">
                 <td className="px-4 py-2 text-sm text-gray-800 text-center">{idx + 1}</td>
                 <td className="px-4 py-2 text-sm text-gray-800">{m.tipo}</td>
