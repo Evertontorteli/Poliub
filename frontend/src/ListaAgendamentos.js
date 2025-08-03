@@ -94,14 +94,14 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
     axios.delete(`/api/agendamentos/${id}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
-       .then(() => {
-      setAgendamentos(prev => prev.filter(a => a.id !== id));
-      toast.success(`Agendamento de ${pacienteNome || 'paciente'} eliminado com sucesso!`);
-    })
-       .catch((err) => {
-      console.error('Erro ao deletar agendamento:', err.response?.data || err.message);
-      toast.error('Não foi possível deletar o agendamento.');
-    });
+      .then(() => {
+        setAgendamentos(prev => prev.filter(a => a.id !== id));
+        toast.success(`Agendamento de ${pacienteNome || 'paciente'} eliminado com sucesso!`);
+      })
+      .catch((err) => {
+        console.error('Erro ao deletar agendamento:', err.response?.data || err.message);
+        toast.error('Não foi possível deletar o agendamento.');
+      });
   };
 
   // NÃO DISPARA MAIS TOAST AQUI!
@@ -266,7 +266,26 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
                     <td className="px-3 py-2 text-gray-500">{ag.auxiliarNome || '-'}</td>
                     <td className="px-3 py-2 text-gray-500">{ag.disciplinaNome || '-'}</td>
                     <td className="px-3 py-2 text-gray-800">{ag.pacienteNome || '-'}</td>
-                    <td className="px-3 py-2 text-gray-500">{ag.telefone || '-'}</td>
+                    <td className="px-3 py-2 text-gray-500">
+                      {ag.telefone ? (
+                        <>
+                          {ag.telefone}
+                          <a
+                            href={`https://wa.me/55${ag.telefone.replace(/\D/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Falar no WhatsApp"
+                            className="ml-2 inline-flex align-middle hover:scale-110 transition"
+                          >
+                            {/* Ícone WhatsApp SVG */}
+                            <svg width="20" height="20" fill="none" viewBox="0 0 32 32">
+                              <circle cx="16" cy="16" r="16" fill="#128C7E" />
+                              <path fill="#FFF" d="M22.7 19.3l-2.1-.6c-.3-.1-.5 0-.7.2l-.5.6c-.2.2-.4.3-.7.2-2-.8-3.6-2.5-4.4-4.4-.1-.3 0-.5.2-.7l.5-.5c.2-.2.3-.5.2-.7l-.6-2.1c-.1-.4-.5-.7-.9-.7h-.7c-1 0-1.8.8-1.8 1.8 0 5.1 4.1 9.2 9.2 9.2 1 0 1.8-.8 1.8-1.8v-.7c0-.4-.3-.8-.7-.9z" />
+                            </svg>
+                          </a>
+                        </>
+                      ) : '-'}
+                    </td>
                     <td className="px-3 py-2 text-gray-500">
                       {ag.data
                         ? ag.data.slice(0, 10).split('-').reverse().join('/')
@@ -344,7 +363,30 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
               <div><b>Auxiliar:</b> <span className="text-gray-800">{ag.auxiliarNome || '-'}</span></div>
               <div><b>Disciplina:</b> <span className="text-gray-800">{ag.disciplinaNome || '-'}</span></div>
               <div><b>Paciente:</b> <span className="text-gray-800">{ag.pacienteNome || '-'}</span></div>
-              <div><b>Telefone:</b> <span className="text-gray-700">{ag.telefone || '-'}</span></div>
+              <div>
+                <b>Telefone: </b>
+                <span className="text-gray-700">
+                  {ag.telefone ? (
+                    <>
+                      {ag.telefone}
+                      <a
+                        href={`https://wa.me/55${ag.telefone.replace(/\D/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Falar no WhatsApp"
+                        className="ml-2 inline-flex align-middle hover:scale-110 transition"
+                      >
+                        {/* Ícone WhatsApp SVG */}
+                        <svg width="20" height="20" fill="none" viewBox="0 0 32 32">
+                          <circle cx="16" cy="16" r="16" fill="#128C7E" />
+                          <path fill="#FFF" d="M22.7 19.3l-2.1-.6c-.3-.1-.5 0-.7.2l-.5.6c-.2.2-.4.3-.7.2-2-.8-3.6-2.5-4.4-4.4-.1-.3 0-.5.2-.7l.5-.5c.2-.2.3-.5.2-.7l-.6-2.1c-.1-.4-.5-.7-.9-.7h-.7c-1 0-1.8.8-1.8 1.8 0 5.1 4.1 9.2 9.2 9.2 1 0 1.8-.8 1.8-1.8v-.7c0-.4-.3-.8-.7-.9z" />
+                        </svg>
+                      </a>
+                    </>
+                  ) : '-'}
+                </span>
+              </div>
+
               <div><b>Data:</b> <span className="text-gray-700">{ag.data ? ag.data.slice(0, 10).split('-').reverse().join('/') : '-'}</span></div>
               <div><b>Hora:</b> <span className="text-gray-700">{ag.hora || '-'}</span></div>
             </div>
