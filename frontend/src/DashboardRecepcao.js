@@ -60,27 +60,27 @@ export default function DashboardRecepcao() {
   }, []);
 
 
-//Funcao que permite mostrar 30 dias no filtro
-function buscarAgendamentosDaDisciplina(disciplina) {
-  setDisciplinaSelecionada(disciplina);
-  setPagina(1);
-  axios
-    .get(`/api/agendamentos?disciplinaId=${disciplina.id}`)
-    .then((res) => {
-      const hoje = new Date();
-      const trintaDiasAtras = new Date();
-      trintaDiasAtras.setDate(hoje.getDate() - 32);
+  //Funcao que permite mostrar 30 dias no filtro
+  function buscarAgendamentosDaDisciplina(disciplina) {
+    setDisciplinaSelecionada(disciplina);
+    setPagina(1);
+    axios
+      .get(`/api/agendamentos?disciplinaId=${disciplina.id}`)
+      .then((res) => {
+        const hoje = new Date();
+        const trintaDiasAtras = new Date();
+        trintaDiasAtras.setDate(hoje.getDate() - 32);
 
-      const agsFiltrados = res.data.filter((ag) => {
-        if (!ag.data) return false;
-        // Usa apenas a parte da data (pode ajustar caso ag.data já venha como Date)
-        const dataAgDate = new Date(ag.data.slice(0, 10) + 'T00:00:00');
-        return dataAgDate >= trintaDiasAtras;
+        const agsFiltrados = res.data.filter((ag) => {
+          if (!ag.data) return false;
+          // Usa apenas a parte da data (pode ajustar caso ag.data já venha como Date)
+          const dataAgDate = new Date(ag.data.slice(0, 10) + 'T00:00:00');
+          return dataAgDate >= trintaDiasAtras;
+        });
+
+        setAgendamentosFiltrados(agsFiltrados);
       });
-
-      setAgendamentosFiltrados(agsFiltrados);
-    });
-}
+  }
 
 
   // Filtro + paginação
@@ -115,7 +115,7 @@ function buscarAgendamentosDaDisciplina(disciplina) {
     });
   };
 
-const handleDeletarAgendamento = (id, pacienteNome) => {
+  const handleDeletarAgendamento = (id, pacienteNome) => {
     if (!window.confirm("Tem certeza que deseja deletar este agendamento?")) return;
     axios
       .delete(`/api/agendamentos/${id}`)
@@ -270,7 +270,7 @@ const handleDeletarAgendamento = (id, pacienteNome) => {
             </span>
           </h2>
           <h2 className="text-sm text-center font-light px-4 pt-0 pb-2">
-            
+
             <span className="text-grey-800">
               Apenas agendamentos dos últimos <strong>30 dias</strong> são exibidos na lista.
             </span>
@@ -376,7 +376,27 @@ const handleDeletarAgendamento = (id, pacienteNome) => {
                       <td className="px-3 py-2 text-gray-500">{ag.auxiliarNome || '-'}</td>
                       <td className="px-3 py-2 text-gray-500">{disciplinaSelecionada.nome}</td>
                       <td className="px-3 py-2 text-gray-800">{ag.pacienteNome || '-'}</td>
-                      <td className="px-3 py-2 text-gray-500">{ag.telefone || '-'}</td>
+                      <td className="px-3 py-2 text-gray-500">
+                        {ag.telefone ? (
+                          <>
+                            {ag.telefone}
+                            <a
+                              href={`https://wa.me/55${ag.telefone.replace(/\D/g, '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="Falar no WhatsApp"
+                              className="ml-2 inline-flex align-middle hover:scale-110 transition"
+                            >
+                              {/* Ícone WhatsApp SVG */}
+                              <svg width="20" height="20" fill="none" viewBox="0 0 32 32">
+                                <circle cx="16" cy="16" r="16" fill="#128C7E" />
+                                <path fill="#FFF" d="M22.7 19.3l-2.1-.6c-.3-.1-.5 0-.7.2l-.5.6c-.2.2-.4.3-.7.2-2-.8-3.6-2.5-4.4-4.4-.1-.3 0-.5.2-.7l.5-.5c.2-.2.3-.5.2-.7l-.6-2.1c-.1-.4-.5-.7-.9-.7h-.7c-1 0-1.8.8-1.8 1.8 0 5.1 4.1 9.2 9.2 9.2 1 0 1.8-.8 1.8-1.8v-.7c0-.4-.3-.8-.7-.9z" />
+                              </svg>
+                            </a>
+                          </>
+                        ) : '-'}
+                      </td>
+
                       <td className="px-3 py-2 text-gray-500">
                         {ag.data
                           ? ag.data.slice(0, 10).split("-").reverse().join("/")
@@ -425,7 +445,7 @@ const handleDeletarAgendamento = (id, pacienteNome) => {
             </table>
           </div>
 
-        {/* Cards Mobile */}
+          {/* Cards Mobile */}
           <div className="md:hidden space-y-3">
             {agsPagina.map((ag, idx) => (
               <div
@@ -460,14 +480,37 @@ const handleDeletarAgendamento = (id, pacienteNome) => {
                       <Tooltip text="Eliminar" />
                     </div>
                   </div>
-                  </div>
+                </div>
 
                 <div><b>Box:</b> <span className="text-gray-800">{ag.operadorBox ?? '-'}</span></div>
                 <div><b>Operador:</b> <span className="text-gray-800">{ag.operadorNome || '-'}</span></div>
                 <div><b>Auxiliar:</b> <span className="text-gray-800">{ag.auxiliarNome || '-'}</span></div>
                 <div><b>Disciplina:</b> <span className="text-gray-800">{disciplinaSelecionada.nome}</span></div>
                 <div><b>Paciente:</b> <span className="text-gray-800">{ag.pacienteNome || '-'}</span></div>
-                <div><b>Telefone:</b> <span className="text-gray-700">{ag.telefone || '-'}</span></div>
+                <div>
+                  <b>Telefone: </b>
+                  <span className="text-gray-700">
+                    {ag.telefone ? (
+                      <>
+                        {ag.telefone}
+                        <a
+                          href={`https://wa.me/55${ag.telefone.replace(/\D/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Falar no WhatsApp"
+                          className="ml-2 inline-flex align-middle hover:scale-110 transition"
+                        >
+                          {/* Ícone WhatsApp SVG */}
+                          <svg width="20" height="20" fill="none" viewBox="0 0 32 32">
+                            <circle cx="16" cy="16" r="16" fill="#128C7E" />
+                            <path fill="#FFF" d="M22.7 19.3l-2.1-.6c-.3-.1-.5 0-.7.2l-.5.6c-.2.2-.4.3-.7.2-2-.8-3.6-2.5-4.4-4.4-.1-.3 0-.5.2-.7l.5-.5c.2-.2.3-.5.2-.7l-.6-2.1c-.1-.4-.5-.7-.9-.7h-.7c-1 0-1.8.8-1.8 1.8 0 5.1 4.1 9.2 9.2 9.2 1 0 1.8-.8 1.8-1.8v-.7c0-.4-.3-.8-.7-.9z" />
+                          </svg>
+                        </a>
+                      </>
+                    ) : '-'}
+                  </span>
+                </div>
+
                 <div><b>Data e Hora:</b> <span className="text-gray-700">
                   {ag.data ? ag.data.slice(0, 10).split("-").reverse().join("/") : "-"} {ag.hora || "-"}
                 </span></div>
