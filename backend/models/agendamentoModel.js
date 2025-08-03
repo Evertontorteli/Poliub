@@ -9,31 +9,30 @@ const Agendamento = {
     try {
       const [rows] = await conn.query(`
         SELECT 
-          a.id,
-          a.aluno_id,
-          op.nome AS operadorNome,
-          a.auxiliar1_id,
-          aux.nome AS auxiliarNome,
-          a.auxiliar2_id,
-          aux2.nome AS auxiliar2Nome,
-          a.disciplina_id,
-          d.nome AS disciplinaNome,
-          a.paciente_id,
-          p.nome AS pacienteNome,
-          a.nome_paciente,
-          a.telefone,
-          a.data,
-          a.hora,
-          a.status,
-          a.solicitado_por_recepcao
-        FROM agendamentos a
-        LEFT JOIN alunos op ON a.aluno_id = op.id
-        LEFT JOIN alunos aux ON a.auxiliar1_id = aux.id
-        LEFT JOIN alunos aux2 ON a.auxiliar2_id = aux2.id
-        LEFT JOIN disciplinas d ON a.disciplina_id = d.id
-        LEFT JOIN pacientes p ON a.paciente_id = p.id
-        WHERE a.data >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-        ORDER BY a.data DESC, a.hora DESC
+    a.id,
+    a.aluno_id,
+    op.nome AS operadorNome,
+    a.auxiliar1_id,
+    aux.nome AS auxiliarNome,
+    a.auxiliar2_id,
+    aux2.nome AS auxiliar2Nome,
+    a.disciplina_id,
+    d.nome AS disciplinaNome,
+    a.paciente_id,
+    p.nome AS pacienteNome,
+    a.nome_paciente,
+    a.telefone,
+    a.data,
+    a.hora,
+    a.status,
+    a.solicitado_por_recepcao
+  FROM agendamentos a
+  LEFT JOIN alunos op ON a.aluno_id = op.id
+  LEFT JOIN alunos aux ON a.auxiliar1_id = aux.id
+  LEFT JOIN alunos aux2 ON a.auxiliar2_id = aux2.id
+  LEFT JOIN disciplinas d ON a.disciplina_id = d.id
+  LEFT JOIN pacientes p ON a.paciente_id = p.id
+  ORDER BY a.data DESC, a.hora DESC
       `);
       return rows;
     } finally {
@@ -114,7 +113,7 @@ const Agendamento = {
       conn.release();
     }
   },
-  
+
 
   // DELETAR agendamento
   deletar: async (id) => {

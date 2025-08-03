@@ -83,7 +83,10 @@ exports.listarMeusAgendamentos = async (req, res) => {
   }
 };
 
-// 3) CRIAR AGENDAMENTO
+/************************************************************************************* */
+
+/// 3) CRIAR AGENDAMENTO
+
 exports.criarAgendamento = async (req, res) => {
   try {
     let {
@@ -107,7 +110,39 @@ exports.criarAgendamento = async (req, res) => {
 
     const io = req.app.get('io');
 
-    // → SE FOR RECEPCAO: sem restrição
+    // ===== AJUSTE DE DATA (só parte do dia, sem fuso) =====
+    function toLocalDate(dateStr) {
+      if (!dateStr) return null;
+      const [yyyy, mm, dd] = dateStr.split('-');
+      return new Date(Number(yyyy), Number(mm) - 1, Number(dd), 0, 0, 0, 0);
+    }
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    const dataAgendamento = toLocalDate(data);
+
+    // Recepção: pode agendar retroativo e até 365 dias à frente.
+    // Aluno: nunca pode agendar retroativo, e só pode até 365 dias à frente.
+    const limiteMax = new Date();
+    limiteMax.setHours(0, 0, 0, 0);
+    limiteMax.setDate(limiteMax.getDate() + 365);
+
+    if (!dataAgendamento) {
+      return res.status(400).json({ error: 'Data do agendamento é inválida.' });
+    }
+
+    if (dataAgendamento > limiteMax) {
+      return res.status(400).json({
+        error: 'A data do agendamento não pode ser superior a 365 dias a partir de hoje.'
+      });
+    }
+
+    if (req.user.role === 'aluno' && dataAgendamento < hoje) {
+      return res.status(400).json({
+        error: 'Não é possível realizar agendamentos para datas anteriores à data atual.'
+      });
+    }
+
+    // → SE FOR RECEPCAO: sem restrição extra
     if (req.user.role === 'recepcao') {
       const insertResult = await Agendamento.inserir({
         aluno_id,
@@ -123,10 +158,9 @@ exports.criarAgendamento = async (req, res) => {
         nome_paciente,
         telefone
       });
-      // normaliza para número caso venha ResultSetHeader
       const novoId = insertResult.insertId ?? insertResult;
 
-      //LOG
+      // LOG
       await Log.criar({
         usuario_id: req.user.id,
         usuario_nome: req.user.nome,
@@ -149,7 +183,7 @@ exports.criarAgendamento = async (req, res) => {
         }
       });
 
-      // busca todos os campos necessários para a notificação
+      // Notificação
       const conn2 = await db.getConnection();
       try {
         const [agRows] = await conn2.execute(`
@@ -198,12 +232,17 @@ exports.criarAgendamento = async (req, res) => {
 
       if (envolvimentoCount === 0) {
         return res.status(403).json({
-          error: 'Aluno só pode criar se for operador ou auxiliar em pelo menos um papel.'
+          error: 'Para agendar, você deve ser Operador ou Auxiliar. Selecione seu nome em um dos papéis.'
         });
       }
       if (envolvimentoCount > 1) {
         return res.status(403).json({
-          error: 'Aluno não pode ocupar dois papéis ao mesmo tempo.'
+          error: 'Você não pode ocupar mais de um papel no mesmo agendamento.'
+        });
+      }
+      if (!aluno_id) {
+        return res.status(400).json({
+          error: 'O campo Operador é obrigatório.'
         });
       }
 
@@ -223,7 +262,7 @@ exports.criarAgendamento = async (req, res) => {
       });
       const novoId = insertResult.insertId ?? insertResult;
 
-      //LOG
+      // LOG
       await Log.criar({
         usuario_id: req.user.id,
         usuario_nome: req.user.nome,
@@ -246,8 +285,7 @@ exports.criarAgendamento = async (req, res) => {
         }
       });
 
-
-      // se foi “Solicitar para Recepção”, notifica igual à recepção
+      // Notificação
       if (solicitado_por_recepcao) {
         const conn2 = await db.getConnection();
         try {
@@ -293,6 +331,11 @@ exports.criarAgendamento = async (req, res) => {
     return res.status(500).json({ error: 'Erro ao criar agendamento.' });
   }
 };
+
+
+
+
+/************************************************************************************* */
 
 // 4) ATUALIZAR AGENDAMENTO
 exports.atualizarAgendamento = async (req, res) => {

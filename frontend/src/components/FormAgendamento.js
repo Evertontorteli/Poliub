@@ -144,49 +144,52 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
   }
 
   // Submissão do form
-  async function handleSubmit(e) {
-    e.preventDefault();
-    if (!operadorId) return setMensagem('Selecione um operador.');
-    if (role !== 'recepcao' && String(user.id) !== operadorId && String(user.id) !== auxiliar1Id) {
-      return setMensagem('Você deve ser o Operador ou Auxiliar para realizar este agendamento.');
-    }
-    if (!disciplinaId) return setMensagem('Selecione uma disciplina.');
-    if (!pacienteId && tipoAtendimento !== 'Solicitar') return setMensagem('Selecione um paciente.');
-
-    const payload = {
-      disciplina_id: disciplinaId,
-      paciente_id: tipoAtendimento === 'Solicitar' ? null : pacienteId,
-      nome_paciente: tipoAtendimento === 'Solicitar' ? null : nomePaciente,
-      telefone: tipoAtendimento === 'Solicitar' ? null : telefone,
-      data,
-      hora,
-      observacoes: tipoAtendimento === 'Solicitar' ? null : observacoes,
-      aluno_id: operadorId,
-      auxiliar1_id: auxiliar1Id || null,
-      status: tipoAtendimento === 'Solicitar' ? 'Solicitado' : tipoAtendimento,
-      solicitado_por_recepcao: tipoAtendimento === 'Solicitar',
-    };
-    const headers = { Authorization: `Bearer ${token}` };
-
-    try {
-      if (agendamentoEditando) {
-        await axios.put(`/api/agendamentos/${agendamentoEditando.id}`, payload, { headers });
-        toast.success('Agendamento atualizado com sucesso!');
-        onFimEdicao();
-      } else {
-        await axios.post('/api/agendamentos', payload, { headers });
-        toast.success('Agendamento cadastrado com sucesso!');
-        setDisciplinaId(''); setPacienteId(''); setNomePaciente('');
-        setTelefone(''); setData(''); setHora('19:00');
-        setObservacoes(''); setOperadorId(''); setAuxiliar1Id('');
-      }
-      setMensagem('');
-      onNovoAgendamento && onNovoAgendamento();
-    } catch (err) {
-      console.error(err.response?.data || err.message);
-      setMensagem('Erro ao salvar agendamento. Você tem que ser o Operador/Auxiliar.');
-    }
+async function handleSubmit(e) {
+  e.preventDefault();
+  if (!operadorId) return setMensagem('Selecione um operador.');
+  if (role !== 'recepcao' && String(user.id) !== operadorId && String(user.id) !== auxiliar1Id) {
+    return setMensagem('Você deve ser o Operador ou Auxiliar para realizar este agendamento.');
   }
+  if (!disciplinaId) return setMensagem('Selecione uma disciplina.');
+  if (!pacienteId && tipoAtendimento !== 'Solicitar') return setMensagem('Selecione um paciente.');
+
+  const payload = {
+    disciplina_id: disciplinaId,
+    paciente_id: tipoAtendimento === 'Solicitar' ? null : pacienteId,
+    nome_paciente: tipoAtendimento === 'Solicitar' ? null : nomePaciente,
+    telefone: tipoAtendimento === 'Solicitar' ? null : telefone,
+    data,
+    hora,
+    observacoes: tipoAtendimento === 'Solicitar' ? null : observacoes,
+    aluno_id: operadorId,
+    auxiliar1_id: auxiliar1Id || null,
+    status: tipoAtendimento === 'Solicitar' ? 'Solicitado' : tipoAtendimento,
+    solicitado_por_recepcao: tipoAtendimento === 'Solicitar',
+  };
+  const headers = { Authorization: `Bearer ${token}` };
+
+  try {
+    if (agendamentoEditando) {
+      await axios.put(`/api/agendamentos/${agendamentoEditando.id}`, payload, { headers });
+      toast.success('Agendamento atualizado com sucesso!');
+      onFimEdicao();
+    } else {
+      await axios.post('/api/agendamentos', payload, { headers });
+      toast.success('Agendamento cadastrado com sucesso!');
+      setDisciplinaId(''); setPacienteId(''); setNomePaciente('');
+      setTelefone(''); setData(''); setHora('19:00');
+      setObservacoes(''); setOperadorId(''); setAuxiliar1Id('');
+    }
+    setMensagem('');
+    onNovoAgendamento && onNovoAgendamento();
+  } catch (err) {
+    // 🟢 Mostra a mensagem real vinda do backend
+    const msg = err.response?.data?.error || 'Erro ao salvar agendamento. Verifique os dados e tente novamente.';
+    setMensagem(msg);
+    console.error(err);
+  }
+}
+
 
   return (
     <div className="bg-white mx-auto max-w-2xl rounded-2xl p-6">
