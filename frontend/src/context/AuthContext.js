@@ -1,6 +1,7 @@
 // src/context/AuthContext.js
 import React, { createContext, useContext, useEffect, useState } from "react";
 import axios from "axios";
+import { toast } from 'react-toastify';
 
 // Cria contexto
 const AuthContext = createContext();
@@ -54,6 +55,30 @@ export function AuthProvider({ children }) {
     localStorage.removeItem("token");
     delete axios.defaults.headers.common["Authorization"];
   }
+
+  // NOVO: Intercepta erros do axios para pegar sessão invalidada
+  useEffect(() => {
+    const interceptor = axios.interceptors.response.use(
+      response => response,
+      error => {
+        console.log("DEBUG interceptor:", error.response)
+        if (
+          error.response &&
+          error.response.status === 401 &&
+          error.response.data &&
+          error.response.data.code === "SESSION_INVALIDATED"
+        ) {
+          // Mensagem para o usuário antes do logout automático
+          toast.error("Sua sessão foi encerrada porque sua conta foi acessada em outro dispositivo ou navegador.");
+          setTimeout(() => logout(), 2000);
+          // Opcional: pode redirecionar para login, ex: window.location.href = "/login";
+        }
+        return Promise.reject(error);
+      }
+    );
+    // Remove interceptor ao desmontar
+    return () => axios.interceptors.response.eject(interceptor);
+  }, []); // Executa uma vez só ao montar
 
   return (
     <AuthContext.Provider value={{ user, setUser, login, logout }}>

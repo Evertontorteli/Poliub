@@ -4,6 +4,9 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const router = express.Router();
 const { getConnection } = require('../database');
+const { v4: uuidv4 } = require('uuid');
+
+// Remover: const sessionToken = uuidv4(); // NÃO gere no topo! Gere no login!
 
 router.post('/login', async (req, res) => {
   const { usuario, senha } = req.body;
@@ -26,9 +29,18 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Usuário ou senha inválidos.' });
     }
 
-    // Gera o JWT com payload contendo id, nome e role
+    // NOVO: Gera um novo sessionToken a cada login
+    const sessionToken = uuidv4();
+
+    // NOVO: Salva o sessionToken no banco
+    await conn.execute(
+      'UPDATE alunos SET session_token = ? WHERE id = ?', 
+      [sessionToken, aluno.id]
+    );
+
+    // Gera o JWT com payload contendo id, nome, role E sessionToken
     const token = jwt.sign(
-      { id: aluno.id, nome: aluno.nome, role: aluno.role },
+      { id: aluno.id, nome: aluno.nome, role: aluno.role, sessionToken },
       process.env.JWT_SECRET,
       { expiresIn: '6h' } //tempo do usuario logado.
     );
@@ -45,7 +57,6 @@ router.post('/login', async (req, res) => {
     return res.status(500).json({ error: 'Erro interno do servidor.' });
   } finally {
     if (conn) {
-      // libera a conexão de volta para a pool
       conn.release();
     }
   }

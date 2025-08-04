@@ -2,6 +2,9 @@
 
 const jwt = require('jsonwebtoken');
 
+// NOVO: Importa o Aluno para consultar o session_token no banco
+const Aluno = require('../models/alunoModel');
+
 /**
  * Middleware que:
  * 1) Verifica se existe header “Authorization: Bearer <token>”
@@ -28,6 +31,53 @@ function verificaToken(req, res, next) {
     }
 
     // payload foi criado no momento do login (routes/auth.js), contendo { id, nome, role }
+    req.user = {
+      id: payload.id,
+      nome: payload.nome,
+      role: payload.role
+    };
+
+    next();
+  });
+}
+
+/**
+ * NOVO: Middleware que checa session_token no banco
+ * Se o token não bater, retorna erro especial para frontend exibir aviso de sessão encerrada.
+ */
+async function verificaTokenComSessaoUnica(req, res, next) {
+  const authHeader = req.headers['authorization'] || req.headers['Authorization'];
+  if (!authHeader) {
+    return res.status(401).json({ error: 'Token não fornecido.' });
+  }
+
+  const parts = authHeader.split(' ');
+  if (parts.length !== 2 || parts[0] !== 'Bearer') {
+    return res.status(401).json({ error: 'Formato de token inválido.' });
+  }
+
+  const token = parts[1];
+  jwt.verify(token, process.env.JWT_SECRET, async (err, payload) => {
+    if (err) {
+      return res.status(401).json({ error: 'Token inválido ou expirado.' });
+    }
+
+    // Verifica se payload.sessionToken existe
+    if (!payload.sessionToken) {
+      return res.status(401).json({ error: 'Sessão inválida.', code: 'SESSION_INVALIDATED' });
+    }
+
+    // Busca session_token atual no banco
+    try {
+      const aluno = await Aluno.buscarPorId(payload.id);
+      if (!aluno || aluno.session_token !== payload.sessionToken) {
+        // Retorna erro especial que será tratado no frontend para exibir mensagem amigável
+        return res.status(401).json({ error: 'Sessão encerrada por outro login.', code: 'SESSION_INVALIDATED' });
+      }
+    } catch (dbError) {
+      return res.status(500).json({ error: 'Erro ao validar sessão.', details: dbError.message });
+    }
+
     req.user = {
       id: payload.id,
       nome: payload.nome,
@@ -88,6 +138,7 @@ function apenasRecepcaoOuProprioAluno(req, res, next) {
 
 module.exports = {
   verificaToken,
+  verificaTokenComSessaoUnica, // NOVO export
   apenasRecepcao,
   apenasAluno,
   apenasRecepcaoOuProprioAluno
