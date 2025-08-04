@@ -2,9 +2,9 @@
 const express = require('express');
 const router = express.Router();
 const Log = require('../models/logModel');
-const { verificaToken, apenasRecepcao } = require('../middlewares/authMiddleware');
+const { verificaTokenComSessaoUnica, apenasRecepcao } = require('../middlewares/authMiddleware');
 
-router.get("/", verificaToken, apenasRecepcao, async (req, res) => {
+router.get("/", verificaTokenComSessaoUnica, apenasRecepcao, async (req, res) => {
   try {
     const { data, limit = 100, offset = 0 } = req.query;
 
@@ -27,6 +27,5 @@ router.get("/", verificaToken, apenasRecepcao, async (req, res) => {
     res.status(500).json({ error: "Erro ao buscar logs." });
   }
 });
-
 
 module.exports = router;
