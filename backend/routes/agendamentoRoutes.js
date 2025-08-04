@@ -1,11 +1,10 @@
-// backend/routes/agendamentoRoutes.js
 const express = require('express');
 const router = express.Router();
-const ctrl       = require('../controllers/agendamentoController');
-const { verificaToken } = require('../middlewares/authMiddleware');
+const ctrl = require('../controllers/agendamentoController');
+const { verificaTokenComSessaoUnica } = require('../middlewares/authMiddleware');
 
-router.use(verificaToken);
-router.use(verificaToken);
+// Middleware global — protege todas as rotas abaixo!
+router.use(verificaTokenComSessaoUnica);
 
 // Rota legada pra aluno:
 router.get('/meus', (req, res) => {

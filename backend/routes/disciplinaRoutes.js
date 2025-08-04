@@ -1,15 +1,15 @@
-// routes/disciplinaRoutes.js
 const express = require('express');
 const router = express.Router();
 const disciplinaController = require('../controllers/disciplinaController');
+const { verificaTokenComSessaoUnica } = require('../middlewares/authMiddleware');
 
 // GET /api/disciplinas
-router.get('/', disciplinaController.listarDisciplinas);
+router.get('/', verificaTokenComSessaoUnica, disciplinaController.listarDisciplinas);
 // POST /api/disciplinas
-router.post('/', disciplinaController.criarDisciplina);
+router.post('/', verificaTokenComSessaoUnica, disciplinaController.criarDisciplina);
 // PUT /api/disciplinas/:id
-router.put('/:id', disciplinaController.atualizarDisciplina);
+router.put('/:id', verificaTokenComSessaoUnica, disciplinaController.atualizarDisciplina);
 // DELETE /api/disciplinas/:id
-router.delete('/:id', disciplinaController.deletarDisciplina);
+router.delete('/:id', verificaTokenComSessaoUnica, disciplinaController.deletarDisciplina);
 
 module.exports = router;

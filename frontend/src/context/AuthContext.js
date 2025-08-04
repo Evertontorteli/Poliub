@@ -70,7 +70,7 @@ export function AuthProvider({ children }) {
         ) {
           // Mensagem para o usuário antes do logout automático
           toast.error("Sua sessão foi encerrada porque sua conta foi acessada em outro dispositivo ou navegador.");
-          setTimeout(() => logout(), 2000);
+          setTimeout(() => logout(), 7000);
           // Opcional: pode redirecionar para login, ex: window.location.href = "/login";
         }
         return Promise.reject(error);

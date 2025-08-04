@@ -1,26 +1,25 @@
-// backend/routes/caixaRoutes.js
 const express = require('express');
 const router = express.Router();
 const { listarCaixas, criarCaixa, buscarPorCodigo, deletarCaixa, editarCaixa } = require('../controllers/caixaController');
 const {
-    verificaToken,
+    verificaTokenComSessaoUnica,
     apenasRecepcao,
     apenasRecepcaoOuProprioAluno
 } = require('../middlewares/authMiddleware');
 
-// lista todas as caixas
-router.get('/', /*authorize('recepcao'),*/ listarCaixas);
+// lista todas as caixas (apenas usuários autenticados)
+router.get('/', verificaTokenComSessaoUnica, listarCaixas);
 
-// cria nova caixa
-router.post('/', /*authorize('recepcao'),*/ criarCaixa);
+// cria nova caixa (apenas recepção)
+router.post('/', verificaTokenComSessaoUnica, apenasRecepcao, criarCaixa);
 
-// ** NOVA ROTA DELETE **
-router.delete('/:id', deletarCaixa);
+// ** NOVA ROTA DELETE ** (apenas recepção)
+router.delete('/:id', verificaTokenComSessaoUnica, apenasRecepcao, deletarCaixa);
 
-// busca pelo código de barras
-router.get('/codigo/:codigo', /*authorize(),*/ buscarPorCodigo);
+// busca pelo código de barras (apenas autenticado)
+router.get('/codigo/:codigo', verificaTokenComSessaoUnica, buscarPorCodigo);
 
-//Edita caixa
-router.put('/:id', editarCaixa);
+// Edita caixa (apenas recepção)
+router.put('/:id', verificaTokenComSessaoUnica, apenasRecepcao, editarCaixa);
 
 module.exports = router;
