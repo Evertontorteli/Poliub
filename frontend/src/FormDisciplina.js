@@ -77,7 +77,7 @@ function FormDisciplina({ onNovaDisciplina, disciplinaEditando, onFimEdicao }) {
             <option value="">Selecione um período</option>
             {periodos.map(periodo => (
               <option key={periodo.id} value={periodo.id}>
-                {periodo.nome}
+                {periodo.nome} {periodo.turno ? `${periodo.turno}` : ''}
               </option>
             ))}
           </select>
