@@ -56,27 +56,28 @@ const Aluno = {
   /**
    * Busca um aluno por ID (incluindo pin)
    */
-  buscarPorId: async (id) => {
-    const conn = await pool.getConnection();
-    const [rows] = await conn.execute(
-      `SELECT 
-         a.id,
-         a.nome,
-         a.ra,
-         a.usuario,
-         a.role,
-         a.pin,
-         a.periodo_id,
-         p.nome AS periodo_nome,
-         p.turno AS periodo_turno
-       FROM alunos a
-       LEFT JOIN periodos p ON a.periodo_id = p.id
-       WHERE a.id = ?`,
-      [id]
-    );
-    conn.release();
-    return rows[0];
-  },
+buscarPorId: async (id) => {
+  const conn = await pool.getConnection();
+  const [rows] = await conn.execute(
+    `SELECT 
+       a.id,
+       a.nome,
+       a.ra,
+       a.usuario,
+       a.role,
+       a.pin,
+       a.periodo_id,
+       a.session_token,             
+       p.nome AS periodo_nome,
+       p.turno AS periodo_turno
+     FROM alunos a
+     LEFT JOIN periodos p ON a.periodo_id = p.id
+     WHERE a.id = ?`,
+    [id]
+  );
+  conn.release();
+  return rows[0];
+},
 
   /**
    * Insere um novo aluno, agora recebendo também `pin`
