@@ -63,7 +63,7 @@ export default function FormPeriodo({ periodoEditando, onSalvar, onCancel }) {
           required
         >
           <option value="">Selecione</option>
-          <option value="Diurno">Diurno</option>
+          <option value="Integral">Integral</option>
           <option value="Noturno">Noturno</option>
         </select>
       </div>

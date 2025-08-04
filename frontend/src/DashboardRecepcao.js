@@ -202,10 +202,12 @@ export default function DashboardRecepcao() {
       </div>
     );
   }
+  
 
   return (
     <div className="mx-auto py-4 px-2">
       {/* Periodos */}
+
       <div className="mb-4">
         <h2 className="text-2xl font-medium mb-3 text-[#344054]">Períodos</h2>
         <div className="flex flex-wrap gap-2">
@@ -217,16 +219,25 @@ export default function DashboardRecepcao() {
                 setDisciplinaSelecionada(null);
               }}
               className={`
-                px-4 py-2 rounded-full border transition
-                ${selectedPeriodo === p.id
+      px-4 py-2 rounded-full border transition
+      ${selectedPeriodo === p.id
                   ? "bg-[#3172C0] text-white border-transparent"
                   : "bg-white text-gray-700 border-gray-300 hover:bg-[#3172C0] hover:text-white"
                 }
-              `}
+    `}
             >
-              {p.nome}
+              <span className="inline-flex items-center">
+                {p.nome}
+                {p.turno && (
+                  <span className="ml-2 text-sm">
+                    {p.turno}
+                  </span>
+                )}
+              </span>
             </button>
           ))}
+
+
           {selectedPeriodo && (
             <button
               onClick={() => setSelectedPeriodo(null)}
@@ -237,6 +248,8 @@ export default function DashboardRecepcao() {
           )}
         </div>
       </div>
+
+
       {/* Disciplinas */}
       <div className="mb-6">
         <h2 className="text-2xl font-medium mb-3 text-[#344054]">Disciplinas</h2>

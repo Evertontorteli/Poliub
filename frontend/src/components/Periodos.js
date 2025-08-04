@@ -4,7 +4,7 @@ import axios from 'axios';
 export default function CrudPeriodos() {
   const [periodos, setPeriodos] = useState([]);
   const [nome, setNome] = useState('');
-  const [turno, setTurno] = useState('Diurno');
+  const [turno, setTurno] = useState('Integral');
   const [editando, setEditando] = useState(null);
   const [mensagem, setMensagem] = useState('');
 
@@ -23,7 +23,7 @@ export default function CrudPeriodos() {
           setMensagem('Período atualizado!');
           setEditando(null);
           setNome('');
-          setTurno('Diurno');
+          setTurno('Integral');
           fetchPeriodos();
         });
     } else {
@@ -31,7 +31,7 @@ export default function CrudPeriodos() {
         .then(() => {
           setMensagem('Período criado!');
           setNome('');
-          setTurno('Diurno');
+          setTurno('Integral');
           fetchPeriodos();
         });
     }
@@ -68,7 +68,7 @@ export default function CrudPeriodos() {
             value={turno}
             onChange={e => setTurno(e.target.value)}
           >
-            <option value="Diurno">Diurno</option>
+            <option value="Integral">Integral</option>
             <option value="Noturno">Noturno</option>
           </select>
           <button className="bg-blue-600 text-white px-4 py-2 rounded-2xl font-semibold transition hover:bg-blue-700">
@@ -79,7 +79,7 @@ export default function CrudPeriodos() {
               type="button"
               className="bg-gray-400 text-white px-4 py-2 rounded-2xl font-semibold transition hover:bg-gray-500"
               onClick={() => {
-                setEditando(null); setNome(''); setTurno('Diurno'); setMensagem('');
+                setEditando(null); setNome(''); setTurno('Integral'); setMensagem('');
               }}
             >Cancelar</button>
           )}
