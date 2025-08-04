@@ -67,6 +67,8 @@ io.on('connection', (socket) => {
     app.use('/api/tratamentos', require('./routes/tratamentoRoutes'));
     app.use('/api/evolucoes', evolucaoRoutes);
     app.use('/api/odontogramas', odontogramaRoutes);
+    app.use('/api/search', require('./routes/searchRoutes'));
+
 
 
 

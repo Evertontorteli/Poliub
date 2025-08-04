@@ -2,6 +2,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { Search } from "lucide-react";
+import SpotlightSearch from './SpotlightSearch'; // <- O modal, crie este arquivo depois!
+
 
 // SVG avatar icon
 const AvatarIcon = () => (
@@ -26,6 +29,7 @@ const BORDER_COLORS = [
 export default function Header({ onlineUsers = [] }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showAllOnline, setShowAllOnline] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false); // NOVO
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const wrapperRef = useRef(null);
@@ -61,8 +65,26 @@ export default function Header({ onlineUsers = [] }) {
       {/* Título */}
       <h1 className="text-2xl font-bold text-[#0095DA]">PoliUB Atendimentos</h1>
 
-      {/* Container da direita: avatares + dropdown */}
+
+      {/* Container da direita: icon lupa */}
       <div className="flex items-center space-x-4">
+        <div>
+          {/* Botão de pesquisa */}
+          {/* Ícone da lupa: só para recepção */}
+          {user?.role === "recepcao" && (
+            <button
+              className="p-2 rounded-full hover:bg-gray-100 transition"
+              onClick={() => setSearchOpen(true)}
+              aria-label="Pesquisar"
+            >
+              <Search size={22} color="#0095DA" strokeWidth={2.5} />
+            </button>)}
+          {/* NOVO: SpotlightSearch separado */}
+          <SpotlightSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
+
+        </div>
+
+        {/* Container da direita: avatares + dropdown */}
         {/* Avatares online */}
         <div className="flex items-center space-x-2 relative">
           {/* Avatar do próprio usuário */}
