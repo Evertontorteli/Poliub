@@ -148,14 +148,9 @@ function LayoutInterno() {
           <Sidebar active={active} onMenuClick={setActive} />
         )}
         <main
-          className={`flex-1 mt-16 p-4 overflow-y-auto transition-all duration-200 ${showSidebar ? "ml-64" : "mx-auto max-w-auto"
-            }`}
-          style={{
-            minHeight: `calc(100vh - 64px - 72px)`, // 64px header, 72px nav
-            height: `calc(100vh - 64px - 72px)`,
-            maxHeight: `calc(100vh - 64px - 72px)`,
-            overflowY: "auto"
-          }}
+          className={`flex-1 mt-16 p-4 h-[calc(100vh-64px)] overflow-y-auto transition-all duration-200 ${
+            showSidebar ? "ml-64" : "mx-auto max-w-5xl"
+          }`}
         >
           <div className="mx-auto">{renderConteudo()}</div>
         </main>
