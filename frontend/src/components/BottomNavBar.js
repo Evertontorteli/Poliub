@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { 
-  Home, CalendarDays, BookOpen, Users, UserRound, Mail, HelpCircle, Menu, PieChart, Box, PackagePlus 
+import {
+  Home, CalendarDays, BookOpen, Users, UserRound, Mail, HelpCircle, Menu, PieChart, Box, PackagePlus
 } from "lucide-react";
 import { useAuth } from '../context/AuthContext';
 
@@ -17,7 +17,6 @@ const menuItems = [
   { key: "ajuda", label: "Ajuda", icon: <HelpCircle size={24} /> },
 ];
 
-// Hook para saber se está em mobile (menor que 768px, por exemplo)
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   useEffect(() => {
@@ -41,7 +40,7 @@ export default function BottomNavBar({ active, onMenuClick }) {
   const allowedItems = menuItems.filter(item => {
     if (
       role === 'aluno' &&
-      ['disciplinas', 'alunos', 'periodos', 'dashboard-esterilizacao', 'caixas','esterilizacao'].includes(item.key)
+      ['disciplinas', 'alunos', 'periodos', 'dashboard-esterilizacao', 'caixas', 'esterilizacao'].includes(item.key)
     ) return false;
     return true;
   });
@@ -68,14 +67,19 @@ export default function BottomNavBar({ active, onMenuClick }) {
     <>
       <nav
         ref={navRef}
-        className="fixed bottom-4 left-1/2 -translate-x-1/2
-          flex justify-center items-center
-          bg-white/95 border-t border-gray-200 z-50 shadow-lg min-h-[56px]
-          rounded-3xl px-2 gap-1"
+        className={`
+    fixed bottom-4 left-1/2 -translate-x-1/2
+    flex justify-center items-center
+    z-50 h-16
+    px-2 gap-1
+    rounded-3xl shadow-xl border border-white/20
+    liquid-glass
+    transition-all
+  `}
         style={{
-          maxWidth: 540,
-          boxShadow: "0 4px 24px 0 rgba(0,0,0,0.11)",
-          backdropFilter: "blur(4px)",
+          width: "min(540px, calc(100vw - 16px))",
+          left: "50%",
+          transform: "translateX(-50%)",
         }}
       >
         {visibleMenus.map(item => (
@@ -94,7 +98,7 @@ export default function BottomNavBar({ active, onMenuClick }) {
           <button
             onClick={() => setShowOverflow(true)}
             className="relative flex flex-col items-center p-2 mx-1 rounded-full text-gray-600 hover:bg-gray-200 transition focus:outline-none"
-            style={{ minWidth: 44 }}
+            style={{ minWidth: 44, background: "transparent" }}
             onMouseEnter={() => setTooltip("Mais opções")}
             onMouseLeave={() => setTooltip(null)}
           >
@@ -104,7 +108,6 @@ export default function BottomNavBar({ active, onMenuClick }) {
           </button>
         )}
       </nav>
-
       {showOverflow && (
         <div
           className="fixed inset-0 z-[999] flex items-center justify-center bg-black/40"
@@ -153,12 +156,13 @@ function NavIcon({ icon, label, active, onClick, setTooltip, tooltip, showLabel 
       style={{
         minWidth: 44,
         boxShadow: active ? "0 2px 8px rgba(100,116,139,0.10)" : undefined,
+        background: "transparent",
+        zIndex: 2, // fica acima do reflexo do .liquid-glass
       }}
       onMouseEnter={() => setTooltip(label)}
       onMouseLeave={() => setTooltip(null)}
     >
       {icon}
-      {/* Mostra a label SEMPRE no mobile, só tooltip no desktop */}
       {showLabel
         ? <span className="text-xs mt-1">{label}</span>
         : tooltip === label && <Tooltip>{label}</Tooltip>
