@@ -23,3 +23,15 @@
     to { opacity: 1; transform: translateY(0);}
   }
 }
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #e5e7eb;
+  border-radius: 8px;
+}
+@media (min-width: 1366px) {
+  .sidebar-1366 {
+    display: flex !important;
+  }
+}
