@@ -3,18 +3,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Search } from "lucide-react";
-import SpotlightSearch from './SpotlightSearch'; // <- O modal, crie este arquivo depois!
+import SpotlightSearch from './SpotlightSearch';
 
-
-// SVG avatar icon
+// SVG avatar icon para botão de perfil
 const AvatarIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="42px" height="42px">
-    <path fill="none"
-      d="M8.007 24.93A4.996 4.996 0 0 1 13 20h6a4.996 4.996 0 0 1 4.993 4.93a11.94 11.94 0 0 1-15.986 0M20.5 12.5A4.5 4.5 0 1 1 16 8a4.5 4.5 0 0 1 4.5 4.5"
-    />
-    <path fill="#0095DA"
-      d="M26.749 24.93A13.99 13.99 0 1 0 2 16a13.9 13.9 0 0 0 3.251 8.93l-.02.017c.07.084.15.156.222.239c.09.103.187.2.28.3q.418.457.87.87q.14.124.28.242q.48.415.99.782c.044.03.084.069.128.1v-.012a13.9 13.9 0 0 0 16 0v.012c.044-.031.083-.07.128-.1q.51-.368.99-.782q.14-.119.28-.242q.451-.413.87-.87c.093-.1.189-.197.28-.3c.071-.083.152-.155.222-.24ZM16 8a4.5 4.5 0 1 1-4.5 4.5A4.5 4.5 0 0 1 16 8M8.007 24.93A4.996 4.996 0 0 1 13 20h6a4.996 4.996 0 0 1 4.993 4.93a11.94 11.94 0 0 1-15.986 0"
-    />
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32px" height="32px">
+    <circle cx="16" cy="16" r="16" fill="#0095DA" />
+    <circle cx="16" cy="13" r="6" fill="#fff" />
+    <ellipse cx="16" cy="24" rx="8" ry="5" fill="#fff" />
   </svg>
 );
 
@@ -29,20 +25,17 @@ const BORDER_COLORS = [
 export default function Header({ onlineUsers = [] }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showAllOnline, setShowAllOnline] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false); // NOVO
+  const [searchOpen, setSearchOpen] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const wrapperRef = useRef(null);
   const popoverRef = useRef(null);
 
-  // Fecha ambos dropdowns ao clicar fora
   useEffect(() => {
     function handleClickOutside(event) {
-      // Perfil
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
         setDropdownOpen(false);
       }
-      // Avatares
       if (popoverRef.current && !popoverRef.current.contains(event.target)) {
         setShowAllOnline(false);
       }
@@ -60,34 +53,44 @@ export default function Header({ onlineUsers = [] }) {
   const firstThree = others.slice(0, 3);
   const moreCount = others.length > 3 ? others.length - 3 : 0;
 
+  // Detecta mobile
+  const isMobile = window.innerWidth <= 640;
+
   return (
-    <header className="fixed top-0 left-0 right-0 h-16 bg-white shadow flex items-center justify-between px-6 z-50">
-      {/* Título */}
-      <h1 className="text-2xl font-bold text-[#0095DA]">PoliUB Atendimentos</h1>
+    <header className="fixed top-0 left-0 right-0 h-16 bg-white shadow flex items-center justify-between px-4 md:px-6 z-50">
+      {/* Título responsivo */}
+      <h1
+        className={`font-bold text-[#0095DA] transition-all duration-200
+        ${isMobile ? "text-lg" : "text-2xl"}`}
+        style={{
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          maxWidth: isMobile ? 185 : 420
+        }}
+      >
+        PoliUB Atendimentos
+      </h1>
 
-
-      {/* Container da direita: icon lupa */}
-      <div className="flex items-center space-x-4">
-        <div>
-          {/* Botão de pesquisa */}
-          {/* Ícone da lupa: só para recepção */}
-          {user?.role === "recepcao" && (
+      {/* Direita: lupa, avatares e menu perfil */}
+      <div className="flex items-center gap-4">
+        {/* Botão pesquisa */}
+        {user?.role === "recepcao" && (
+          <>
             <button
               className="p-2 rounded-full hover:bg-gray-100 transition"
               onClick={() => setSearchOpen(true)}
               aria-label="Pesquisar"
             >
               <Search size={22} color="#0095DA" strokeWidth={2.5} />
-            </button>)}
-          {/* NOVO: SpotlightSearch separado */}
-          <SpotlightSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
+            </button>
+            <SpotlightSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
+          </>
+        )}
 
-        </div>
-
-        {/* Container da direita: avatares + dropdown */}
-        {/* Avatares online */}
-        <div className="flex items-center space-x-2 relative">
-          {/* Avatar do próprio usuário */}
+        {/* Avatares: usuário e online */}
+        <div className="flex items-center gap-2">
+          {/* Avatar do usuário */}
           {user && (
             <img
               src={
@@ -96,11 +99,11 @@ export default function Header({ onlineUsers = [] }) {
               }
               alt={user.nome}
               title={user.nome}
-              className="w-8 h-8 rounded-full"
+              className="w-8 h-8 rounded-full object-cover"
               style={{ border: `2px solid ${BORDER_COLORS[0]}` }}
             />
           )}
-          {/* Avatares dos três primeiros */}
+          {/* Avatares dos online */}
           {firstThree.map((u, i) => (
             <img
               key={u.id}
@@ -110,13 +113,13 @@ export default function Header({ onlineUsers = [] }) {
               }
               alt={u.nome}
               title={u.nome}
-              className="w-8 h-8 rounded-full"
+              className="w-8 h-8 rounded-full object-cover"
               style={{
                 border: `2px solid ${BORDER_COLORS[(i + 1) % BORDER_COLORS.length]}`
               }}
             />
           ))}
-          {/* Bolinha "+N" */}
+          {/* Botão +N */}
           {moreCount > 0 && (
             <button
               className="w-8 h-8 rounded-full bg-gray-100 border border-gray-300 text-xs font-bold flex items-center justify-center hover:bg-gray-200"
@@ -126,13 +129,13 @@ export default function Header({ onlineUsers = [] }) {
             >+{moreCount}</button>
           )}
 
-          {/* Popover para mostrar todos online */}
+          {/* Popover mostrar todos online */}
           {showAllOnline && (
             <div
               ref={popoverRef}
               className="absolute right-0 mt-4 bg-white border rounded-lg shadow-lg p-4 z-50 w-64 max-w-[95vw] md:w-72 flex flex-col gap-2 max-h-72 overflow-y-auto"
               style={{
-                top: '2.2rem', // melhora mobile
+                top: '2.2rem',
                 right: 0,
                 minWidth: '210px'
               }}
@@ -145,7 +148,7 @@ export default function Header({ onlineUsers = [] }) {
                       `https://ui-avatars.com/api/?name=${encodeURIComponent(u.nome)}&background=ccc`
                     }
                     alt={u.nome}
-                    className="w-8 h-8 rounded-full"
+                    className="w-8 h-8 rounded-full object-cover"
                     style={{
                       border: `2px solid ${BORDER_COLORS[(i + 1) % BORDER_COLORS.length]}`
                     }}
@@ -163,11 +166,13 @@ export default function Header({ onlineUsers = [] }) {
           )}
         </div>
 
-        {/* Botão e dropdown de perfil */}
+        {/* Botão de perfil */}
         <div ref={wrapperRef} className="relative">
           <button
             onClick={toggleDropdown}
-            className="rounded-full focus:outline-none focus:ring-2 focus:ring-blue-400"
+            className="rounded-full flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-400"
+            style={{ width: 32, height: 32 }}
+            aria-label="Menu do usuário"
           >
             <AvatarIcon />
           </button>
