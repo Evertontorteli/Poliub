@@ -30,7 +30,7 @@ import Ajuda from './components/Ajuda'
 
 import Login from './Login'
 import PrintAgendamentos from './pages/PrintAgendamentos'
-import PrintMovimentacoes from './pages/PrintMovimentacoes'  // ← import adicionado
+import PrintMovimentacoes from './pages/PrintMovimentacoes'
 
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthProvider, useAuth } from './context/AuthContext'
@@ -50,6 +50,16 @@ function LayoutInterno() {
   const [active, setActive] = useState('dashboard')
   const { user } = useAuth()
   const [onlineUsers, setOnlineUsers] = useState([])
+  const [showSidebar, setShowSidebar] = useState(window.innerWidth >= 1366)
+
+  // Lida com o resize para mostrar/esconder a sidebar
+  useEffect(() => {
+    function handleResize() {
+      setShowSidebar(window.innerWidth >= 1366)
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   useEffect(() => {
     if (!user) return
@@ -134,13 +144,15 @@ function LayoutInterno() {
     <div className="bg-white min-h-screen">
       <Header onlineUsers={onlineUsers} />
       <div className="flex">
-        <div className="hidden md:block">
+        {showSidebar && (
           <Sidebar active={active} onMenuClick={setActive} />
-        </div>
-        <main className="flex-1 ml-0 md:ml-64 mt-16 p-4 h-[calc(100vh-64px)] overflow-y-auto">
-          <div className="mx-auto">
-            {renderConteudo()}
-          </div>
+        )}
+        <main
+          className={`flex-1 mt-16 p-4 h-[calc(100vh-64px)] overflow-y-auto transition-all duration-200 ${
+            showSidebar ? "ml-64" : "mx-auto max-w-5xl"
+          }`}
+        >
+          <div className="mx-auto">{renderConteudo()}</div>
         </main>
       </div>
       <BottomNavBar active={active} onMenuClick={setActive} />
@@ -173,7 +185,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<LoginWrapper />} />
           <Route path="/print-agendamentos" element={<PrintAgendamentos />} />
-          <Route path="/print-movimentacoes" element={<PrintMovimentacoes />} />{/* rota adicionada */}
+          <Route path="/print-movimentacoes" element={<PrintMovimentacoes />} />
           <Route
             path="/*"
             element={
