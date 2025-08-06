@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { 
-  Home, CalendarDays, BookOpen, Users, UserRound, Mail, HelpCircle, Menu, PieChart, Box, PackagePlus 
+import {
+  Home, CalendarDays, BookOpen, Users, UserRound, Mail, HelpCircle, Menu, PieChart, Box, PackagePlus
 } from "lucide-react";
 import { useAuth } from '../context/AuthContext';
 
@@ -17,7 +17,6 @@ const menuItems = [
   { key: "ajuda", label: "Ajuda", icon: <HelpCircle size={24} /> },
 ];
 
-// Hook para saber se está em mobile (menor que 768px, por exemplo)
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   useEffect(() => {
@@ -50,14 +49,15 @@ export default function BottomNavBar({ active, onMenuClick }) {
     function updateMaxIcons() {
       if (!navRef.current) return;
       const navWidth = navRef.current.offsetWidth;
-      const iconSize = 56;
+      // Botões um pouco maiores no mobile para facilitar o toque
+      const iconSize = isMobile ? 64 : 56;
       const max = Math.floor(navWidth / iconSize);
       setMaxIcons(max < 1 ? 1 : max);
     }
     updateMaxIcons();
     window.addEventListener('resize', updateMaxIcons);
     return () => window.removeEventListener('resize', updateMaxIcons);
-  }, [allowedItems.length]);
+  }, [allowedItems.length, isMobile]);
 
   const visibleMenus = allowedItems.slice(0, maxIcons - (allowedItems.length > maxIcons ? 1 : 0));
   const overflowMenus = allowedItems.slice(visibleMenus.length);
@@ -68,14 +68,16 @@ export default function BottomNavBar({ active, onMenuClick }) {
     <>
       <nav
         ref={navRef}
-        className="fixed bottom-4 left-1/2 -translate-x-1/2
+        className={`
+          fixed bottom-0 left-1/2 -translate-x-1/2
           flex justify-center items-center
-          bg-white/95 border-t border-gray-200 z-50 shadow-lg min-h-[56px]
-          rounded-3xl px-2 gap-1"
+          bg-white border-t border-gray-200 z-50 shadow-lg
+          ${isMobile ? "h-20 min-h-[70px]" : "h-16 min-h-[56px]"}
+          rounded-t-2xl px-2 gap-1
+        `}
         style={{
           maxWidth: 540,
-          boxShadow: "0 4px 24px 0 rgba(0,0,0,0.11)",
-          backdropFilter: "blur(4px)",
+          width: "calc(100vw - 8px)",
         }}
       >
         {visibleMenus.map(item => (
@@ -88,23 +90,23 @@ export default function BottomNavBar({ active, onMenuClick }) {
             setTooltip={setTooltip}
             tooltip={tooltip}
             showLabel={isMobile}
+            isMobile={isMobile}
           />
         ))}
         {overflowMenus.length > 0 && (
           <button
             onClick={() => setShowOverflow(true)}
-            className="relative flex flex-col items-center p-2 mx-1 rounded-full text-gray-600 hover:bg-gray-200 transition focus:outline-none"
-            style={{ minWidth: 44 }}
+            className={`relative flex flex-col items-center p-2 mx-1 rounded-full text-gray-600 hover:bg-gray-200 transition focus:outline-none`}
+            style={{ minWidth: isMobile ? 52 : 44 }}
             onMouseEnter={() => setTooltip("Mais opções")}
             onMouseLeave={() => setTooltip(null)}
           >
-            <Menu size={26} />
+            <Menu size={isMobile ? 30 : 26} />
             {isMobile && <span className="text-xs mt-1">Mais</span>}
             {tooltip === "Mais opções" && !isMobile && <Tooltip>{tooltip}</Tooltip>}
           </button>
         )}
       </nav>
-
       {showOverflow && (
         <div
           className="fixed inset-0 z-[999] flex items-center justify-center bg-black/40"
@@ -122,7 +124,7 @@ export default function BottomNavBar({ active, onMenuClick }) {
                   onMenuClick(item.key);
                 }}
                 className="flex flex-col items-center p-2 rounded-full text-gray-700 hover:bg-gray-200 transition"
-                style={{ minWidth: 44 }}
+                style={{ minWidth: isMobile ? 52 : 44 }}
                 onMouseEnter={() => setTooltip(item.label)}
                 onMouseLeave={() => setTooltip(null)}
               >
@@ -142,23 +144,24 @@ export default function BottomNavBar({ active, onMenuClick }) {
   );
 }
 
-function NavIcon({ icon, label, active, onClick, setTooltip, tooltip, showLabel }) {
+function NavIcon({ icon, label, active, onClick, setTooltip, tooltip, showLabel, isMobile }) {
   return (
     <button
       onClick={onClick}
       className={`
-        relative flex flex-col items-center justify-center p-2 rounded-full mx-1 transition
+        relative flex flex-col items-center justify-center transition
+        ${isMobile ? "p-3" : "p-2"} rounded-full mx-1
         ${active ? "bg-[#D3E4FE] text-[#23263A]" : "text-[#23263A] hover:bg-gray-100"}
       `}
       style={{
-        minWidth: 44,
+        minWidth: isMobile ? 52 : 44,
         boxShadow: active ? "0 2px 8px rgba(100,116,139,0.10)" : undefined,
       }}
       onMouseEnter={() => setTooltip(label)}
       onMouseLeave={() => setTooltip(null)}
     >
-      {icon}
-      {/* Mostra a label SEMPRE no mobile, só tooltip no desktop */}
+      {/* Ícone maior no mobile */}
+      {React.cloneElement(icon, { size: isMobile ? 28 : 24 })}
       {showLabel
         ? <span className="text-xs mt-1">{label}</span>
         : tooltip === label && <Tooltip>{label}</Tooltip>
