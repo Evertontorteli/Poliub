@@ -6,10 +6,11 @@ import { Search } from "lucide-react";
 import SpotlightSearch from './SpotlightSearch';
 
 // SVG avatar icon para botão de perfil
+
 const AvatarIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32px" height="32px">
     <circle cx="16" cy="16" r="16" fill="#0095DA" />
-    <circle cx="16" cy="13" r="6" fill="#fff" />
+    <circle cx="16" cy="13" r="4" fill="#fff" />
     <ellipse cx="16" cy="24" rx="8" ry="5" fill="#fff" />
   </svg>
 );
