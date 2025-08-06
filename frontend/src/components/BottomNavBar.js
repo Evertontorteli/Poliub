@@ -40,7 +40,7 @@ export default function BottomNavBar({ active, onMenuClick }) {
   const allowedItems = menuItems.filter(item => {
     if (
       role === 'aluno' &&
-      ['disciplinas', 'alunos', 'periodos', 'dashboard-esterilizacao', 'caixas','esterilizacao'].includes(item.key)
+      ['disciplinas', 'alunos', 'periodos', 'dashboard-esterilizacao', 'caixas', 'esterilizacao'].includes(item.key)
     ) return false;
     return true;
   });
@@ -69,17 +69,18 @@ export default function BottomNavBar({ active, onMenuClick }) {
       <nav
         ref={navRef}
         className={`
-          fixed bottom-0 left-1/2 -translate-x-1/2
-          flex justify-center items-center
-          bg-white border-t border-gray-200 z-50 shadow-lg
-          ${isMobile ? "h-20 min-h-[70px]" : "h-16 min-h-[56px]"}
-          rounded-t-2xl px-2 gap-1
-        `}
+    fixed bottom-4 left-1/2 -translate-x-1/2
+    flex justify-center items-center
+    bg-white border-t border-gray-300 z-50 shadow-lg
+    h-16 rounded-3xl px-2 gap-1
+  `}
         style={{
-          maxWidth: 540,
+          maxWidth: 340,
           width: "calc(100vw - 8px)",
         }}
       >
+
+
         {visibleMenus.map(item => (
           <NavIcon
             key={item.key}
@@ -161,7 +162,7 @@ function NavIcon({ icon, label, active, onClick, setTooltip, tooltip, showLabel,
       onMouseLeave={() => setTooltip(null)}
     >
       {/* Ícone maior no mobile */}
-      {React.cloneElement(icon, { size: isMobile ? 28 : 24 })}
+      {React.cloneElement(icon, { size: isMobile ? 24 : 24 })}
       {showLabel
         ? <span className="text-xs mt-1">{label}</span>
         : tooltip === label && <Tooltip>{label}</Tooltip>
