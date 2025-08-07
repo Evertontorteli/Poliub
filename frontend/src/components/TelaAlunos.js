@@ -1,11 +1,10 @@
-// src/components/TelaAlunos.jsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Modal from "./Modal";
 import FormAluno from "./FormAluno";
 import { useAuth } from "../context/AuthContext";
-import { Pencil, Trash } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { Pencil, Trash } from "lucide-react";
+import { toast } from "react-toastify";
 
 const POR_PAGINA = 100;
 
@@ -21,6 +20,10 @@ export default function TelaAlunos() {
   const [searchTerm, setSearchTerm] = useState("");
   const [pagina, setPagina] = useState(1);
 
+  // Novos filtros
+  const [periodoFiltro, setPeriodoFiltro] = useState("");
+  const [codEsterilizacaoFiltro, setCodEsterilizacaoFiltro] = useState("");
+
   const headers = { Authorization: `Bearer ${token}` };
 
   const fetchAlunos = async () => {
@@ -34,10 +37,10 @@ export default function TelaAlunos() {
         lista.map(async (a) => {
           try {
             const boxRes = await axios.get(`/api/boxes/${a.id}`, { headers });
-            const conteudo = boxRes.data[0]?.conteudo || '';
+            const conteudo = boxRes.data[0]?.conteudo || "";
             return { ...a, box: conteudo };
           } catch {
-            return { ...a, box: '' };
+            return { ...a, box: "" };
           }
         })
       );
@@ -50,10 +53,14 @@ export default function TelaAlunos() {
     }
   };
 
-  useEffect(() => { fetchAlunos(); }, [token, role]);
+  useEffect(() => {
+    fetchAlunos();
+    // eslint-disable-next-line
+  }, [token, role]);
 
-  // Volta para página 1 ao filtrar
-  useEffect(() => { setPagina(1); }, [searchTerm, alunos.length]);
+  useEffect(() => {
+    setPagina(1);
+  }, [searchTerm, periodoFiltro, codEsterilizacaoFiltro, alunos.length]);
 
   const onEditar = (aluno) => {
     setAlunoEditando(aluno);
@@ -72,7 +79,7 @@ export default function TelaAlunos() {
   };
 
   const handleDeletar = (id, nome) => {
-    if (!window.confirm('Tem certeza que deseja deletar este aluno?')) return;
+    if (!window.confirm("Tem certeza que deseja deletar este aluno?")) return;
     axios
       .delete(`/api/alunos/${id}`, { headers })
       .then(() => {
@@ -80,16 +87,18 @@ export default function TelaAlunos() {
         fetchAlunos();
       })
       .catch((err) => {
-        console.error('Erro ao deletar aluno:', err.response?.data || err.message);
-        // Verifica se veio mensagem específica do backend
+        console.error(
+          "Erro ao deletar aluno:",
+          err.response?.data || err.message
+        );
         const backendMsg = err.response?.data?.error;
         if (
           backendMsg &&
-          backendMsg.includes('movimentações de esterilização') // ou outro trecho que você usou no backend
+          backendMsg.includes("movimentações de esterilização")
         ) {
           toast.error(backendMsg);
         } else {
-          toast.error('Não foi possível deletar o aluno.');
+          toast.error("Não foi possível deletar o aluno.");
         }
       });
   };
@@ -101,14 +110,38 @@ export default function TelaAlunos() {
     return <p className="text-center py-8">Nenhum aluno cadastrado.</p>;
   }
 
-  // Filtra alunos por nome, RA ou box
+  // Obter períodos únicos para filtro (com nome e turno)
+  const periodosUnicos = [
+    ...new Map(
+      alunos.map((a) => [
+        a.periodo_id,
+        {
+          id: a.periodo_id,
+          nome: a.periodo_nome,
+          turno: a.turno || a.periodo_turno,
+        },
+      ])
+    ).values(),
+  ].filter((p) => p.id);
+
+  // Filtro combinado
   const filtered = alunos.filter((a) => {
     const term = searchTerm.toLowerCase();
-    return (
-      (a.nome || '').toLowerCase().includes(term) ||
-      (a.ra || '').toString().includes(term) ||
-      (a.box || '').toString().includes(term)
-    );
+    const matchesText =
+      (a.nome || "").toLowerCase().includes(term) ||
+      (a.ra || "").toString().includes(term) ||
+      (a.box || "").toString().includes(term);
+
+    const matchesPeriodo =
+      !periodoFiltro || String(a.periodo_id) === String(periodoFiltro);
+
+    const matchesCodEst =
+      !codEsterilizacaoFiltro ||
+      (a.cod_esterilizacao || "")
+        .toString()
+        .includes(codEsterilizacaoFiltro);
+
+    return matchesText && matchesPeriodo && matchesCodEst;
   });
 
   // Paginação
@@ -122,7 +155,7 @@ export default function TelaAlunos() {
     return (
       <div className="flex justify-between items-center my-4">
         <button
-          onClick={() => setPagina(p => Math.max(1, p - 1))}
+          onClick={() => setPagina((p) => Math.max(1, p - 1))}
           disabled={pagina === 1}
           className="text-blue-600 hover:underline rounded disabled:opacity-50"
         >
@@ -133,7 +166,7 @@ export default function TelaAlunos() {
           <small>({filtered.length} alunos)</small>
         </span>
         <button
-          onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
+          onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
           disabled={pagina === totalPaginas}
           className="text-blue-600 hover:underline rounded disabled:opacity-50"
         >
@@ -145,7 +178,6 @@ export default function TelaAlunos() {
 
   return (
     <div className="px-4 md:px-2">
-
       {/* Cadastrar só para recepção */}
       {role === "recepcao" && (
         <div className="flex justify-between px-2 items-center mb-4">
@@ -158,15 +190,40 @@ export default function TelaAlunos() {
           </button>
         </div>
       )}
+
       <div className="bg-white rounded-2xl shadow p-2 md:p-2">
-        {/* Barra de pesquisa */}
-        <div className="mb-4">
+        {/* Filtros responsivos */}
+        <div className="flex flex-col md:flex-row gap-2 mb-4">
           <input
             type="text"
             placeholder="Buscar por nome, RA ou Box..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            className="w-full md:w-1/3 border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+          />
+          <select
+            className="w-full md:w-1/4 border border-gray-300 rounded px-4 py-2"
+            value={periodoFiltro}
+            onChange={(e) => setPeriodoFiltro(e.target.value)}
+          >
+            <option value="">Todos os Períodos</option>
+            {periodosUnicos.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nome} {p.turno ? `(${p.turno})` : ""}
+              </option>
+            ))}
+          </select>
+          <input
+            type="text"
+            placeholder="Cód. Esterilização"
+            value={codEsterilizacaoFiltro}
+            maxLength={4}
+            onChange={(e) =>
+              setCodEsterilizacaoFiltro(
+                e.target.value.replace(/\D/g, "").slice(0, 4)
+              )
+            }
+            className="w-full md:w-1/4 border border-gray-300 rounded px-4 py-2"
           />
         </div>
 
@@ -183,10 +240,10 @@ export default function TelaAlunos() {
                 <th className="px-3 py-2 text-left font-semibold border-b">Nome</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">RA</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">Período</th>
-
+                <th className="px-3 py-2 text-left font-semibold border-b">PIN</th>
+                <th className="px-3 py-2 text-left font-semibold border-b">Cód. Esterilização</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">Usuário</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">Perfil</th>
-
                 <th className="px-3 py-2 text-right font-semibold border-b">Ações</th>
               </tr>
             </thead>
@@ -195,14 +252,18 @@ export default function TelaAlunos() {
                 <React.Fragment key={a.id}>
                   <tr className="border-none hover:bg-gray-50 transition">
                     <td className="px-3 py-2 text-gray-500">{inicio + idx + 1}</td>
-                    <td className="px-3 py-2 text-gray-600">{a.box || '-'}</td>
+                    <td className="px-3 py-2 text-gray-600">{a.box || "-"}</td>
                     <td className="px-3 py-2 font-medium text-gray-800">{a.nome}</td>
                     <td className="px-3 py-2 text-gray-600">{a.ra}</td>
-                    <td className="px-3 py-2 text-gray-600">{a.periodo_nome} {a.turno}</td>
-
+                    <td className="px-3 py-2 text-gray-600">
+                      {a.periodo_nome} {a.turno}
+                    </td>
+                    <td className="px-3 py-2 text-gray-600">{a.pin || "-"}</td>
+                    <td className="px-3 py-2 text-gray-600">
+                      {a.cod_esterilizacao || "-"}
+                    </td>
                     <td className="px-3 py-2 text-gray-600">{a.usuario}</td>
                     <td className="px-3 py-2 text-gray-600">{a.role}</td>
-
                     <td className="px-3 py-2 text-right flex gap-2 justify-end">
                       <button
                         onClick={() => onEditar(a)}
@@ -212,7 +273,7 @@ export default function TelaAlunos() {
                       >
                         <Pencil size={18} />
                       </button>
-                      {role === 'recepcao' && (
+                      {role === "recepcao" && (
                         <button
                           onClick={() => handleDeletar(a.id, a.nome)}
                           className="p-2 rounded hover:bg-red-100 text-red-700 transition"
@@ -227,7 +288,7 @@ export default function TelaAlunos() {
                   {/* Separador entre linhas, exceto a última */}
                   {idx !== alunosPagina.length - 1 && (
                     <tr>
-                      <td colSpan={8}>
+                      <td colSpan={10}>
                         <hr className="border-t border-gray-200 my-0" />
                       </td>
                     </tr>
@@ -256,7 +317,7 @@ export default function TelaAlunos() {
                   >
                     <Pencil size={17} />
                   </button>
-                  {role === 'recepcao' && (
+                  {role === "recepcao" && (
                     <button
                       onClick={() => handleDeletar(a.id, a.nome)}
                       className="p-1 rounded hover:bg-red-100 text-red-700"
@@ -268,14 +329,36 @@ export default function TelaAlunos() {
                   )}
                 </div>
               </div>
-              <div><b>Box:</b> <span className="text-gray-700">{a.box || '-'}</span></div>
-              <div><b>Nome:</b> <span className="text-gray-800">{a.nome}</span></div>
-              <div><b>RA:</b> <span className="text-gray-700">{a.ra}</span></div>
-              <div><b>Período:</b> <span className="text-gray-700">{a.periodo_nome} {a.turno}</span></div>
-
-              <div><b>Usuário:</b> <span className="text-gray-700">{a.usuario}</span></div>
-              <div><b>Perfil:</b> <span className="text-gray-700">{a.role}</span></div>
-
+              <div>
+                <b>Box:</b> <span className="text-gray-700">{a.box || "-"}</span>
+              </div>
+              <div>
+                <b>Nome:</b> <span className="text-gray-800">{a.nome}</span>
+              </div>
+              <div>
+                <b>RA:</b> <span className="text-gray-700">{a.ra}</span>
+              </div>
+              <div>
+                <b>Período:</b>{" "}
+                <span className="text-gray-700">
+                  {a.periodo_nome} {a.turno}
+                </span>
+              </div>
+              <div>
+                <b>PIN:</b> <span className="text-gray-700">{a.pin || "-"}</span>
+              </div>
+              <div>
+                <b>Cód. Esterilização:</b>{" "}
+                <span className="text-gray-700">
+                  {a.cod_esterilizacao || "-"}
+                </span>
+              </div>
+              <div>
+                <b>Usuário:</b> <span className="text-gray-700">{a.usuario}</span>
+              </div>
+              <div>
+                <b>Perfil:</b> <span className="text-gray-700">{a.role}</span>
+              </div>
             </div>
           ))}
         </div>

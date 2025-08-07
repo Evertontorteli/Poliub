@@ -7,6 +7,10 @@ export default function ListaAlunos({ reloadKey, onEditar }) {
   const [alunos, setAlunos] = useState([]);
   const [carregando, setCarregando] = useState(true);
 
+  // Novos filtros
+  const [filtroPeriodo, setFiltroPeriodo] = useState('');
+  const [filtroCodEsterilizacao, setFiltroCodEsterilizacao] = useState('');
+
   useEffect(() => {
     setCarregando(true);
     const token = localStorage.getItem('token');
@@ -48,12 +52,54 @@ export default function ListaAlunos({ reloadKey, onEditar }) {
       });
   };
 
+  // Monta lista única de períodos para o dropdown
+  const periodosUnicos = [
+    ...new Set(alunos.map(a => `${a.periodo_nome} ${a.turno}`.trim()).filter(Boolean))
+  ];
+
+  // Filtro aplicado nos alunos
+  const alunosFiltrados = alunos.filter(a => {
+    // Filtra por código esterilização (ignora maiúsc/minúsculo e espaços)
+    const matchCodEst = filtroCodEsterilizacao
+      ? (a.cod_esterilizacao || '').toString().toLowerCase().includes(filtroCodEsterilizacao.toLowerCase())
+      : true;
+    // Filtra por período
+    const matchPeriodo = filtroPeriodo
+      ? `${a.periodo_nome} ${a.turno}`.trim() === filtroPeriodo
+      : true;
+    return matchCodEst && matchPeriodo;
+  });
+
   if (carregando) return <p>Carregando alunos...</p>;
   if (alunos.length === 0) return <p>Nenhum aluno cadastrado.</p>;
 
   return (
     <div className="mx-auto py-2 px-2">
       <div className="bg-white rounded-2xl p-2 shadow">
+
+        {/* Filtros */}
+        <div className="flex gap-4 mb-4 flex-wrap">
+          <input
+            type="text"
+            placeholder="Filtrar por Código Esterilização..."
+            value={filtroCodEsterilizacao}
+            onChange={e => setFiltroCodEsterilizacao(e.target.value)}
+            className="border rounded px-3 py-2"
+            style={{ minWidth: 220 }}
+          />
+          <select
+            value={filtroPeriodo}
+            onChange={e => setFiltroPeriodo(e.target.value)}
+            className="border rounded px-3 py-2"
+            style={{ minWidth: 180 }}
+          >
+            <option value="">Todos os períodos</option>
+            {periodosUnicos.map((nome, idx) => (
+              <option key={idx} value={nome}>{nome}</option>
+            ))}
+          </select>
+        </div>
+
         {/* Tabela (desktop) */}
         <div className="hidden md:block overflow-x-auto">
           <table className="min-w-full bg-white border-separate border-spacing-0">
@@ -63,18 +109,22 @@ export default function ListaAlunos({ reloadKey, onEditar }) {
                 <th className="px-3 py-2 text-left font-semibold border-b">Nome</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">RA</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">Box</th>
+                <th className="px-3 py-2 text-left font-semibold border-b">PIN</th>
+                <th className="px-3 py-2 text-left font-semibold border-b">Código Esterilização</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">Período</th>
                 <th className="px-3 py-2 text-right font-semibold border-b">Ações</th>
               </tr>
             </thead>
             <tbody>
-              {alunos.map((aluno, idx) => (
+              {alunosFiltrados.map((aluno, idx) => (
                 <React.Fragment key={aluno.id}>
                   <tr className="border-none hover:bg-gray-50 transition">
                     <td className="px-3 py-2 text-gray-500">{idx + 1}</td>
                     <td className="px-3 py-2 font-medium text-gray-800">{aluno.nome}</td>
                     <td className="px-3 py-2 text-gray-600">{aluno.ra}</td>
                     <td className="px-3 py-2 text-gray-600">{aluno.box}</td>
+                    <td className="px-3 py-2 text-gray-600">{aluno.pin || '-'}</td>
+                    <td className="px-3 py-2 text-gray-600">{aluno.cod_esterilizacao || '-'}</td>
                     <td className="px-3 py-2 text-gray-500">
                       {aluno.periodo_nome} {aluno.turno}
                     </td>
@@ -100,9 +150,9 @@ export default function ListaAlunos({ reloadKey, onEditar }) {
                     </td>
                   </tr>
                   {/* Separador entre linhas, exceto a última */}
-                  {idx !== alunos.length - 1 && (
+                  {idx !== alunosFiltrados.length - 1 && (
                     <tr>
-                      <td colSpan={6}>
+                      <td colSpan={8}>
                         <hr className="border-t border-gray-200 my-0" />
                       </td>
                     </tr>
@@ -115,7 +165,7 @@ export default function ListaAlunos({ reloadKey, onEditar }) {
 
         {/* Lista em card (mobile) */}
         <div className="md:hidden space-y-3">
-          {alunos.map((aluno, idx) => (
+          {alunosFiltrados.map((aluno, idx) => (
             <div
               key={aluno.id}
               className="bg-gray-50 rounded-xl px-4 py-3 shadow-sm border border-gray-200"
@@ -146,6 +196,8 @@ export default function ListaAlunos({ reloadKey, onEditar }) {
               <div><b>Nome:</b> <span className="text-gray-800">{aluno.nome}</span></div>
               <div><b>RA:</b> <span className="text-gray-700">{aluno.ra}</span></div>
               <div><b>Box:</b> <span className="text-gray-700">{aluno.box}</span></div>
+              <div><b>PIN:</b> <span className="text-gray-700">{aluno.pin || '-'}</span></div>
+              <div><b>Código Esterilização:</b> <span className="text-gray-700">{aluno.cod_esterilizacao || '-'}</span></div>
               <div><b>Período:</b> <span className="text-gray-700">{aluno.periodo_nome} {aluno.turno}</span></div>
             </div>
           ))}
