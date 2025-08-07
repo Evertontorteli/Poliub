@@ -20,6 +20,8 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
   const [showSenha, setShowSenha] = useState(false);
   const [role, setRole] = useState('aluno');
   const [mensagem, setMensagem] = useState('');
+  const [codEsterilizacao, setCodEsterilizacao] = useState(alunoEditando?.cod_esterilizacao || '');
+
 
   // Auxiliares
   const [periodos, setPeriodos] = useState([]);
@@ -62,66 +64,75 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
   const validarNome = n => n.trim().split(' ').filter(p => p.length >= 2).length >= 2;
   const validarRA = r => /^\d{1,9}$/.test(r);
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  // Validações de campos obrigatórios (mostra mensagem no modal)
-  if (!validarNome(nome)) return setMensagem('Informe nome completo!');
-  if (!validarRA(ra)) return setMensagem('RA inválido!');
-  if (!usuario.trim()) return setMensagem('Insira usuário!');
-  if (!alunoEditando && senha.length < 4) return setMensagem('Senha mínimo 4 chars!');
-  if (!periodoId) return setMensagem('Selecione período!');
+    // Validações de campos obrigatórios (mostra mensagem no modal)
+    if (!validarNome(nome)) return setMensagem('Informe nome completo!');
+    if (!validarRA(ra)) return setMensagem('RA inválido!');
+    if (!usuario.trim()) return setMensagem('Insira usuário!');
+    if (!alunoEditando && senha.length < 4) return setMensagem('Senha mínimo 4 chars!');
+    if (!periodoId) return setMensagem('Selecione período!');
 
-  // Validação do PIN: só validar se o campo estiver preenchido
-  if (pin && !/^\d{4}$/.test(pin)) return setMensagem('PIN deve ter exatamente 4 dígitos!');
+    // Validação do PIN: só validar se o campo estiver preenchido
+    if (pin && !/^\d{4}$/.test(pin)) return setMensagem('PIN deve ter exatamente 4 dígitos!');
 
-  // Validação de unicidade do PIN (só se preenchido)
-  if (pin) {
-    try {
-      const { data } = await axios.get(`/api/alunos?pin=${pin}`, { headers });
-      const pinDuplicado = Array.isArray(data) && data.some(a =>
-        alunoEditando
-          ? String(a.id) !== String(alunoId) // em edição, ignora o próprio aluno
-          : true
-      );
-      if (pinDuplicado) {
-        return setMensagem('Já existe um aluno com este PIN.');
+    // Validação de unicidade do PIN (só se preenchido)
+    if (pin) {
+      try {
+        const { data } = await axios.get(`/api/alunos?pin=${pin}`, { headers });
+        const pinDuplicado = Array.isArray(data) && data.some(a =>
+          alunoEditando
+            ? String(a.id) !== String(alunoId) // em edição, ignora o próprio aluno
+            : true
+        );
+        if (pinDuplicado) {
+          return setMensagem('Já existe um aluno com este PIN.');
+        }
+      } catch (err) {
+        return setMensagem('Erro ao validar PIN.');
       }
-    } catch (err) {
-      return setMensagem('Erro ao validar PIN.');
     }
-  }
 
-  // Monta dados do aluno
-  const alunoData = { nome, ra, periodo_id: periodoId, usuario, senha, role, pin: pin || null };
+    // Monta dados do aluno
+    const alunoData = {
+      nome,
+      ra,
+      periodo_id: periodoId,
+      usuario,
+      senha,
+      role,
+      pin: pin || null,
+      cod_esterilizacao: codEsterilizacao || null // <-- Adicione!
+    };
 
-  if (alunoEditando) {
-    const payload = { ...alunoData };
-    if (!senha) delete payload.senha;
-    try {
-      await axios.put(`/api/alunos/${alunoId}`, payload, { headers });
-      if (box) {
-        if (boxId) await axios.put(`/api/boxes/${boxId}`, { conteudo: box }, { headers });
-        else await axios.post('/api/boxes', { aluno_id: alunoId, conteudo: box }, { headers });
+    if (alunoEditando) {
+      const payload = { ...alunoData };
+      if (!senha) delete payload.senha;
+      try {
+        await axios.put(`/api/alunos/${alunoId}`, payload, { headers });
+        if (box) {
+          if (boxId) await axios.put(`/api/boxes/${boxId}`, { conteudo: box }, { headers });
+          else await axios.post('/api/boxes', { aluno_id: alunoId, conteudo: box }, { headers });
+        }
+        // Chame o callback com mensagem de sucesso
+        onNovoAluno('Aluno atualizado com sucesso!');
+        onFimEdicao();
+      } catch (err) {
+        setMensagem(err.response?.data?.error || 'Erro ao atualizar.');
       }
-      // Chame o callback com mensagem de sucesso
-      onNovoAluno('Aluno atualizado com sucesso!');
-      onFimEdicao();
-    } catch (err) {
-      setMensagem(err.response?.data?.error || 'Erro ao atualizar.');
+    } else {
+      try {
+        const res = await axios.post('/api/alunos', alunoData, { headers });
+        const newId = res.data.id;
+        if (box) await axios.post('/api/boxes', { aluno_id: newId, conteudo: box }, { headers });
+        onNovoAluno('Aluno cadastrado com sucesso!');
+        onFimEdicao();
+      } catch (err) {
+        setMensagem(err.response?.data?.error || 'Erro ao cadastrar.');
+      }
     }
-  } else {
-    try {
-      const res = await axios.post('/api/alunos', alunoData, { headers });
-      const newId = res.data.id;
-      if (box) await axios.post('/api/boxes', { aluno_id: newId, conteudo: box }, { headers });
-      onNovoAluno('Aluno cadastrado com sucesso!');
-      onFimEdicao();
-    } catch (err) {
-      setMensagem(err.response?.data?.error || 'Erro ao cadastrar.');
-    }
-  }
-};
+  };
 
 
 
@@ -218,6 +229,20 @@ const handleSubmit = async (e) => {
         </div>
       </div>
 
+      {/* Codigo Esterilizacao */}
+      <div>
+        <label className="block mb-1 font-medium">Código esterilização (até 4 dígitos)</label>
+        <input
+          type="text"
+          maxLength={4}
+          className="w-full border rounded px-3 py-2"
+          value={codEsterilizacao}
+          onChange={e => setCodEsterilizacao(e.target.value.replace(/\D/g, '').slice(0, 4))}
+        // Não obrigatório
+        />
+      </div>
+
+
       {/* PIN */}
       <div>
         <label className="block mb-1 font-medium">PIN (4 dígitos)</label>
@@ -227,7 +252,7 @@ const handleSubmit = async (e) => {
           className="w-full border rounded px-3 py-2"
           value={pin}
           onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-          //required
+        //required
         />
       </div>
 

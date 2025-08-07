@@ -22,6 +22,7 @@ exports.buscarPorPin = async (req, res) => {
          a.nome,
          a.ra,
          a.pin,
+         a.cod_esterilizacao,
          a.periodo_id,
          p.nome AS periodo
        FROM alunos a
@@ -148,7 +149,7 @@ exports.buscarPerfil = async (req, res) => {
 /** * 4) CRIAR NOVO ALUNO */
 exports.criarAluno = async (req, res) => {
   console.log('req.user no criarAluno:', req.user); // <--- debug aqui
-  const { nome, ra, periodo_id, usuario, senha, role, pin } = req.body;
+  const { nome, ra, periodo_id, usuario, senha, role, pin, cod_esterilizacao } = req.body;
 
   // valida campos obrigatórios
   if (!nome || !ra || !usuario || !senha) {
@@ -189,6 +190,7 @@ exports.criarAluno = async (req, res) => {
       usuario,
       senhaHash,
       pin,
+      cod_esterilizacao,
       role: papel
     });
 
@@ -199,7 +201,7 @@ exports.criarAluno = async (req, res) => {
       acao: 'criou',
       entidade: 'aluno',
       entidade_id: novoId,
-      detalhes: JSON.stringify({ nome, ra, usuario, periodo_id, pin, role: papel })
+      detalhes: JSON.stringify({ nome, ra, usuario, periodo_id, pin, cod_esterilizacao, role: papel })
     });
 
     return res.status(201).json({
@@ -209,6 +211,7 @@ exports.criarAluno = async (req, res) => {
       periodo_id,
       usuario,
       pin,
+      cod_esterilizacao,
       role: papel
     });
   } catch (err) {
@@ -223,7 +226,7 @@ exports.criarAluno = async (req, res) => {
  */
 exports.atualizarAluno = async (req, res) => {
   const { id } = req.params;
-  const { nome, ra, periodo_id, usuario, senha, role, pin } = req.body;
+  const { nome, ra, periodo_id, usuario, senha, role, pin, cod_esterilizacao } = req.body;
 
   // valida campos obrigatórios
   if (!nome || !ra || !usuario) {
@@ -272,6 +275,7 @@ exports.atualizarAluno = async (req, res) => {
       usuario,
       senhaHash,
       pin,
+      cod_esterilizacao,
       role: papel
     });
 
@@ -282,10 +286,10 @@ exports.atualizarAluno = async (req, res) => {
       acao: 'atualizou',
       entidade: 'aluno',
       entidade_id: id,
-      detalhes: JSON.stringify({ nome, ra, usuario, periodo_id, pin, role: papel })
+      detalhes: JSON.stringify({ nome, ra, usuario, periodo_id, pin, cod_esterilizacao, role: papel })
     });
 
-    return res.json({ id, nome, ra, periodo_id, usuario, pin, role: papel });
+    return res.json({ id, nome, ra, periodo_id, usuario, pin, cod_esterilizacao, role: papel });
   } catch (err) {
     console.error("Erro ao atualizar aluno:", err);
     return res.status(500).json({ error: 'Não foi possível atualizar o aluno. Erro interno.' });
@@ -317,6 +321,12 @@ exports.deletarAluno = async (req, res) => {
 
     return res.json({ sucesso: true });
   } catch (err) {
+    // Intercepta erro de integridade referencial
+    if (err.code === 'ER_ROW_IS_REFERENCED_2') {
+      return res.status(400).json({
+        error: 'Não é possível excluir este aluno porque ele possui movimentações de esterilização vinculadas ao seu cadastro.'
+      });
+    }
     console.error("Erro ao deletar aluno:", err);
     return res.status(500).json({ error: 'Não foi possível deletar o aluno.' });
   }
