@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Search } from "lucide-react";
 import SpotlightSearch from './SpotlightSearch';
-
-// SVG avatar icon para botão de perfil
+import PerfilModal from './PerfilModal'; // <=== ADICIONE ESTA LINHA
+import axios from 'axios'; // <=== NECESSÁRIO
 
 const AvatarIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32px" height="32px">
@@ -32,6 +32,10 @@ export default function Header({ onlineUsers = [] }) {
   const wrapperRef = useRef(null);
   const popoverRef = useRef(null);
 
+  // NOVO: estados para o modal de perfil
+  const [showPerfilModal, setShowPerfilModal] = useState(false);
+  const [alunoPerfil, setAlunoPerfil] = useState(null);
+
   useEffect(() => {
     function handleClickOutside(event) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
@@ -46,8 +50,22 @@ export default function Header({ onlineUsers = [] }) {
   }, []);
 
   const toggleDropdown = () => setDropdownOpen(open => !open);
-  const handlePerfil = () => { setDropdownOpen(false); navigate('/perfil'); };
   const handleLogout = () => { setDropdownOpen(false); logout(); navigate('/login', { replace: true }); };
+
+  // NOVO: handler para "Meu Perfil"
+  const handleMeuPerfil = async () => {
+    setDropdownOpen(false);
+    try {
+      // Busca dados atualizados do backend (ajuste o endpoint se necessário)
+      const { data } = await axios.get(`/api/alunos/${user.id}`);
+      setAlunoPerfil(data);
+      setShowPerfilModal(true);
+    } catch (err) {
+      // fallback: mostra só o que já está no context se a API falhar
+      setAlunoPerfil(user);
+      setShowPerfilModal(true);
+    }
+  };
 
   // Remove o usuário logado da lista de online (se houver)
   const others = onlineUsers.filter(u => u.id !== user?.id);
@@ -184,7 +202,7 @@ export default function Header({ onlineUsers = [] }) {
               </li>
               <li>
                 <button
-                  onClick={handlePerfil}
+                  onClick={handleMeuPerfil}
                   className="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700"
                 >
                   Meu Perfil
@@ -202,6 +220,14 @@ export default function Header({ onlineUsers = [] }) {
           )}
         </div>
       </div>
+
+      {/* Modal do perfil flutuante */}
+      {showPerfilModal && (
+        <PerfilModal
+          aluno={alunoPerfil}
+          onClose={() => setShowPerfilModal(false)}
+        />
+      )}
     </header>
   );
 }
