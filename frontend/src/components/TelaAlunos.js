@@ -81,7 +81,16 @@ export default function TelaAlunos() {
       })
       .catch((err) => {
         console.error('Erro ao deletar aluno:', err.response?.data || err.message);
-        toast.error('Não foi possível deletar o aluno.');
+        // Verifica se veio mensagem específica do backend
+        const backendMsg = err.response?.data?.error;
+        if (
+          backendMsg &&
+          backendMsg.includes('movimentações de esterilização') // ou outro trecho que você usou no backend
+        ) {
+          toast.error(backendMsg);
+        } else {
+          toast.error('Não foi possível deletar o aluno.');
+        }
       });
   };
 
@@ -174,10 +183,10 @@ export default function TelaAlunos() {
                 <th className="px-3 py-2 text-left font-semibold border-b">Nome</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">RA</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">Período</th>
-                
+
                 <th className="px-3 py-2 text-left font-semibold border-b">Usuário</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">Perfil</th>
-                
+
                 <th className="px-3 py-2 text-right font-semibold border-b">Ações</th>
               </tr>
             </thead>
@@ -190,10 +199,10 @@ export default function TelaAlunos() {
                     <td className="px-3 py-2 font-medium text-gray-800">{a.nome}</td>
                     <td className="px-3 py-2 text-gray-600">{a.ra}</td>
                     <td className="px-3 py-2 text-gray-600">{a.periodo_nome} {a.turno}</td>
-                    
+
                     <td className="px-3 py-2 text-gray-600">{a.usuario}</td>
                     <td className="px-3 py-2 text-gray-600">{a.role}</td>
-                    
+
                     <td className="px-3 py-2 text-right flex gap-2 justify-end">
                       <button
                         onClick={() => onEditar(a)}
@@ -263,10 +272,10 @@ export default function TelaAlunos() {
               <div><b>Nome:</b> <span className="text-gray-800">{a.nome}</span></div>
               <div><b>RA:</b> <span className="text-gray-700">{a.ra}</span></div>
               <div><b>Período:</b> <span className="text-gray-700">{a.periodo_nome} {a.turno}</span></div>
-              
+
               <div><b>Usuário:</b> <span className="text-gray-700">{a.usuario}</span></div>
               <div><b>Perfil:</b> <span className="text-gray-700">{a.role}</span></div>
-              
+
             </div>
           ))}
         </div>

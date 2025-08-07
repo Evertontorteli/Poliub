@@ -15,6 +15,7 @@ const Aluno = {
         a.usuario,
         a.role,
         a.pin,
+        a.cod_esterilizacao,
         a.periodo_id,
         p.nome     AS periodo_nome,
         p.turno    AS periodo_turno
@@ -26,9 +27,9 @@ const Aluno = {
     conn.release();
     return rows;
   },
-    /**
-   * Busca um aluno pelo RA (retorna o primeiro encontrado ou null)
-   */
+  /**
+ * Busca um aluno pelo RA (retorna o primeiro encontrado ou null)
+ */
   buscarPorRA: async (ra) => {
     const conn = await pool.getConnection();
     const [rows] = await conn.execute(
@@ -56,16 +57,17 @@ const Aluno = {
   /**
    * Busca um aluno por ID (incluindo pin)
    */
-buscarPorId: async (id) => {
-  const conn = await pool.getConnection();
-  const [rows] = await conn.execute(
-    `SELECT 
+  buscarPorId: async (id) => {
+    const conn = await pool.getConnection();
+    const [rows] = await conn.execute(
+      `SELECT 
        a.id,
        a.nome,
        a.ra,
        a.usuario,
        a.role,
        a.pin,
+       a.cod_esterilizacao,
        a.periodo_id,
        a.session_token,             
        p.nome AS periodo_nome,
@@ -73,11 +75,11 @@ buscarPorId: async (id) => {
      FROM alunos a
      LEFT JOIN periodos p ON a.periodo_id = p.id
      WHERE a.id = ?`,
-    [id]
-  );
-  conn.release();
-  return rows[0];
-},
+      [id]
+    );
+    conn.release();
+    return rows[0];
+  },
 
   /**
    * Insere um novo aluno, agora recebendo também `pin`
@@ -87,8 +89,8 @@ buscarPorId: async (id) => {
     const conn = await pool.getConnection();
     const [result] = await conn.execute(
       `INSERT INTO alunos 
-         (nome, ra, periodo_id, usuario, senha, role, pin) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+         (nome, ra, periodo_id, usuario, senha, role, pin, cod_esterilizacao) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         dados.nome,
         dados.ra,
@@ -96,7 +98,8 @@ buscarPorId: async (id) => {
         dados.usuario,
         dados.senhaHash,
         dados.role,
-        dados.pin
+        dados.pin,
+        dados.cod_esterilizacao !== undefined ? dados.cod_esterilizacao : null
       ]
     );
     conn.release();
@@ -118,7 +121,8 @@ buscarPorId: async (id) => {
            usuario    = ?, 
            senha      = ?, 
            role       = ?,
-           pin        = ?
+           pin        = ?,
+           cod_esterilizacao  = ?
          WHERE id = ?`,
         [
           dados.nome,
@@ -128,6 +132,7 @@ buscarPorId: async (id) => {
           dados.senhaHash,
           dados.role,
           dados.pin,
+          dados.cod_esterilizacao !== undefined ? dados.cod_esterilizacao : null,
           id
         ]
       );
@@ -140,7 +145,8 @@ buscarPorId: async (id) => {
            periodo_id = ?, 
            usuario    = ?, 
            role       = ?,
-           pin        = ?
+           pin        = ?,
+           cod_esterilizacao = ?
          WHERE id = ?`,
         [
           dados.nome,
@@ -149,6 +155,7 @@ buscarPorId: async (id) => {
           dados.usuario,
           dados.role,
           dados.pin,
+          dados.cod_esterilizacao !== undefined ? dados.cod_esterilizacao : null,
           id
         ]
       );
@@ -162,7 +169,7 @@ buscarPorId: async (id) => {
   deletar: async (id) => {
     const conn = await pool.getConnection();
     await conn.execute(
-      'DELETE FROM alunos WHERE id = ?', 
+      'DELETE FROM alunos WHERE id = ?',
       [id]
     );
     conn.release();
@@ -174,7 +181,7 @@ buscarPorId: async (id) => {
   buscarPorPin: async (pin) => {
     const conn = await pool.getConnection();
     const [rows] = await conn.execute(
-      'SELECT id, nome FROM alunos WHERE pin = ?', 
+      'SELECT id, nome FROM alunos WHERE pin = ?',
       [pin]
     );
     conn.release();
