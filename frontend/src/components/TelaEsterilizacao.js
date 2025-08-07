@@ -23,6 +23,8 @@ export default function TelaEsterilizacao() {
   const [alunoPeriodo, setAlunoPeriodo] = useState('')
   const avancarButtonRef = useRef(null)
   const caixaInputRef = useRef(null)
+  const [alunoCodEsterilizacao, setAlunoCodEsterilizacao] = useState('');
+
 
 
 
@@ -122,6 +124,7 @@ export default function TelaEsterilizacao() {
       const { data: aluno } = await axios.get(`/api/alunos/pin/${alunoPin}`);
       setAlunoNome(aluno.nome);
       setAlunoId(aluno.id);
+      setAlunoCodEsterilizacao(aluno.cod_esterilizacao);
 
       // 2) usa diretamente o campo 'periodo' que já vem na resposta
       //    (antigo res.data.periodo_id estava vindo undefined)
@@ -347,6 +350,12 @@ export default function TelaEsterilizacao() {
           {pinValidated && (
             <div className="mt-4 font-ligth ext-gray-600 space-y-1">
               <p>Aluno(a): {alunoNome}, Período: {alunoPeriodo || '—'}</p>
+              <p>
+                Cód. Esterilização:{" "}
+                <span className="text-red-600 font-semibold">
+                  {alunoCodEsterilizacao || '—'}
+                </span>
+              </p>
             </div>
           )}
         </div>
