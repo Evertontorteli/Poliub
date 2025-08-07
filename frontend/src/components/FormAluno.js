@@ -2,11 +2,60 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { Info } from 'lucide-react';
+import ReactDOM from 'react-dom';
+
 
 function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
   const { user } = useAuth();
   const token = user.token;
   const headers = { Authorization: `Bearer ${token}` };
+
+  function Tooltip({ text }) {
+    const [show, setShow] = useState(false);
+    const [pos, setPos] = useState({ top: 0, left: 0 });
+
+    function handleMouseEnter(e) {
+      const rect = e.target.getBoundingClientRect();
+      setPos({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+      });
+      setShow(true);
+    }
+
+    function handleMouseLeave() {
+      setShow(false);
+    }
+
+    return (
+      <>
+        <span
+          className="relative ml-1 inline-block align-middle"
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
+          <Info
+            size={16}
+            className="text-gray-400 hover:text-blue-500 cursor-pointer"
+          />
+        </span>
+        {show &&
+          ReactDOM.createPortal(
+            <span
+              className="z-[9999] fixed w-52 bg-gray-900 text-white text-xs rounded shadow-lg px-3 py-2"
+              style={{
+                top: pos.top + 4,
+                left: pos.left,
+              }}
+            >
+              {text}
+            </span>,
+            document.body
+          )}
+      </>
+    );
+  }
 
   // Campos do formulário
   const [nome, setNome] = useState('');
@@ -136,7 +185,6 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
 
 
 
-
   return (
     <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl  space-y-6">
       <h2 className="text-2xl font-bold">{alunoEditando ? 'Editar Aluno' : 'Cadastrar Aluno'}</h2>
@@ -196,65 +244,79 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
         </select>
       </div>
 
-      {/* Login */}
-      <div>
-        <label className="block mb-1 font-medium">Login</label>
-        <input
-          type="text"
-          className="w-full border rounded px-3 py-2"
-          value={usuario}
-          onChange={e => setUsuario(e.target.value)}
-          required
-        />
-      </div>
-
-      {/* Senha */}
-      <div>
-        <label className="block mb-1 font-medium">{alunoEditando ? 'Nova senha (opcional)' : 'Senha'}</label>
-        <div className="relative">
+      <div className="grid grid-cols-2 gap-4">
+        {/* Login */}
+        <div>
+          <label className="block mb-1 font-medium flex items-center">
+            Login
+            <Tooltip text="Login único para acessar o sistema. Não use acentos ou espaços." />
+          </label>
           <input
-            type={showSenha ? 'text' : 'password'}
-            className="w-full border rounded px-3 py-2 pr-10"
-            value={senha}
-            onChange={e => setSenha(e.target.value)}
-            required={!alunoEditando}
+            type="text"
+            className="w-full border rounded px-3 py-2"
+            value={usuario}
+            onChange={e => setUsuario(e.target.value)}
+            required
           />
-          <button
-            type="button"
-            className="absolute inset-y-0 right-0 px-3 text-sm"
-            onClick={() => setShowSenha(prev => !prev)}
-          >
-            {showSenha ? 'Ocultar' : 'Mostrar'}
-          </button>
+        </div>
+
+        {/* Nova Senha */}
+        <div>
+          <label className="block mb-1 font-medium flex items-center">
+            {alunoEditando ? 'Nova senha (opcional)' : 'Senha'}
+            <Tooltip text="A senha deve ter pelo menos 4 caracteres. Preencha somente se deseja trocar a senha." />
+          </label>
+          <div className="relative">
+            <input
+              type={showSenha ? 'text' : 'password'}
+              className="w-full border rounded px-3 py-2 pr-10"
+              value={senha}
+              onChange={e => setSenha(e.target.value)}
+              required={!alunoEditando}
+            />
+            <button
+              type="button"
+              className="absolute inset-y-0 right-0 px-3 text-sm"
+              onClick={() => setShowSenha(prev => !prev)}
+            >
+              {showSenha ? 'Ocultar' : 'Mostrar'}
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Codigo Esterilizacao */}
-      <div>
-        <label className="block mb-1 font-medium">Código esterilização (até 4 dígitos)</label>
-        <input
-          type="text"
-          maxLength={4}
-          className="w-full border rounded px-3 py-2"
-          value={codEsterilizacao}
-          onChange={e => setCodEsterilizacao(e.target.value.replace(/\D/g, '').slice(0, 4))}
-        // Não obrigatório
-        />
+      <div className="grid grid-cols-2 gap-4">
+        {/* Código Esterilização */}
+        <div>
+          <label className="block mb-1 font-medium flex items-center">
+            Código esterilização
+            <Tooltip text="Código opcional para rastrear o material esterilizado utilizado pelo aluno. Use até 4 dígitos." />
+          </label>
+          <input
+            type="text"
+            maxLength={4}
+            className="w-full border rounded px-3 py-2"
+            value={codEsterilizacao}
+            onChange={e => setCodEsterilizacao(e.target.value.replace(/\D/g, '').slice(0, 4))}
+          />
+        </div>
+
+        {/* PIN */}
+        <div>
+          <label className="block mb-1 font-medium flex items-center">
+            PIN
+            <Tooltip text="PIN numérico de 4 dígitos. Usado para autenticação rápida do aluno no momento de entrada e saída de caixas." />
+          </label>
+          <input
+            type="text"
+            maxLength={4}
+            className="w-full border rounded px-3 py-2"
+            value={pin}
+            onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+          />
+        </div>
       </div>
 
-
-      {/* PIN */}
-      <div>
-        <label className="block mb-1 font-medium">PIN (4 dígitos)</label>
-        <input
-          type="text"
-          maxLength={4}
-          className="w-full border rounded px-3 py-2"
-          value={pin}
-          onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-        //required
-        />
-      </div>
 
 
       {/* Permissão */}
