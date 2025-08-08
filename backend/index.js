@@ -6,6 +6,7 @@ const { initDb, getConnection } = require('./database');
 const boxRoutes = require('./routes/boxRoutes');
 const evolucaoRoutes = require('./routes/evolucaoRoutes');
 const odontogramaRoutes = require('./routes/odontogramaRoutes');
+const backupRoutes = require('./routes/backupRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -68,6 +69,8 @@ io.on('connection', (socket) => {
     app.use('/api/evolucoes', evolucaoRoutes);
     app.use('/api/odontogramas', odontogramaRoutes);
     app.use('/api/search', require('./routes/searchRoutes'));
+    app.use('/api/backup', backupRoutes);
+
 
 
 

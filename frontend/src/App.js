@@ -38,6 +38,7 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import { io } from 'socket.io-client'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
+import BackupConfig from './backup/BackupConfig'
 
 function Dashboards() {
   const { user } = useAuth()
@@ -130,6 +131,7 @@ function LayoutInterno() {
       case 'caixas': return <TelaCaixas />
       case 'dashboard-esterilizacao': return <TelaDashboardEsterilizacao />
       case 'auditoria': return <TelaLogs />
+      case 'backup': return <BackupConfig />      
       case 'ajuda': return <Ajuda />
       default:
         return (

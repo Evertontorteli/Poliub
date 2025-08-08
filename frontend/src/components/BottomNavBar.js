@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import {
-  Home, CalendarDays, BookOpen, Users, UserRound, Mail, HelpCircle, Menu, PieChart, Box, PackagePlus
+  Home, CalendarDays, BookOpen, Users, UserRound, Mail, HelpCircle, Menu, PieChart, Box, PackagePlus,
+  Database
 } from "lucide-react";
 import { useAuth } from '../context/AuthContext';
 
@@ -14,6 +15,7 @@ const menuItems = [
   { key: "dashboard-esterilizacao", label: "Painel Esterilização", icon: <PieChart size={24} /> },
   { key: "caixas", label: "Caixas", icon: <Box size={24} /> },
   { key: "esterilizacao", label: "Esterilização", icon: <PackagePlus size={24} /> },
+  { key: "backup", label: "Backup", icon: <Database size={24} /> },
   { key: "ajuda", label: "Ajuda", icon: <HelpCircle size={24} /> },
 ];
 
@@ -40,7 +42,7 @@ export default function BottomNavBar({ active, onMenuClick }) {
   const allowedItems = menuItems.filter(item => {
     if (
       role === 'aluno' &&
-      ['disciplinas', 'alunos', 'periodos', 'dashboard-esterilizacao', 'caixas', 'esterilizacao'].includes(item.key)
+      ['disciplinas', 'alunos', 'periodos', 'dashboard-esterilizacao', 'caixas', 'esterilizacao', 'backup'].includes(item.key)
     ) return false;
     return true;
   });
