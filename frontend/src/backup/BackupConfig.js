@@ -1,68 +1,116 @@
-import React, { useState } from "react";
-import BackupSchedule from "./BackupSchedule";
-import BackupDestinoGoogle from "./BackupDestinoGoogle";
-import BackupDestinoDropbox from "./BackupDestinoDropbox";
-import BackupHistory from "./BackupHistory";
-import BackupManual from "./BackupManual";
+// src/backup/BackupConfig.js
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import BackupManual from './BackupManual';
+import GoogleDriveCard from './cards/GoogleDriveCard';
+import SchedulerCard from './BackupSchedulerCard';
+import { toast } from 'react-toastify';
+import DropboxCard from './cards/DropboxCard';
 
 export default function BackupConfig() {
-  const [autoBackup, setAutoBackup] = useState(false);
-  const [periodicidade, setPeriodicidade] = useState("diario");
-  const [destino, setDestino] = useState("google");
-  const [horarios, setHorarios] = useState(["03:00"]); // array de horários no dia
+  const [settings, setSettings] = useState(null);
+  const token =
+    JSON.parse(localStorage.getItem('user') || '{}')?.token ||
+    localStorage.getItem('token');
+  const headers = { Authorization: `Bearer ${token}` };
 
-  function handleSalvar() {
-    // Salve as configurações via API aqui
-    alert("Configurações de backup salvas! (exemplo)");
+  async function loadSettings() {
+    try {
+      const { data } = await axios.get('/api/backup/settings', { headers });
+      const safe = {
+        retentionDays: data.retentionDays ?? 30,
+        destinations: {
+          gdrive: {
+            enabled: !!data?.destinations?.gdrive?.enabled,
+            folderId: data?.destinations?.gdrive?.folderId || ''
+          },
+          dropbox: {
+            enabled: !!data?.destinations?.dropbox?.enabled,
+            folder: data?.destinations?.dropbox?.folder || '/Backups',
+            accessToken: data?.destinations?.dropbox?.accessToken || ''
+          }
+        },
+        schedule: {
+          enabled: !!data?.schedule?.enabled,
+          days: Array.isArray(data?.schedule?.days) ? data.schedule.days : [1,3,5],
+          times: Array.isArray(data?.schedule?.times) ? data.schedule.times : ['03:00'],
+          timezone: data?.schedule?.timezone || 'America/Sao_Paulo'
+        }
+      };
+      setSettings(safe);
+    } catch (err) {
+      toast.error('Não foi possível carregar as configurações de backup.');
+      setSettings({
+        retentionDays: 30,
+        destinations: {
+          gdrive: { enabled: false, folderId: '' },
+          dropbox: { enabled: false, folder: '/Backups', accessToken: '' }
+        },
+        schedule: {
+          enabled: false,
+          days: [1,3,5],
+          times: ['03:00'],
+          timezone: 'America/Sao_Paulo'
+        }
+      });
+    }
   }
 
+  useEffect(() => { loadSettings(); /* eslint-disable-next-line */ }, []);
+
+  async function save(partial) {
+    try {
+      const next = { ...settings, ...partial };
+      const { data } = await axios.put('/api/backup/settings', next, { headers });
+      setSettings(data);
+      toast.success('Configurações salvas!');
+    } catch (err) {
+      const reason =
+        err?.response?.data?.error || err?.message || 'Falha ao salvar configurações.';
+      toast.error(reason);
+    }
+  }
+
+  if (!settings) return <div className="p-6">Carregando…</div>;
+
   return (
-    <div className="max-w-2xl mx-auto py-8 px-4">
-      <h2 className="text-2xl font-bold mb-6">Backup do Sistema</h2>
-      <div className="bg-white rounded-2xl shadow p-6 space-y-5">
-        {/* Ativar automático */}
-        <div className="flex items-center gap-3">
-          <input type="checkbox" id="autoBackup" checked={autoBackup} onChange={e => setAutoBackup(e.target.checked)} />
-          <label htmlFor="autoBackup" className="font-medium">Ativar backup automático</label>
-        </div>
-
-        {/* Periodicidade/agendamento */}
-        {autoBackup && (
-          <BackupSchedule
-            periodicidade={periodicidade}
-            setPeriodicidade={setPeriodicidade}
-            horarios={horarios}
-            setHorarios={setHorarios}
-          />
-        )}
-
-        {/* Destino */}
-        <div className="flex gap-4 items-center">
-          <span className="font-medium">Destino:</span>
-          <select className="border rounded px-2 py-1" value={destino} onChange={e => setDestino(e.target.value)}>
-            <option value="google">Google Drive</option>
-            <option value="dropbox">Dropbox</option>
-          </select>
-        </div>
-        {destino === "google" && <BackupDestinoGoogle />}
-        {destino === "dropbox" && <BackupDestinoDropbox />}
-
-        {/* Salvar */}
-        <div className="flex gap-4 pt-4">
-          <button
-            onClick={handleSalvar}
-            className="bg-[#1A1C2C] hover:bg-[#3B4854] text-white font-bold px-4 py-2 rounded-full"
-          >
-            Salvar configurações
-          </button>
-        </div>
-
-        {/* Backup manual */}
-        <BackupManual />
-
-        {/* Histórico */}
-        <BackupHistory />
+    <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-semibold text-gray-800">Backup</h2>
       </div>
+
+      {/* Backup manual (download .zip) */}
+      <BackupManual />
+
+      {/* Grid com cards de destinos */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <GoogleDriveCard
+          value={settings.destinations.gdrive}
+          onChange={async (val) => {
+            await save({ destinations: { ...settings.destinations, gdrive: val } });
+          }}
+          retentionDays={settings.retentionDays}
+          onChangeRetention={async (days) => {
+            await save({ retentionDays: days });
+          }}
+        />
+
+        <DropboxCard
+          value={settings.destinations.dropbox}
+          retentionDays={settings.retentionDays}
+          onChange={async (val) => {
+            await save({ destinations: { ...settings.destinations, dropbox: val } });
+          }}
+        />
+      </div>
+
+      {/* Agendamento */}
+      <SchedulerCard
+        schedule={settings.schedule}
+        onChange={async (sched) => {
+          await save({ schedule: sched });
+        }}
+      />
     </div>
   );
 }

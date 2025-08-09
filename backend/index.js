@@ -1,37 +1,31 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const authRouter = require('./routes/auth');
 const { initDb, getConnection } = require('./database');
-const boxRoutes = require('./routes/boxRoutes');
-const evolucaoRoutes = require('./routes/evolucaoRoutes');
-const odontogramaRoutes = require('./routes/odontogramaRoutes');
-const backupRoutes = require('./routes/backupRoutes');
 
 const app = express();
+
+// Porta única para HTTP + Socket.IO
 const PORT = process.env.PORT || 3000;
 
-// Cria o HTTP server e o Socket.IO em cima dele
+// ── HTTP server + Socket.IO ───────────────────────────────
 const http = require('http');
 const server = http.createServer(app);
 const { Server } = require('socket.io');
-const io = new Server(server, {
-  cors: { origin: '*' }  // depois bloqueie em prod, se quiser
-});
+const io = new Server(server, { cors: { origin: '*' } }); // ajuste CORS em prod
+
 // expõe o io para outros módulos via app.get('io')
 app.set('io', io);
 
-// ─── Bloco de presence e identificação ───
+// ── Presence / usuários online ────────────────────────────
 const onlineUsers = new Map();
 io.on('connection', (socket) => {
-  // quando o cliente se identifica (após login)
   socket.on('identify', (user) => {
     socket.user = user;
     onlineUsers.set(user.id, user);
     io.emit('onlineUsers', Array.from(onlineUsers.values()));
   });
 
-  // quando desconecta, remove do mapa
   socket.on('disconnect', () => {
     if (socket.user) {
       onlineUsers.delete(socket.user.id);
@@ -39,8 +33,8 @@ io.on('connection', (socket) => {
     }
   });
 });
-// ──────────────────────────────────────────
 
+// ── Bootstrap assíncrono ──────────────────────────────────
 (async () => {
   try {
     // 1) Conecta ao banco
@@ -53,29 +47,23 @@ io.on('connection', (socket) => {
     app.use(express.json());
 
     // 3) Rotas
-    app.use('/api', authRouter);
+    app.use('/api', require('./routes/auth'));
     app.use('/api/pacientes', require('./routes/pacienteRoutes'));
     app.use('/api/alunos', require('./routes/alunoRoutes'));
     app.use('/api/disciplinas', require('./routes/disciplinaRoutes'));
     app.use('/api/agendamentos', require('./routes/agendamentoRoutes'));
     app.use('/api/periodos', require('./routes/periodosRoutes'));
-    app.use('/api/boxes', boxRoutes);
-    // Movimentações de esterilização
+    app.use('/api/boxes', require('./routes/boxRoutes'));
     app.use('/api/movimentacoes', require('./routes/movimentacaoRoutes'));
     app.use('/api/caixas', require('./routes/caixaRoutes'));
     app.use('/api/logs', require('./routes/logRoutes'));
-    //cadastro Paciente
     app.use('/api/tratamentos', require('./routes/tratamentoRoutes'));
-    app.use('/api/evolucoes', evolucaoRoutes);
-    app.use('/api/odontogramas', odontogramaRoutes);
+    app.use('/api/evolucoes', require('./routes/evolucaoRoutes'));
+    app.use('/api/odontogramas', require('./routes/odontogramaRoutes'));
     app.use('/api/search', require('./routes/searchRoutes'));
-    app.use('/api/backup', backupRoutes);
+    app.use('/api/backup', require('./routes/backupRoutes')); // <- mantém aqui
 
-
-
-
-
-
+    // Healthchecks e raiz
     app.get('/health-db', async (_req, res) => {
       try {
         const conn = await getConnection();
@@ -89,10 +77,22 @@ io.on('connection', (socket) => {
 
     app.get('/', (_req, res) => res.send('API Poliub rodando 🚀'));
 
-    // 4) Sobe o servidor HTTP (com Socket.IO embutido)
-    server.listen(PORT, () =>
-      console.log(`🔌 Servidor HTTP + Socket.IO rodando na porta ${PORT}`)
-    );
+    // 4) Sobe o servidor HTTP (única escuta)
+    server.listen(PORT, () => {
+      console.log(`🔌 Servidor HTTP + Socket.IO rodando na porta ${PORT}`);
+
+      // Scheduler opcional (não bloqueia boot)
+      if (process.env.ENABLE_BACKUP_SCHEDULER === 'true') {
+        console.log('[scheduler] Habilitado. Iniciando...');
+        try {
+          require('./scheduler/backupScheduler').start();
+        } catch (e) {
+          console.error('[scheduler] Falha ao iniciar:', e.message);
+        }
+      } else {
+        console.log('[scheduler] Desabilitado (ENABLE_BACKUP_SCHEDULER != "true")');
+      }
+    });
   } catch (err) {
     console.error('❌ Falha ao inicializar o Banco de Dados:', err.message);
     process.exit(1);
