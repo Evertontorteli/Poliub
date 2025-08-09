@@ -1,0 +1,32 @@
+{
+  "retentionDays": 30,
+  "destinations": {
+    "gdrive": {
+      "enabled": false,
+      "folderId": ""
+    },
+    "dropbox": {
+      "enabled": false,
+      "folder": "/Backups"
+    }
+  },
+  "schedule": {
+    "enabled": true,
+    "days": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "times": [
+      "08:00",
+      "12:00",
+      "18:00",
+      "22:00"
+    ],
+    "timezone": "America/Sao_Paulo"
+  }
+}

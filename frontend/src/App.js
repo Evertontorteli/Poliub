@@ -40,6 +40,7 @@ import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import BackupConfig from './backup/BackupConfig'
 
+
 function Dashboards() {
   const { user } = useAuth()
   return user?.role === 'recepcao'
@@ -188,6 +189,7 @@ export default function App() {
           <Route path="/login" element={<LoginWrapper />} />
           <Route path="/print-agendamentos" element={<PrintAgendamentos />} />
           <Route path="/print-movimentacoes" element={<PrintMovimentacoes />} />
+          
           <Route
             path="/*"
             element={
