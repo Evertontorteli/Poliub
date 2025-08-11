@@ -1,14 +1,16 @@
 // src/backup/BackupConfig.js
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { toast } from 'react-toastify';
+
 import BackupManual from './BackupManual';
 import GoogleDriveCard from './cards/GoogleDriveCard';
-import SchedulerCard from './BackupSchedulerCard';
-import { toast } from 'react-toastify';
 import DropboxCard from './cards/DropboxCard';
+import SchedulerCard from './BackupSchedulerCard';
 
 export default function BackupConfig() {
   const [settings, setSettings] = useState(null);
+
   const token =
     JSON.parse(localStorage.getItem('user') || '{}')?.token ||
     localStorage.getItem('token');
@@ -17,12 +19,18 @@ export default function BackupConfig() {
   async function loadSettings() {
     try {
       const { data } = await axios.get('/api/backup/settings', { headers });
+
+      // Normaliza estrutura esperada no front (evita undefined)
       const safe = {
-        retentionDays: data.retentionDays ?? 30,
+        retentionDays: data?.retentionDays ?? 30,
         destinations: {
           gdrive: {
             enabled: !!data?.destinations?.gdrive?.enabled,
-            folderId: data?.destinations?.gdrive?.folderId || ''
+            folderId: data?.destinations?.gdrive?.folderId || '',
+            clientEmail: data?.destinations?.gdrive?.clientEmail || '',
+            privateKey: data?.destinations?.gdrive?.privateKey || '',
+            useSharedDrive: !!data?.destinations?.gdrive?.useSharedDrive,
+            driveId: data?.destinations?.gdrive?.driveId || ''
           },
           dropbox: {
             enabled: !!data?.destinations?.dropbox?.enabled,
@@ -32,23 +40,36 @@ export default function BackupConfig() {
         },
         schedule: {
           enabled: !!data?.schedule?.enabled,
-          days: Array.isArray(data?.schedule?.days) ? data.schedule.days : [1,3,5],
+          days: Array.isArray(data?.schedule?.days) ? data.schedule.days : [1, 3, 5],
           times: Array.isArray(data?.schedule?.times) ? data.schedule.times : ['03:00'],
           timezone: data?.schedule?.timezone || 'America/Sao_Paulo'
         }
       };
+
       setSettings(safe);
     } catch (err) {
       toast.error('Não foi possível carregar as configurações de backup.');
+      // Defaults seguros
       setSettings({
         retentionDays: 30,
         destinations: {
-          gdrive: { enabled: false, folderId: '' },
-          dropbox: { enabled: false, folder: '/Backups', accessToken: '' }
+          gdrive: {
+            enabled: false,
+            folderId: '',
+            clientEmail: '',
+            privateKey: '',
+            useSharedDrive: false,
+            driveId: ''
+          },
+          dropbox: {
+            enabled: false,
+            folder: '/Backups',
+            accessToken: ''
+          }
         },
         schedule: {
           enabled: false,
-          days: [1,3,5],
+          days: [1, 3, 5],
           times: ['03:00'],
           timezone: 'America/Sao_Paulo'
         }
@@ -56,17 +77,49 @@ export default function BackupConfig() {
     }
   }
 
-  useEffect(() => { loadSettings(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => {
+    loadSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function save(partial) {
     try {
       const next = { ...settings, ...partial };
       const { data } = await axios.put('/api/backup/settings', next, { headers });
-      setSettings(data);
+
+      // mesma normalização após salvar
+      const safe = {
+        retentionDays: data?.retentionDays ?? 30,
+        destinations: {
+          gdrive: {
+            enabled: !!data?.destinations?.gdrive?.enabled,
+            folderId: data?.destinations?.gdrive?.folderId || '',
+            clientEmail: data?.destinations?.gdrive?.clientEmail || '',
+            privateKey: data?.destinations?.gdrive?.privateKey || '',
+            useSharedDrive: !!data?.destinations?.gdrive?.useSharedDrive,
+            driveId: data?.destinations?.gdrive?.driveId || ''
+          },
+          dropbox: {
+            enabled: !!data?.destinations?.dropbox?.enabled,
+            folder: data?.destinations?.dropbox?.folder || '/Backups',
+            accessToken: data?.destinations?.dropbox?.accessToken || ''
+          }
+        },
+        schedule: {
+          enabled: !!data?.schedule?.enabled,
+          days: Array.isArray(data?.schedule?.days) ? data.schedule.days : [1, 3, 5],
+          times: Array.isArray(data?.schedule?.times) ? data.schedule.times : ['03:00'],
+          timezone: data?.schedule?.timezone || 'America/Sao_Paulo'
+        }
+      };
+
+      setSettings(safe);
       toast.success('Configurações salvas!');
     } catch (err) {
       const reason =
-        err?.response?.data?.error || err?.message || 'Falha ao salvar configurações.';
+        err?.response?.data?.error ||
+        err?.message ||
+        'Falha ao salvar configurações.';
       toast.error(reason);
     }
   }
@@ -82,12 +135,14 @@ export default function BackupConfig() {
       {/* Backup manual (download .zip) */}
       <BackupManual />
 
-      {/* Grid com cards de destinos */}
+      {/* Destinos (cards expansíveis) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <GoogleDriveCard
           value={settings.destinations.gdrive}
           onChange={async (val) => {
-            await save({ destinations: { ...settings.destinations, gdrive: val } });
+            await save({
+              destinations: { ...settings.destinations, gdrive: val }
+            });
           }}
           retentionDays={settings.retentionDays}
           onChangeRetention={async (days) => {
@@ -99,7 +154,9 @@ export default function BackupConfig() {
           value={settings.destinations.dropbox}
           retentionDays={settings.retentionDays}
           onChange={async (val) => {
-            await save({ destinations: { ...settings.destinations, dropbox: val } });
+            await save({
+              destinations: { ...settings.destinations, dropbox: val }
+            });
           }}
         />
       </div>
