@@ -77,12 +77,23 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
   const agsPagina = agendamentosFiltrados.slice(inicio, fim);
 
   const handleImprimir = () => {
-    const disciplinaAtual = agsPagina[0]?.disciplinaId || null;
+    const disciplinaAtual = agsPagina[0]?.disciplinaId || agsPagina[0]?.disciplina_id || null;
+    const disciplinaNome = agsPagina[0]?.disciplinaNome || "";
+
     const filtros = { data: filtroData, hora: filtroHora, busca: busca };
-    navigate('/print-agendamentos', {
+
+    // Build querystring como fallback
+    const params = new URLSearchParams();
+    if (disciplinaAtual) params.set('disciplinaId', disciplinaAtual);
+    if (disciplinaNome) params.set('disciplinaNome', disciplinaNome);
+    if (filtroData) params.set('data', filtroData);
+    if (filtroHora) params.set('hora', filtroHora);
+    if (busca) params.set('busca', busca);
+
+    navigate(`/print-agendamentos?${params.toString()}`, {
       state: {
         disciplinaId: disciplinaAtual,
-        disciplinaNome: agsPagina[0]?.disciplinaNome || "",
+        disciplinaNome,
         filtros
       }
     });

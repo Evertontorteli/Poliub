@@ -106,12 +106,22 @@ export default function DashboardRecepcao() {
   useEffect(() => { setPagina(1); }, [busca, filtroData, filtroHora, agendamentosFiltrados.length]);
 
   const handleImprimir = () => {
-    navigate("/print-agendamentos", {
-      state: {
-        disciplinaId: disciplinaSelecionada?.id || null,
-        disciplinaNome: disciplinaSelecionada?.nome || "",
-        filtros: { busca, filtroData, filtroHora },
-      },
+    const disciplinaId = disciplinaSelecionada?.id || null;
+    const disciplinaNome = disciplinaSelecionada?.nome || "";
+
+    // Envie com as chaves esperadas pelo Print: data, hora, busca
+    const filtros = { data: filtroData, hora: filtroHora, busca };
+
+    // Fallback via query string
+    const params = new URLSearchParams();
+    if (disciplinaId) params.set("disciplinaId", disciplinaId);
+    if (disciplinaNome) params.set("disciplinaNome", disciplinaNome);
+    if (filtroData) params.set("data", filtroData);
+    if (filtroHora) params.set("hora", filtroHora);
+    if (busca) params.set("busca", busca);
+
+    navigate(`/print-agendamentos?${params.toString()}`, {
+      state: { disciplinaId, disciplinaNome, filtros },
     });
   };
 
@@ -307,7 +317,7 @@ export default function DashboardRecepcao() {
                   className="p-2 hover:bg-gray-200 rounded-full transition"
                   onClick={handleDataClick}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#0095DA]" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#0095DA]" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><path d="M8 2v4" /><path d="M16 2v4" /><rect width="18" height="18" x="3" y="4" rx="2" /><path d="M3 10h18" /></svg>
                 </button>
                 <Tooltip text="Filtrar por data" />
                 <input
@@ -325,7 +335,7 @@ export default function DashboardRecepcao() {
                   className="p-2 hover:bg-gray-200 rounded-full transition"
                   onClick={handleHoraClick}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#0095DA]"  width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v6l4 2" /><circle cx="12" cy="12" r="10" /></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#0095DA]" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v6l4 2" /><circle cx="12" cy="12" r="10" /></svg>
                 </button>
                 <Tooltip text="Filtrar por hora" />
                 <input
