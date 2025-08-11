@@ -1,167 +1,214 @@
-// src/backup/cards/GoogleDriveCard.jsx
-import React, { useState } from 'react';
-import { ChevronLeft, CloudUpload } from 'lucide-react';
+// src/backup/cards/GoogleDriveCard.js
+import React, { useMemo, useState } from 'react';
+import { ChevronDown, ChevronUp, Cloud } from 'lucide-react';
+import axios from 'axios';
+import { toast } from 'react-toastify';
 
-const inputCls =
-  'w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300';
-const labelCls = 'block text-sm font-medium text-gray-700';
-
-function GoogleDriveLogo({ size = 42 }) {
-  // SVG simples do logo (flat) para não depender de assets externos
-  return (
-    <svg width={size} height={size} viewBox="0 0 256 224" xmlns="http://www.w3.org/2000/svg">
-      <path fill="#0F9D58" d="M44.7 167.9L82.3 232h91.4l-37.6-64.1z"/>
-      <path fill="#F4B400" d="M44.7 56.1L7.1 120.2l37.6 64.1 37.6-64.1z"/>
-      <path fill="#4285F4" d="M211.3 56.1L173.7 120.2l37.6 64.1L249 120.2z"/>
-      <path fill="#DB4437" d="M173.7 120.2H82.3L44.7 56.1h91.4z"/>
-      <path fill="#0F9D58" d="M173.7 120.2L136.1 56.1h-91.4l37.6 64.1z" opacity=".2"/>
-    </svg>
-  );
-}
-
-export default function GoogleDriveCard({
-  value,
-  onChange,
-  retentionDays,
-  onChangeRetention
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const [form, setForm] = useState({
+export default function GoogleDriveCard({ value, onChange, retentionDays, onChangeRetention }) {
+  // value esperado: { enabled, folderId, clientEmail, privateKey, useSharedDrive, driveId }
+  const [open, setOpen] = useState(false);
+  const [local, setLocal] = useState(() => ({
     enabled: !!value?.enabled,
-    folderId: value?.folderId || ''
-  });
-  const [days, setDays] = useState(retentionDays || 30);
-  const [saving, setSaving] = useState(false);
+    folderId: value?.folderId || '',
+    clientEmail: value?.clientEmail || '',
+    privateKey: value?.privateKey || '',
+    useSharedDrive: !!value?.useSharedDrive,
+    driveId: value?.driveId || ''
+  }));
 
-  function openDetails() {
-    setExpanded(true);
-    setForm({
-      enabled: !!value?.enabled,
-      folderId: value?.folderId || ''
-    });
-    setDays(retentionDays || 30);
-  }
+  const token =
+    JSON.parse(localStorage.getItem('user') || '{}')?.token ||
+    localStorage.getItem('token');
+  const headers = useMemo(() => ({ Authorization: `Bearer ${token}` }), [token]);
 
-  async function handleSave() {
-    setSaving(true);
+  const toggleOpen = () => setOpen(v => !v);
+
+  const save = async () => {
     try {
-      await onChange({ enabled: form.enabled, folderId: form.folderId });
-      await onChangeRetention(Number(days) || 30);
-      setExpanded(false);
-    } finally {
-      setSaving(false);
+      await onChange({
+        enabled: !!local.enabled,
+        folderId: local.folderId.trim(),
+        clientEmail: local.clientEmail.trim(),
+        privateKey: local.privateKey, // textarea aceita \n reais
+        useSharedDrive: !!local.useSharedDrive,
+        driveId: local.useSharedDrive ? local.driveId.trim() : ''
+      });
+      toast.success('Configurações do Google Drive salvas!');
+    } catch {
+      toast.error('Falha ao salvar configurações do Google Drive.');
     }
-  }
+  };
 
-  if (!expanded) {
-    // Modo "card" compacto
-    return (
-      <div
-        className="bg-white rounded-2xl shadow p-6 cursor-pointer hover:shadow-md transition"
-        onClick={openDetails}
-        role="button"
-      >
-        <div className="flex items-center gap-4">
-          <GoogleDriveLogo />
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-gray-800">Google Drive</h3>
-            <p className="text-sm text-gray-600">
-              Clique para configurar pasta, habilitar envio e retenção de dias.
-            </p>
-          </div>
-          <div className="text-sm">
-            <span
-              className={`px-2 py-1 rounded-full ${
-                value?.enabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-              }`}
-            >
-              {value?.enabled ? 'Ativado' : 'Desativado'}
+  const testGDrive = async () => {
+    try {
+      const payload = {
+        folderId: local.folderId,
+        clientEmail: local.clientEmail,
+        privateKey: local.privateKey,
+        useSharedDrive: !!local.useSharedDrive,
+        driveId: local.useSharedDrive ? local.driveId : undefined
+      };
+      const { data } = await axios.post('/api/backup/test/gdrive', payload, { headers });
+      if (data.ok) {
+        toast.success(`Google Drive OK. Pasta: ${data.folderName || local.folderId}`);
+      } else {
+        toast.error(data.error || 'Não foi possível validar a conexão com o Drive.');
+      }
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Falha no teste do Google Drive.');
+    }
+  };
+
+  const runNowGDrive = async () => {
+    try {
+      const { data } = await axios.post(
+        '/api/backup/run',
+        { destinations: ['gdrive'], cleanupDays: retentionDays ?? 30 },
+        { headers }
+      );
+      toast.success('Backup enviado ao Google Drive!');
+      // opcional: console.log(data);
+    } catch (e) {
+      toast.error(e.response?.data?.reason || 'Falha ao executar backup.');
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl shadow hover:shadow-md transition">
+      {/* Cabeçalho clicável */}
+      <button type="button" onClick={toggleOpen} className="w-full p-6 flex items-center gap-3 text-left">
+        <Cloud className="text-blue-500" />
+        <div className="flex-1">
+          <h3 className="text-lg font-semibold">Google Drive</h3>
+          <p className="text-sm text-gray-600">Envie seus backups para uma pasta do Google Drive.</p>
+        </div>
+        {open ? <ChevronUp /> : <ChevronDown />}
+      </button>
+
+      {/* Conteúdo expandido */}
+      {open && (
+        <div className="px-6 pb-6 space-y-4">
+          {/* Habilitar */}
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={!!local.enabled}
+                onChange={(e) => setLocal((p) => ({ ...p, enabled: e.target.checked }))}
+              />
+              Habilitar envio para Google Drive
+            </label>
+            <span className="ml-auto text-sm text-gray-500">
+              {local.enabled ? 'Habilitado' : 'Desabilitado'}
             </span>
           </div>
-        </div>
-      </div>
-    );
-  }
 
-  // Modo "detalhes" (no mesmo card) com botão Voltar
-  return (
-    <div className="bg-white rounded-2xl shadow p-0 overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-3 border-b">
-        <button
-          className="inline-flex items-center gap-1 text-gray-700 hover:text-gray-900"
-          onClick={() => setExpanded(false)}
-        >
-          <ChevronLeft size={18} />
-          Voltar
-        </button>
-      </div>
-
-      <div className="p-6 space-y-5">
-        <div className="flex items-center gap-3">
-          <GoogleDriveLogo />
+          {/* Folder ID */}
           <div>
-            <h3 className="text-lg font-semibold text-gray-800">Google Drive</h3>
-            <p className="text-sm text-gray-600">
-              Envie o backup para a pasta informada e limpe arquivos antigos.
+            <label className="block text-sm font-medium mb-1">Folder ID</label>
+            <input
+              type="text"
+              className="w-full border rounded px-3 py-2"
+              placeholder="ID da pasta de destino no Drive"
+              value={local.folderId}
+              onChange={(e) => setLocal((p) => ({ ...p, folderId: e.target.value }))}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Ex.: https://drive.google.com/drive/folders/<b>ID_AQUI</b> → use o trecho <b>ID_AQUI</b>.
             </p>
           </div>
-        </div>
 
-        {/* Habilitar */}
-        <div className="flex items-center gap-3">
-          <input
-            id="gdrive-enabled"
-            type="checkbox"
-            checked={form.enabled}
-            onChange={(e) => setForm({ ...form, enabled: e.target.checked })}
-          />
-          <label htmlFor="gdrive-enabled" className="text-sm text-gray-800">
-            Habilitar envio para o Google Drive
-          </label>
-        </div>
+          {/* Service Account Email */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Service Account - client_email</label>
+            <input
+              type="email"
+              className="w-full border rounded px-3 py-2"
+              placeholder="ex.: my-service@project.iam.gserviceaccount.com"
+              value={local.clientEmail}
+              onChange={(e) => setLocal((p) => ({ ...p, clientEmail: e.target.value }))}
+            />
+          </div>
 
-        {/* Folder ID */}
-        <div>
-          <label className={labelCls}>ID da Pasta (Folder ID)</label>
-          <input
-            type="text"
-            className={inputCls}
-            placeholder="Ex.: 1AbCDefGhijkLMNOPqR..."
-            value={form.folderId}
-            onChange={(e) => setForm({ ...form, folderId: e.target.value })}
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            Dica: abra a pasta no Drive e copie o ID da URL. <br />
-            Certifique-se de compartilhar a pasta com o e-mail da Service Account.
-          </p>
-        </div>
+          {/* Private Key */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Service Account - private_key</label>
+            <textarea
+              className="w-full border rounded px-3 py-2 min-h-[120px]"
+              placeholder={`-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n`}
+              value={local.privateKey}
+              onChange={(e) => setLocal((p) => ({ ...p, privateKey: e.target.value }))}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Cole exatamente como está no JSON (com quebras de linha).
+            </p>
+          </div>
 
-        {/* Retenção */}
-        <div className="max-w-xs">
-          <label className={labelCls}>Excluir backups com mais de (dias)</label>
-          <input
-            type="number"
-            min={1}
-            className={inputCls}
-            value={days}
-            onChange={(e) => setDays(e.target.value)}
-          />
-        </div>
+          {/* Shared Drive (opcional) */}
+          <div className="flex items-center gap-2">
+            <input
+              id="useSharedDrive"
+              type="checkbox"
+              checked={!!local.useSharedDrive}
+              onChange={(e) => setLocal((p) => ({ ...p, useSharedDrive: e.target.checked }))}
+            />
+            <label htmlFor="useSharedDrive" className="text-sm">Usar Shared Drive (Drive Compartilhado)</label>
+          </div>
 
-        {/* Ações */}
-        <div className="pt-2">
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className={`${
-              saving ? 'opacity-70 cursor-not-allowed' : ''
-            } bg-green-600 hover:bg-green-700 text-white font-bold px-4 py-2 rounded-full inline-flex items-center gap-2`}
-          >
-            <CloudUpload size={18} />
-            {saving ? 'Salvando…' : 'Salvar configurações'}
-          </button>
+          {local.useSharedDrive && (
+            <div>
+              <label className="block text-sm font-medium mb-1">Drive ID (Shared Drive)</label>
+              <input
+                type="text"
+                className="w-full border rounded px-3 py-2"
+                placeholder="ID da Shared Drive (não é a pasta)"
+                value={local.driveId}
+                onChange={(e) => setLocal((p) => ({ ...p, driveId: e.target.value }))}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Selecione a Shared Drive correta e informe seu ID. Lembre de compartilhar a pasta
+                com a Service Account.
+              </p>
+            </div>
+          )}
+
+          {/* Retenção (opcional, mesmo padrão do seu layout) */}
+          {typeof retentionDays !== 'undefined' && onChangeRetention && (
+            <div>
+              <label className="block text-sm font-medium mb-1">Manter por (dias)</label>
+              <input
+                type="number"
+                min={1}
+                className="w-full border rounded px-3 py-2"
+                value={retentionDays}
+                onChange={(e) => onChangeRetention(parseInt(e.target.value || '30', 10))}
+              />
+            </div>
+          )}
+
+          {/* Ações */}
+          <div className="flex gap-3">
+            <button
+              onClick={save}
+              className="bg-[#1A1C2C] hover:bg-[#3B4854] text-white px-4 py-2 rounded-full"
+            >
+              Salvar
+            </button>
+            <button
+              onClick={testGDrive}
+              className="bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-full"
+            >
+              Testar conexão
+            </button>
+            <button
+              onClick={runNowGDrive}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-full ml-auto"
+            >
+              Executar backup agora
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
