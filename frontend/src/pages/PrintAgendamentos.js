@@ -7,14 +7,11 @@ export default function PrintAgendamentos() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Estado interno
   const [todosAgendamentos, setTodosAgendamentos] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Carimbo do momento em que a tela de impressão é aberta (fixo)
   const [printStamp] = useState(new Date());
 
-  // ---------- Fallback de state -> query string + compat de nomes ----------
+  // ---------- state/query compat ----------
   const params = new URLSearchParams(location.search);
   const s = location.state || {};
   const fs = s.filtros || {};
@@ -25,28 +22,32 @@ export default function PrintAgendamentos() {
   const disciplinaNome =
     s.disciplinaNome ?? (params.get('disciplinaNome') || undefined);
 
-  // Aceita tanto data/hora quanto filtroData/filtroHora
   const filtros = {
     data: fs.data ?? fs.filtroData ?? params.get('data') ?? undefined,
     hora: fs.hora ?? fs.filtroHora ?? params.get('hora') ?? undefined,
     busca: fs.busca ?? params.get('busca') ?? undefined,
   };
 
-  // Util: "YYYY-MM-DD" -> "DD/MM/YYYY"
   function formatarData(isoDate) {
     if (!isoDate) return '';
     const [yyyy, mm, dd] = isoDate.split('-');
     return `${dd}/${mm}/${yyyy}`;
   }
 
-  // Filtro local igual ao da lista, com compat de disciplina_id/Id
+  // limita Pron./Gav. a 3 dígitos
+  function fmt3(v) {
+    if (v === undefined || v === null) return '-';
+    const onlyDigits = String(v).replace(/\D/g, '');
+    const val = (onlyDigits || String(v)).slice(0, 3);
+    return val || '-';
+  }
+
+  // Filtro local
   const filtrarAgendamentos = (lista) => {
     return lista.filter((ag) => {
       const agDiscId = ag.disciplina_id ?? ag.disciplinaId;
 
-      if (disciplinaId && String(agDiscId) !== String(disciplinaId)) {
-        return false;
-      }
+      if (disciplinaId && String(agDiscId) !== String(disciplinaId)) return false;
 
       if (filtros?.busca) {
         const textoBusca = String(filtros.busca).toLowerCase();
@@ -56,7 +57,9 @@ export default function PrintAgendamentos() {
           ag.disciplinaNome,
           ag.pacienteNome,
           ag.status,
-        ].map((x) => (x ? String(x).toLowerCase() : ''));
+          ag.numero_prontuario,
+          ag.numero_gaveta,
+        ].map((x) => (x !== undefined && x !== null ? String(x).toLowerCase() : ''));
         if (!campos.some((c) => c.includes(textoBusca))) return false;
       }
 
@@ -91,7 +94,7 @@ export default function PrintAgendamentos() {
     return () => { ativo = false; };
   }, []);
 
-  // 2) Após carregar, dispara impressão e retorna
+  // 2) Imprimir e voltar
   useEffect(() => {
     if (!loading) {
       const id = setTimeout(() => {
@@ -103,11 +106,7 @@ export default function PrintAgendamentos() {
   }, [loading, navigate]);
 
   if (loading) {
-    return (
-      <div className="p-8">
-        <p>Preparando impressão...</p>
-      </div>
-    );
+    return <div className="p-8"><p>Preparando impressão...</p></div>;
   }
 
   const agendamentosFiltrados = filtrarAgendamentos(todosAgendamentos);
@@ -116,72 +115,80 @@ export default function PrintAgendamentos() {
     <div className="printable bg-white p-8">
       <h2 className="text-2xl font-bold mb-4">Lista de Agendamentos</h2>
 
-      {/* Cabeçalho de contexto / filtros aplicados */}
       <div className="text-gray-700 mb-3 space-y-1">
         {disciplinaNome && (
-          <p>
-            <span className="font-semibold">Disciplina:</span> {disciplinaNome}
-          </p>
+          <p><span className="font-semibold">Disciplina:</span> {disciplinaNome}</p>
         )}
-
-        {/* Data selecionada + Data da impressão na MESMA LINHA */}
         <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
           {filtros?.data && (
             <span className="whitespace-nowrap">
               <span className="font-semibold">Data selecionada:</span>{' '}
-              {formatarData(filtros.data)}
-              {/* Se existir hora filtrada, mostra junto */}
-              {filtros?.hora ? ` ${filtros.hora}` : ''}
+              {formatarData(filtros.data)}{filtros?.hora ? ` ${filtros.hora}` : ''}
             </span>
           )}
-
           <span className="whitespace-nowrap">
             <span className="font-semibold">Data da impressão:</span>{' '}
             {printStamp.toLocaleDateString('pt-BR')} - {printStamp.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
           </span>
         </div>
-
-        {/* Busca, se houver */}
         {filtros?.busca && String(filtros.busca).trim() !== '' && (
-          <p>
-            <span className="font-semibold">Busca:</span> “{filtros.busca}”
-          </p>
+          <p><span className="font-semibold">Busca:</span> “{filtros.busca}”</p>
         )}
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-full bg-white divide-y divide-gray-200 rounded-lg shadow-sm">
+        <table className="min-w-full table-fixed bg-white divide-y divide-gray-200 rounded-lg shadow-sm">
+          {/* Larguras ajustadas para caber na página */}
+          <colgroup>
+            <col style={{ width: '3ch' }} />   {/* # */}
+            <col style={{ width: '5ch' }} />   {/* Box */}
+            <col style={{ width: '16ch' }} />  {/* Operador */}
+            <col style={{ width: '16ch' }} />  {/* Auxiliar */}
+            <col style={{ width: '26ch' }} />  {/* Paciente */}
+            <col style={{ width: '5.5ch' }} /> {/* Pron. */}
+            <col style={{ width: '5.5ch' }} /> {/* Gav. */}
+            <col style={{ width: '10ch' }} />  {/* Status */}
+          </colgroup>
+
           <thead className="bg-gray-100">
             <tr>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">
-                #
-              </th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">
-                Box
-              </th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">
-                Operador
-              </th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">
-                Auxiliar
-              </th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">
-                Paciente
-              </th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">
-                Status
-              </th>
+              <th className="px-2 py-2 text-left text-xs font-medium text-gray-600 uppercase">#</th>
+              <th className="px-2 py-2 text-left text-xs font-medium text-gray-600 uppercase">Box</th>
+              <th className="px-2 py-2 text-left text-xs font-medium text-gray-600 uppercase">Operador</th>
+              <th className="px-2 py-2 text-left text-xs font-medium text-gray-600 uppercase">Auxiliar</th>
+              <th className="px-2 py-2 text-left text-xs font-medium text-gray-600 uppercase">Paciente</th>
+              <th className="px-2 py-2 text-center text-xs font-medium text-gray-600 uppercase">Pron.</th>
+              <th className="px-2 py-2 text-center text-xs font-medium text-gray-600 uppercase">Gav.</th>
+              <th className="px-2 py-2 text-left text-xs font-medium text-gray-600 uppercase">Status</th>
             </tr>
           </thead>
+
           <tbody className="bg-white divide-y divide-gray-200">
             {agendamentosFiltrados.map((ag, idx) => (
               <tr key={ag.id || idx} className="hover:bg-gray-50">
-                <td className="px-4 py-2 text-sm text-gray-800 text-center">{idx + 1}</td>
-                <td className="px-4 py-2 text-sm text-gray-800 text-center">{ag.operadorBox ?? '-'}</td>
-                <td className="px-4 py-2 text-sm text-gray-800">{ag.operadorNome || '-'}</td>
-                <td className="px-4 py-2 text-sm text-gray-800">{ag.auxiliarNome || '-'}</td>
-                <td className="px-4 py-2 text-sm text-gray-800">{ag.pacienteNome || '-'}</td>
-                <td className="px-4 py-2 text-sm text-gray-800">{ag.status || '-'}</td>
+                <td className="px-2 py-2 text-sm text-gray-800 text-center">{idx + 1}</td>
+                <td className="px-2 py-2 text-sm text-gray-800 text-center">{ag.operadorBox ?? '-'}</td>
+                <td className="px-2 py-2 text-sm text-gray-800">{ag.operadorNome || '-'}</td>
+                <td className="px-2 py-2 text-sm text-gray-800">{ag.auxiliarNome || '-'}</td>
+
+                {/* Paciente: não quebrar + reticências */}
+                <td
+                  className="px-2 py-2 text-sm text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis"
+                  style={{ maxWidth: '26ch' }}
+                  title={ag.pacienteNome || '-'}
+                >
+                  {ag.pacienteNome || '-'}
+                </td>
+
+                {/* Pron./Gav.: 3 dígitos, centralizados e sem quebra */}
+                <td className="px-2 py-2 text-sm text-gray-800 text-center whitespace-nowrap tabular-nums">
+                  {fmt3(ag.numero_prontuario)}
+                </td>
+                <td className="px-2 py-2 text-sm text-gray-800 text-center whitespace-nowrap tabular-nums">
+                  {fmt3(ag.numero_gaveta)}
+                </td>
+
+                <td className="px-2 py-2 text-sm text-gray-800">{ag.status || '-'}</td>
               </tr>
             ))}
           </tbody>
@@ -190,6 +197,13 @@ export default function PrintAgendamentos() {
 
       <style>
         {`
+          /* Mais espaço entre linhas (preview e print) */
+          .printable th, .printable td {
+            padding-top: 10px !important;
+            padding-bottom: 10px !important;
+            line-height: 1.35;
+          }
+
           @media print {
             body * { visibility: hidden; }
             .printable, .printable * { visibility: visible !important; }
@@ -198,11 +212,16 @@ export default function PrintAgendamentos() {
               top: auto; left: auto;
               width: auto !important;
               margin: 0;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
             }
+            /* Mostra todo o conteúdo na impressão (sem cortar colunas) */
+            .printable .overflow-x-auto { overflow: visible !important; }
             .printable table {
               width: 100% !important;
               border-collapse: collapse !important;
             }
+            .printable th, .printable td { vertical-align: middle; }
           }
         `}
       </style>
