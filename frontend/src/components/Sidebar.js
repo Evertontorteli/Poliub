@@ -101,12 +101,14 @@ export default function Sidebar({ active, onMenuClick }) {
             onClick={() => onMenuClick("auditoria")}
           />
         )}
-         <MenuItem
+        { role !== "aluno" &&(
+         <MenuItem         
           icon={<Database size={24} />}
           label="Backup"
           active={active === "backup"}
           onClick={() => onMenuClick("backup")}
-        />
+        />)}
+
         <MenuItem
           icon={<HelpCircle size={24} />}
           label="Ajuda"

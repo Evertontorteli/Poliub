@@ -38,7 +38,7 @@ export default function PrintAgendamentos() {
   function fmt3(v) {
     if (v === undefined || v === null) return '-';
     const onlyDigits = String(v).replace(/\D/g, '');
-    const val = (onlyDigits || String(v)).slice(0, 3);
+    const val = (onlyDigits || String(v)).slice(0, 5);
     return val || '-';
   }
 
