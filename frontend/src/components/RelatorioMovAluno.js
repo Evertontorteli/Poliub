@@ -1,10 +1,7 @@
 // src/components/RelatorioMovAluno.jsx
 import React, { useEffect, useMemo, useState, useRef } from 'react';
 import axios from 'axios';
-import { Printer, Plus, Minus, Calendar, ArrowUpDown } from 'lucide-react';
-import DatePicker, { registerLocale } from 'react-datepicker';
-import ptBR from 'date-fns/locale/pt-BR';
-import 'react-datepicker/dist/react-datepicker.css';
+import { Printer, Plus, Minus, ArrowUpDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function RelatorioMovAluno() {
@@ -12,34 +9,16 @@ export default function RelatorioMovAluno() {
   const [periodos, setPeriodos] = useState([]);
   const [periodoId, setPeriodoId] = useState(null); // opcional
   const [searchTerm, setSearchTerm] = useState('');
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
-
   // Número total de colunas na tabela
   const TOTAL_COLUNAS = 7;
-
-  // Período padrão de 30 dias
-  useEffect(() => {
-    if (!from && !to) {
-      const hoje = new Date();
-      const trintaDiasAtras = new Date(hoje.getTime() - (30 * 24 * 60 * 60 * 1000));
-      
-      const toYmd = (d) => d.toISOString().slice(0, 10);
-      setFrom(toYmd(trintaDiasAtras));
-      setTo(toYmd(hoje));
-    }
-  }, []);
 
   const [carregando, setCarregando] = useState(false);
   const [linhas, setLinhas] = useState([]); // resumo
   const [detalhes, setDetalhes] = useState({}); // { [alunoId]: { loading, data } }
   const POR_PAGINA = 30;
   const [pagina, setPagina] = useState(1);
-  const [showDatePopover, setShowDatePopover] = useState(false);
   const [sortField, setSortField] = useState('alunoNome');
   const [sortDir, setSortDir] = useState('asc');
-  const datePopoverRef = useRef(null);
-  registerLocale('pt-BR', ptBR);
 
   // Carrega períodos para o select
   useEffect(() => {
@@ -48,37 +27,23 @@ export default function RelatorioMovAluno() {
       if (!ativo) return;
       const lista = Array.isArray(res.data) ? res.data : [];
       setPeriodos(lista);
+    }).catch(err => {
+      console.error('[Relatório] Erro ao carregar períodos:', err);
     });
     return () => { ativo = false; };
   }, []);
 
-  // Fecha popover de data ao clicar fora
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (datePopoverRef.current && !datePopoverRef.current.contains(event.target)) {
-        setShowDatePopover(false);
-      }
-    }
-
-    if (showDatePopover) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showDatePopover]);
-
   // Busca automática sempre que filtros mudarem
   useEffect(() => {
     let ativo = true;
+
     const fetchResumo = async () => {
       setCarregando(true);
       try {
         const params = {};
-        if (periodoId && periodoId !== '') params.periodoId = periodoId;
-        if (from) params.from = from;
-        if (to) params.to = to;
+        if (periodoId !== null && periodoId !== '') {
+          params.periodoId = periodoId;
+        }
 
         const res = await axios.get('/api/movimentacoes/relatorio', { params });
         if (!ativo) return;
@@ -92,7 +57,7 @@ export default function RelatorioMovAluno() {
     };
     fetchResumo();
     return () => { ativo = false; };
-  }, [periodoId, from, to]);
+  }, [periodoId]);
 
   // Busca local em tempo real (aluno, período)
   const linhasFiltradas = useMemo(() => {
@@ -135,7 +100,7 @@ export default function RelatorioMovAluno() {
 
   useEffect(() => {
     setPagina(1);
-  }, [searchTerm, periodoId, from, to, linhas.length]);
+  }, [searchTerm, periodoId, linhas.length]);
 
   function Paginador() {
     return (
@@ -189,10 +154,7 @@ export default function RelatorioMovAluno() {
     setDetalhes(prev => ({ ...prev, [alunoId]: { loading: true, data: [] } }));
 
     try {
-      const params = {};
-      if (from) params.from = from;
-      if (to) params.to = to;
-      const res = await axios.get(`/api/movimentacoes/alunos/${alunoId}/movimentacoes`, { params });
+      const res = await axios.get(`/api/movimentacoes/alunos/${alunoId}/movimentacoes`);
 
       setDetalhes(prev => ({
         ...prev,
@@ -233,26 +195,24 @@ export default function RelatorioMovAluno() {
     // Navegar para a página de impressão com os filtros atuais
     const filters = {
       searchTerm,
-      periodoId: periodoId && periodoId !== '' ? periodoId : null,
-      from,
-      to
+      periodoId: periodoId !== null && periodoId !== '' ? periodoId : null
     };
-    
+
     // Navegar para a página de impressão (mesmo comportamento do PrintListButton)
     navigate('/print-movimentacoes-aluno', { state: filters });
   };
 
-  const periodoOptions = useMemo(() => ([
+  const periodoOptions = useMemo(() => [
     { id: null, nome: 'Selecione um período (opcional)', disabled: true },
     { id: '', nome: 'Todos os períodos' },
     ...periodos.map(p => ({ id: String(p.id), nome: `${p.nome}${p.turno ? ' - ' + p.turno : ''}` })),
-  ]), [periodos]);
+  ], [periodos]);
 
-      return (
-      <div className="max-w-auto mx-auto py-4 px-4">
-        <div className="bg-white rounded-2xl shadow p-6">
-          <h2 className="text-lg font-medium mb-6 text-[#1d3557]">Movimentações por Aluno</h2>
-        
+  return (
+    <div className="max-w-auto mx-auto py-4 px-4">
+      <div className="bg-white rounded-2xl shadow p-6">
+        <h2 className="text-lg font-medium mb-6 text-[#1d3557]">Movimentações por Aluno</h2>
+
         {/* Explicação da regra dos 30 dias */}
         <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="flex items-start">
@@ -262,10 +222,9 @@ export default function RelatorioMovAluno() {
               </div>
             </div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-blue-800">Regra de Validade das Caixas</h3>
               <p className="text-sm text-blue-700 mt-1">
-                <strong>Caixas vencidas:</strong> Alunos que não tiveram entrada nem saída no período selecionado 
-                (padrão: últimos 30 dias).
+                <strong>Caixas vencidas:</strong> Alunos que não tiveram entrada nem saída nos últimos 30 dias.
+                O sistema sempre verifica os últimos 30 dias para determinar o status.
               </p>
             </div>
           </div>
@@ -276,11 +235,11 @@ export default function RelatorioMovAluno() {
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
             <div className="flex items-center space-x-2">
               <div className="w-4 h-4 bg-green-500 rounded-full"></div>
-              <span className="text-sm text-gray-700">Aluno ativo (teve movimentação no período)</span>
+              <span className="text-sm text-gray-700">Aluno ativo (teve movimentação nos últimos 30 dias)</span>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-4 h-4 bg-red-500 rounded-full"></div>
-              <span className="text-sm text-gray-700">Caixa vencida (sem movimentação no período)</span>
+              <span className="text-sm text-gray-700">Caixa vencida (sem movimentação nos últimos 30 dias)</span>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-4 h-4 bg-gray-500 rounded-full"></div>
@@ -305,12 +264,19 @@ export default function RelatorioMovAluno() {
             <label className="block text-sm text-gray-600 mb-2">Período (opcional)</label>
             <select
               className="border rounded px-4 py-2 w-full rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-300"
-              value={periodoId || ''}
-              onChange={e => setPeriodoId(e.target.value === '' ? null : e.target.value)}
+              value={periodoId === null ? '' : periodoId}
+              onChange={e => {
+                const value = e.target.value;
+                if (value === '') {
+                  setPeriodoId(null);
+                } else {
+                  setPeriodoId(value);
+                }
+              }}
             >
               {periodoOptions.map(opt => (
-                <option 
-                  key={opt.id === null ? 'placeholder' : opt.id || 'all'} 
+                <option
+                  key={opt.id === null ? 'placeholder' : opt.id || 'all'}
                   value={opt.id === null ? '' : opt.id}
                   disabled={opt.disabled}
                 >
@@ -320,73 +286,19 @@ export default function RelatorioMovAluno() {
             </select>
           </div>
 
-          <div className="flex items-center justify-center lg:justify-start gap-4 mt-2 lg:mt-0 relative">
-            <button
-              type="button"
-              className="p-2 hover:bg-gray-200 rounded-full transition"
-              onClick={() => setShowDatePopover(v => !v)}
-              title="Filtrar por período"
-              aria-label="Filtrar por período"
-            >
-              <Calendar size={24} className="text-[#3172C0]" />
-            </button>
-            {showDatePopover && (
-              <div className="absolute z-50 top-10 right-0 bg-white border rounded-xl shadow-lg p-3" ref={datePopoverRef}>
-                <DatePicker
-                  inline
-                  selectsRange
-                  startDate={from ? new Date(from) : null}
-                  endDate={to ? new Date(to) : null}
-                  onChange={(dates) => {
-                    const [start, end] = dates;
-                    const toYmd = (d) => d ? new Date(d).toISOString().slice(0, 10) : '';
-                    setFrom(toYmd(start));
-                    setTo(toYmd(end));
-                    if (end) setShowDatePopover(false);
-                  }}
-                  locale="pt-BR"
-                />
-                <div className="flex items-center justify-between gap-2 mt-3">
-                  <button
-                    type="button"
-                    className="px-3 py-1 rounded-2xl text-sm bg-gray-100 hover:bg-gray-200"
-                    title="Selecionar hoje"
-                    onClick={() => {
-                      const today = new Date();
-                      const toYmd = (d) => d ? new Date(d).toISOString().slice(0, 10) : '';
-                      const ymd = toYmd(today);
-                      setFrom(ymd);
-                      setTo(ymd);
-                      setShowDatePopover(false);
-                    }}
-                  >
-                    Hoje
-                  </button>
-                  <button
-                    type="button"
-                    className="px-3 py-1 rounded-2xl text-sm bg-gray-100 hover:bg-gray-200"
-                    title="Limpar período"
-                    onClick={() => { setFrom(''); setTo(''); setShowDatePopover(false); }}
-                  >
-                    Limpar
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+
 
           <div className="flex gap-2 ml-auto">
             <button
               type="button"
-              className={`p-2 rounded hover:bg-blue-100 text-blue-800 transition relative ${
-                searchTerm || (periodoId && periodoId !== '') || from || to ? 'bg-blue-50' : ''
-              }`}
+              className={`p-2 rounded hover:bg-blue-100 text-blue-800 transition relative ${searchTerm || (periodoId !== null && periodoId !== '') ? 'bg-blue-50' : ''
+                }`}
               onClick={handlePrint}
               aria-label="Imprimir relatório"
               title="Imprimir relatório"
             >
-              <Printer size={24} className={`${searchTerm || (periodoId && periodoId !== '') || from || to ? 'text-blue-600' : 'text-[#3172C0]'}`} />
-              {(searchTerm || (periodoId && periodoId !== '') || from || to) && (
+              <Printer size={24} className={`${searchTerm || (periodoId !== null && periodoId !== '') ? 'text-blue-600' : 'text-[#3172C0]'}`} />
+              {(searchTerm || (periodoId !== null && periodoId !== '')) && (
                 <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full"></span>
               )}
             </button>
@@ -452,20 +364,19 @@ export default function RelatorioMovAluno() {
                         </td>
                         <td className="px-3 py-3 text-center">
                           {/* Bolinha de status */}
-                          <div className={`w-4 h-4 rounded-full mx-auto ${
-                            l.teveEntrada || l.teveSaida 
-                              ? 'bg-green-500' 
-                              : l.saldoTotal !== 0 
-                                ? 'bg-red-500' 
+                          <div className={`w-4 h-4 rounded-full mx-auto ${l.teveEntrada || l.teveSaida
+                              ? 'bg-green-500'
+                              : l.saldoTotal !== 0
+                                ? 'bg-red-500'
                                 : 'bg-gray-500'
-                          }`} 
-                          title={
-                            l.teveEntrada || l.teveSaida 
-                              ? 'Aluno ativo (teve movimentação no período)' 
-                              : l.saldoTotal !== 0 
-                                ? 'Caixa vencida (sem movimentação no período)' 
-                                : 'Sem movimentação alguma'
-                          }></div>
+                            }`}
+                            title={
+                              l.teveEntrada || l.teveSaida
+                                ? 'Aluno ativo (teve movimentação nos últimos 30 dias)'
+                                : l.saldoTotal !== 0
+                                  ? 'Caixa vencida (sem movimentação nos últimos 30 dias)'
+                                  : 'Sem movimentação alguma'
+                            }></div>
                         </td>
                         <td className="px-3 py-3 text-gray-900">
                           {l.alunoNome}
@@ -512,11 +423,13 @@ export default function RelatorioMovAluno() {
                                         <th className="px-3 py-2 text-left">Tipo</th>
                                         <th className="px-3 py-2 text-left">Caixa</th>
                                         <th className="px-3 py-2 text-left">Operador</th>
+                                        <th className="px-3 py-2 text-left">Período</th>
                                       </tr>
                                     </thead>
                                     <tbody>
                                       {detalhes[l.alunoId].data.map(m => (
-                                        <tr key={m.id} className="border-t odd:bg-white even:bg-gray-50">
+                                        <tr key={m.id} className={`border-t odd:bg-white even:bg-gray-50 ${m.nosUltimos30Dias ? 'bg-green-50' : 'bg-gray-50'
+                                          }`}>
                                           <td className="px-3 py-2">
                                             {m.criado_em
                                               ? new Date(String(m.criado_em).replace(' ', 'T')).toLocaleString('pt-BR')
@@ -525,6 +438,17 @@ export default function RelatorioMovAluno() {
                                           <td className="px-3 py-2 capitalize">{m.tipo}</td>
                                           <td className="px-3 py-2">{m.caixaNome}</td>
                                           <td className="px-3 py-2">{m.operadorNome}</td>
+                                          <td className="px-3 py-2">
+                                            {m.nosUltimos30Dias ? (
+                                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-800">
+                                                Últimos 30 dias
+                                              </span>
+                                            ) : (
+                                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-800">
+                                                Antigo
+                                              </span>
+                                            )}
+                                          </td>
                                         </tr>
                                       ))}
                                     </tbody>
