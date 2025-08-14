@@ -8,17 +8,29 @@ router.get("/", verificaTokenComSessaoUnica, apenasRecepcao, async (req, res) =>
   try {
     const { data, limit = 100, offset = 0 } = req.query;
 
-    let query = "SELECT * FROM logs";
+    let query = `SELECT 
+                   id,
+                   usuario_id,
+                   usuario_nome,
+                   acao,
+                   entidade,
+                   entidade_id,
+                   detalhes,
+                   DATE_FORMAT(
+                     CONVERT_TZ(criado_em, '+00:00', 'America/Sao_Paulo'),
+                     '%Y-%m-%d %H:%i:%s'
+                   ) AS criado_em
+                 FROM logs`;
     const params = [];
 
     if (data) {
-      query += " WHERE DATE(criado_em) = ?";
+      query += " WHERE DATE(CONVERT_TZ(criado_em, '+00:00', 'America/Sao_Paulo')) = ?";
       params.push(data);
     }
     query += " ORDER BY criado_em DESC LIMIT ? OFFSET ?";
     params.push(Number(limit), Number(offset));
 
-    const conn = await Log.getConnection ? await Log.getConnection() : await require('../database').getConnection();
+    const conn = await (Log.getConnection ? Log.getConnection() : require('../database').getConnection());
     const [logs] = await conn.query(query, params);
     conn.release?.();
 

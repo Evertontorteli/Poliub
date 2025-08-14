@@ -4,10 +4,23 @@ const pool = require('../database');
 exports.listarLogs = async (req, res) => {
   const { limit = 100, offset = 0, data } = req.query;
   const params = [];
-  let sql = 'SELECT * FROM logs';
+  let sql = `SELECT 
+               id,
+               usuario_id,
+               usuario_nome,
+               acao,
+               entidade,
+               entidade_id,
+               detalhes,
+               DATE_FORMAT(
+                 CONVERT_TZ(criado_em, '+00:00', 'America/Sao_Paulo'),
+                 '%Y-%m-%d %H:%i:%s'
+               ) AS criado_em
+             FROM logs`;
 
   if (data) {
-    sql += ' WHERE DATE(criado_em) = ?';
+    // Aplica filtro considerando timezone de São Paulo
+    sql += " WHERE DATE(CONVERT_TZ(criado_em, '+00:00', 'America/Sao_Paulo')) = ?";
     params.push(data); // formato 'YYYY-MM-DD'
   }
 

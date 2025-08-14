@@ -64,10 +64,13 @@ export default function TelaEsterilizacao() {
 
         // últimos 30 dias
         const hoje = new Date()
-        const from = subDays(hoje, 30).toISOString().slice(0, 10)
-        const to = hoje.toISOString().slice(0, 10)
+        const pad = n => String(n).padStart(2, '0')
+        const toKey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`
+        const from = toKey(subDays(hoje, 30))
+        const to = toKey(hoje)
+        const parseKey = (s) => toKey(new Date(String(s).replace(' ', 'T')))
         const last30 = alunoMoves.filter(m => {
-          const d = new Date(m.criado_em).toISOString().slice(0, 10)
+          const d = parseKey(m.criado_em)
           return d >= from && d <= to
         })
 
@@ -170,12 +173,13 @@ export default function TelaEsterilizacao() {
       }
     }
     try {
-      await Promise.all(caixas.map(c =>
-        axios.post(`/api/movimentacoes/${tipo}`, {
+      // Executa sequencialmente para evitar corrida que poderia permitir saldo negativo
+      for (const c of caixas) {
+        await axios.post(`/api/movimentacoes/${tipo}`, {
           caixa_id: c.id,
           aluno_pin: alunoPin
         })
-      ))
+      }
       toast.success(
         `${tipo === 'entrada' ? 'Entrada' : 'Saída'} registrada! ${alunoNome}`,
         { autoClose: 5000 }

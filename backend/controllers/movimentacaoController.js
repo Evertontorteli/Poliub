@@ -104,43 +104,52 @@ exports.registrarSaida = async (req, res) => {
         .json({ error: 'Não foi possível determinar o período do aluno.' });
     }
 
-    // 3) verifica se há estoque suficiente para esta caixa
-    const connSaldo = await getConnection();
-    let saldo;
+    // 3) Usa transação com bloqueio pessimista para evitar saldo negativo em concorrência
+    const conn = await getConnection();
     try {
-      const [rows] = await connSaldo.execute(
-        `SELECT COALESCE(SUM(
-           CASE WHEN tipo = 'entrada' THEN 1
-                WHEN tipo = 'saida'   THEN -1
-                ELSE 0 END
-         ), 0) AS saldo
+      await conn.beginTransaction();
+
+      // Bloqueia as linhas relevantes para este aluno/caixa
+      const [lockRows] = await conn.execute(
+        `SELECT id, tipo
          FROM movimentacoes_esterilizacao
-         WHERE aluno_id = ? AND caixa_id = ?`,
+         WHERE aluno_id = ? AND caixa_id = ?
+         FOR UPDATE`,
         [finalAlunoId, caixa_id]
       );
-      saldo = rows[0].saldo;
+
+      // Calcula saldo atual já com as linhas bloqueadas
+      let saldo = 0;
+      for (const r of lockRows) {
+        if (r.tipo === 'entrada') saldo += 1;
+        else if (r.tipo === 'saida') saldo -= 1;
+      }
+
+      if (saldo <= 0) {
+        await conn.rollback();
+        return res
+          .status(400)
+          .json({
+            error: 'Impossível registrar saída: não há estoque disponível para esta caixa.'
+          });
+      }
+
+      // Insere a saída utilizando a MESMA conexão/tx
+      const [insertRes] = await conn.execute(
+        `INSERT INTO movimentacoes_esterilizacao
+           (caixa_id, aluno_id, operador_id, tipo, periodo_id)
+         VALUES (?, ?, ?, 'saida', ?)`,
+        [caixa_id, finalAlunoId, operador_id, periodo_id]
+      );
+
+      await conn.commit();
+      return res.status(201).json({ id: insertRes.insertId });
+    } catch (e) {
+      try { if (conn) await conn.rollback(); } catch (_) {}
+      throw e;
     } finally {
-      connSaldo.release();
+      try { if (conn) conn.release(); } catch (_) {}
     }
-
-    if (saldo <= 0) {
-      return res
-        .status(400)
-        .json({
-          error: 'Impossível registrar saída: não há estoque disponível para esta caixa.'
-        });
-    }
-
-    // 4) insere a movimentação de saída, incluindo periodo_id
-    const id = await Movimentacao.inserir({
-      caixa_id,
-      aluno_id: finalAlunoId,
-      operador_id,
-      tipo: 'saida',
-      periodo_id
-    });
-
-    return res.status(201).json({ id });
   } catch (err) {
     console.error('Erro ao registrar saída:', err);
     return res.status(500).json({ error: 'Erro ao registrar saída' });
@@ -222,3 +231,150 @@ exports.historicoPorAluno = async (req, res) => {
     return res.status(500).json({ error: 'Erro ao buscar histórico do aluno' });
   }
 };
+
+/* -------------------------------------------------------------------------- */
+/* -------------------------- NOVAS FUNÇÕES (OK) ---------------------------- */
+/* -------------------------------------------------------------------------- */
+
+// util: normaliza datas (YYYY-MM-DD) -> [start 00:00:00, end 23:59:59]
+function buildDateRange(from, to) {
+  const hasFrom = !!from;
+  const hasTo = !!to;
+  let start = null;
+  let end = null;
+  if (hasFrom) start = `${from} 00:00:00`;
+  if (hasTo)   end   = `${to} 23:59:59`;
+  return { start, end };
+}
+
+/**
+ * GET /api/movimentacoes/relatorio?periodoId=&from=YYYY-MM-DD&to=YYYY-MM-DD
+ * - Lista todos os alunos (filtra por período se vier).
+ * - Agrega movimentações (entrada/saída) no intervalo (se vier).
+ * - Retorna: alunoId, nome, periodoId, saldoTotal, teveEntrada, teveSaida.
+ *
+ * OBS: Sem coluna "quantidade" no schema ⇒ saldo por contagem (±1).
+ * OBS: Usa coluna m.criado_em, igual ao restante do projeto.
+ */
+async function relatorioPorAluno(req, res) {
+  const { periodoId, from, to } = req.query;
+    const { start, end } = buildDateRange(from, to);
+
+  const conn = await getConnection();
+  try {
+    const params = [];
+    let whereAlunos = '1=1';
+    if (periodoId) {
+      whereAlunos = 'a.periodo_id = ?';
+      params.push(periodoId);
+    }
+
+    // filtros de data aplicados na JOIN (coluna criado_em)
+    const movJoinClauses = [];
+    const movParams = [];
+    if (start) { movJoinClauses.push("CONVERT_TZ(m.criado_em, '+00:00', 'America/Sao_Paulo') >= ?"); movParams.push(start); }
+    if (end)   { movJoinClauses.push("CONVERT_TZ(m.criado_em, '+00:00', 'America/Sao_Paulo') <= ?"); movParams.push(end); }
+
+    const joinExtra = movJoinClauses.length
+      ? ` AND ${movJoinClauses.join(' AND ')}`
+      : '';
+
+    const [rows] = await conn.query(
+      `
+      SELECT
+        a.id         AS alunoId,
+        a.nome       AS alunoNome,
+        a.periodo_id AS periodoId,
+
+        /* saldo por contagem (sem coluna quantidade) */
+        COALESCE(SUM(
+          CASE 
+            WHEN m.tipo = 'entrada' THEN 1
+            WHEN m.tipo = 'saida'   THEN -1
+            ELSE 0
+          END
+        ), 0) AS saldoTotal,
+
+        /* flags de existência */
+        COALESCE(SUM(CASE WHEN m.tipo = 'entrada' THEN 1 ELSE 0 END), 0) AS cntEntrada,
+        COALESCE(SUM(CASE WHEN m.tipo = 'saida'   THEN 1 ELSE 0 END), 0) AS cntSaida
+
+      FROM alunos a
+      LEFT JOIN movimentacoes_esterilizacao m
+           ON m.aluno_id = a.id
+          ${joinExtra}
+      WHERE ${whereAlunos}
+      GROUP BY a.id, a.nome, a.periodo_id
+      ORDER BY a.nome ASC
+      `,
+      [...params, ...movParams]
+    );
+
+    const data = rows.map(r => ({
+      alunoId: r.alunoId,
+      alunoNome: r.alunoNome,
+      periodoId: r.periodoId,
+      saldoTotal: Number(r.saldoTotal) || 0,
+      teveEntrada: Number(r.cntEntrada) > 0,
+      teveSaida:   Number(r.cntSaida) > 0,
+    }));
+
+    res.json(data);
+  } catch (err) {
+    console.error('[relatorioPorAluno] erro:', err);
+    res.status(500).json({ error: 'Erro ao gerar relatório.' });
+  } finally {
+    conn.release();
+  }
+}
+
+/**
+ * GET /api/movimentacoes/alunos/:alunoId/movimentacoes?from=&to=
+ * - Detalhes das movimentações de um aluno (para o acordeão “+”).
+ * - Retorna colunas básicas; sem "quantidade".
+ */
+async function movimentacoesPorAluno(req, res) {
+  const { alunoId } = req.params;
+  const { from, to } = req.query;
+  const { start, end } = buildDateRange(from, to);
+
+  if (!alunoId) return res.status(400).json({ error: 'alunoId obrigatório' });
+
+  const conn = await getConnection();
+  try {
+    const where = ['m.aluno_id = ?'];
+    const params = [alunoId];
+
+    if (start) { where.push("CONVERT_TZ(m.criado_em, '+00:00', 'America/Sao_Paulo') >= ?"); params.push(start); }
+    if (end)   { where.push("CONVERT_TZ(m.criado_em, '+00:00', 'America/Sao_Paulo') <= ?"); params.push(end); }
+
+    const [rows] = await conn.query(
+      `
+      SELECT
+        m.id,
+        m.aluno_id,
+        m.caixa_id,
+        m.tipo,          /* 'entrada' | 'saida' */
+        DATE_FORMAT(
+          CONVERT_TZ(m.criado_em, '+00:00', 'America/Sao_Paulo'),
+          '%Y-%m-%d %H:%i:%s'
+        ) AS criado_em
+      FROM movimentacoes_esterilizacao m
+      WHERE ${where.join(' AND ')}
+      ORDER BY m.criado_em DESC, m.id DESC
+      `,
+      params
+    );
+
+    res.json(rows);
+  } catch (err) {
+    console.error('[movimentacoesPorAluno] erro:', err);
+    res.status(500).json({ error: 'Erro ao listar movimentações do aluno.' });
+  } finally {
+    conn.release();
+  }
+}
+
+// ✅ exporta os novos handlers SEM sobrescrever os existentes
+exports.relatorioPorAluno = relatorioPorAluno;
+exports.movimentacoesPorAluno = movimentacoesPorAluno;

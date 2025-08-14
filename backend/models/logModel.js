@@ -30,7 +30,22 @@ criar: async ({ usuario_id, usuario_nome, acao, entidade, entidade_id, detalhes 
   listar: async () => {
     const conn = await pool.getConnection();
     const [rows] = await conn.query(
-      `SELECT * FROM logs ORDER BY criado_em DESC LIMIT 500`
+      `SELECT 
+         id,
+         usuario_id,
+         usuario_nome,
+         acao,
+         entidade,
+         entidade_id,
+         detalhes,
+         /* converte de UTC para America/Sao_Paulo, e formata como string */
+         DATE_FORMAT(
+           CONVERT_TZ(criado_em, '+00:00', 'America/Sao_Paulo'),
+           '%Y-%m-%d %H:%i:%s'
+         ) AS criado_em
+       FROM logs
+       ORDER BY criado_em DESC
+       LIMIT 500`
     );
     conn.release();
     return rows;

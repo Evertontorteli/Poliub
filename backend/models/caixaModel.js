@@ -19,7 +19,16 @@ const Caixa = {
     const conn = await db.getConnection();
     try {
       const [rows] = await conn.query(
-        `SELECT id, nome, codigo_barras, criado_em FROM caixas ORDER BY id`
+        `SELECT 
+           id,
+           nome,
+           codigo_barras,
+           DATE_FORMAT(
+             CONVERT_TZ(criado_em, '+00:00', 'America/Sao_Paulo'),
+             '%Y-%m-%d %H:%i:%s'
+           ) AS criado_em
+         FROM caixas
+         ORDER BY id`
       );
       return rows;
     } finally {
