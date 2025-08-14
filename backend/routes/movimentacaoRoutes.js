@@ -26,4 +26,11 @@ router.delete('/:id', verificaTokenComSessaoUnica, movController.deletarMoviment
 router.get('/estoque/:aluno_id', verificaTokenComSessaoUnica, movController.estoquePorAluno);
 router.get('/historico/:aluno_id', verificaTokenComSessaoUnica, movController.historicoPorAluno);
 
+// Relatório (resumo por aluno)
+router.get('/relatorio', verificaTokenComSessaoUnica, movController.relatorioPorAluno);
+
+// Detalhe das movimentações de um aluno (para o "+")
+router.get('/alunos/:alunoId/movimentacoes', verificaTokenComSessaoUnica, movController.movimentacoesPorAluno);
+
+
 module.exports = router;

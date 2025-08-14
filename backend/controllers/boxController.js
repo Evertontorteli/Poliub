@@ -8,7 +8,17 @@ exports.listarPorAluno = async (req, res) => {
   try {
     conn = await getConnection();
     const [boxes] = await conn.query(
-      'SELECT id, aluno_id, conteudo, criado_em FROM boxes WHERE aluno_id = ? ORDER BY criado_em DESC',
+      `SELECT 
+         id,
+         aluno_id,
+         conteudo,
+         DATE_FORMAT(
+           CONVERT_TZ(criado_em, '+00:00', 'America/Sao_Paulo'),
+           '%Y-%m-%d %H:%i:%s'
+         ) AS criado_em
+       FROM boxes
+       WHERE aluno_id = ?
+       ORDER BY criado_em DESC`,
       [alunoId]
     );
     return res.json(boxes);
@@ -37,7 +47,16 @@ exports.criarBox = async (req, res) => {
       [aluno_id, conteudo]
     );
     const [rows] = await conn.query(
-      'SELECT id, aluno_id, conteudo, criado_em FROM boxes WHERE id = ?',
+      `SELECT 
+         id,
+         aluno_id,
+         conteudo,
+         DATE_FORMAT(
+           CONVERT_TZ(criado_em, '+00:00', 'America/Sao_Paulo'),
+           '%Y-%m-%d %H:%i:%s'
+         ) AS criado_em
+       FROM boxes
+       WHERE id = ?`,
       [result.insertId]
     );
     return res.status(201).json(rows[0]);
@@ -70,7 +89,16 @@ exports.atualizarBox = async (req, res) => {
       return res.status(404).json({ error: 'Box não encontrado' });
     }
     const [rows] = await conn.query(
-      'SELECT id, aluno_id, conteudo, criado_em FROM boxes WHERE id = ?',
+      `SELECT 
+         id,
+         aluno_id,
+         conteudo,
+         DATE_FORMAT(
+           CONVERT_TZ(criado_em, '+00:00', 'America/Sao_Paulo'),
+           '%Y-%m-%d %H:%i:%s'
+         ) AS criado_em
+       FROM boxes
+       WHERE id = ?`,
       [id]
     );
     return res.json(rows[0]);

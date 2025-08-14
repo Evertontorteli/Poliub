@@ -6,7 +6,8 @@ import {
   BarChart, Bar, XAxis, YAxis, Legend,
   LineChart, Line, CartesianGrid,
 } from 'recharts'
-import { format, isToday, subDays } from 'date-fns'
+import { format, subDays } from 'date-fns'
+import { formatInTimeZone } from 'date-fns-tz'
 import ptBR from 'date-fns/locale/pt-BR'
 import DatePicker, { registerLocale } from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
@@ -30,6 +31,16 @@ export default function DashboardEsterilizacao() {
   const [entradaByCaixa, setEntradaByCaixa] = useState([])
   const [semanaData, setSemanaData] = useState([])
   const [recentes, setRecentes] = useState([])
+  const TIME_ZONE = 'America/Sao_Paulo'
+
+  // Converte string "YYYY-MM-DD HH:mm:ss" para Date utilizável
+  function toDateForTZ(value) {
+    if (value instanceof Date) return value
+    if (!value) return new Date()
+    const iso = String(value).replace(' ', 'T')
+    return new Date(iso)
+  }
+
 
   // Filtro de período para Dashboard
   const [dateRange, setDateRange] = useState([null, null])
@@ -59,8 +70,21 @@ export default function DashboardEsterilizacao() {
         })
         setStockPerAluno(Object.entries(saldo).map(([name, value]) => ({ name, value })))
         // 2+3) hoje
-        setSaidaHoje(all.filter(m => m.tipo === 'saida' && isToday(new Date(m.criado_em))).length)
-        setEntradaHoje(all.filter(m => m.tipo === 'entrada' && isToday(new Date(m.criado_em))).length)
+        const hojeKey = formatInTimeZone(new Date(), TIME_ZONE, 'yyyy-MM-dd')
+        setSaidaHoje(
+          all.filter(m => {
+            if (m.tipo !== 'saida') return false
+            const k = formatInTimeZone(toDateForTZ(m.criado_em), TIME_ZONE, 'yyyy-MM-dd')
+            return k === hojeKey
+          }).length
+        )
+        setEntradaHoje(
+          all.filter(m => {
+            if (m.tipo !== 'entrada') return false
+            const k = formatInTimeZone(toDateForTZ(m.criado_em), TIME_ZONE, 'yyyy-MM-dd')
+            return k === hojeKey
+          }).length
+        )
         // 4) entrada por caixa
         const entradas = {}
         all.forEach(m => { if (m.tipo === 'entrada') entradas[m.caixaNome] = (entradas[m.caixaNome] || 0) + 1 })
@@ -69,15 +93,15 @@ export default function DashboardEsterilizacao() {
         const dias = Array.from({ length: 7 }).map((_, i) => subDays(new Date(), 6 - i))
         const ptDias = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab']
         setSemanaData(dias.map(d => {
-          const chave = format(d, 'yyyy-MM-dd')
+          const chave = formatInTimeZone(d, TIME_ZONE, 'yyyy-MM-dd')
           return {
             dia: ptDias[d.getDay()],
-            entradas: all.filter(m => m.tipo === 'entrada' && format(new Date(m.criado_em), 'yyyy-MM-dd') === chave).length,
-            saidas: all.filter(m => m.tipo === 'saida' && format(new Date(m.criado_em), 'yyyy-MM-dd') === chave).length,
+            entradas: all.filter(m => m.tipo === 'entrada' && formatInTimeZone(toDateForTZ(m.criado_em), TIME_ZONE, 'yyyy-MM-dd') === chave).length,
+            saidas: all.filter(m => m.tipo === 'saida' && formatInTimeZone(toDateForTZ(m.criado_em), TIME_ZONE, 'yyyy-MM-dd') === chave).length,
           }
         }))
         // 6) recentes
-        setRecentes(all.sort((a, b) => new Date(b.criado_em) - new Date(a.criado_em)).slice(0, 5))
+        setRecentes(all.sort((a, b) => toDateForTZ(b.criado_em) - toDateForTZ(a.criado_em)).slice(0, 5))
       })
       .catch(console.error)
   }, [startDate, endDate, aba])
@@ -173,7 +197,7 @@ export default function DashboardEsterilizacao() {
           {/* Pizza + recentes */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-white rounded-2xl shadow p-6">
-              <h2 className="text-lg font-medium mb-2">Entrada por Caixa</h2>
+              <h2 className="text-lg font-medium mb-2">Saldo Total por Caixa</h2>
               <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
                   <Pie
@@ -200,7 +224,7 @@ export default function DashboardEsterilizacao() {
                     <div className="flex justify-between text-sm">
                       <span><strong>{m.tipo.toUpperCase()}</strong> – {m.caixaNome}</span>
                       <span className="text-gray-500">
-                        {format(new Date(m.criado_em), 'dd/MM/yyyy HH:mm')}
+                        {formatInTimeZone(toDateForTZ(m.criado_em), TIME_ZONE, 'dd/MM/yyyy HH:mm')}
                       </span>
                     </div>
                     <div className="text-sm text-gray-700">
@@ -235,7 +259,7 @@ export default function DashboardEsterilizacao() {
       {aba === 'movimentacao' && (
         <MovimentacaoEsterilizacao />
       )}
-
+      
       {/* área oculta para impressão (se precisar) */}
       {printData && (
         <div id="area-impressao" style={{ position: 'absolute', left: -10000, top: -10000 }}>

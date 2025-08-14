@@ -71,9 +71,13 @@ function renderDetalhes(log) {
 
 function formatarDataBR(isoString) {
   if (!isoString) return "";
-  const date = new Date(isoString);
-  date.setHours(date.getHours() - 3);
-  return date.toLocaleString("pt-BR");
+  // Backend já envia no fuso de São Paulo (string 'YYYY-MM-DD HH:mm:ss').
+  // Exiba sem aplicar deslocamento manual.
+  const parts = isoString.replace('T', ' ').split(/[- :]/);
+  // parts: [YYYY, MM, DD, HH, mm, ss]
+  const [y, m, d, hh = '00', mm = '00', ss = '00'] = parts;
+  const dt = new Date(Number(y), Number(m) - 1, Number(d), Number(hh), Number(mm), Number(ss));
+  return dt.toLocaleString('pt-BR');
 }
 
 export default function TelaLogs() {
