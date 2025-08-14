@@ -285,6 +285,8 @@ async function relatorioPorAluno(req, res) {
         a.id         AS alunoId,
         a.nome       AS alunoNome,
         a.periodo_id AS periodoId,
+        p.nome       AS periodoNome,
+        p.turno      AS periodoTurno,
 
         /* saldo por contagem (sem coluna quantidade) */
         COALESCE(SUM(
@@ -303,8 +305,9 @@ async function relatorioPorAluno(req, res) {
       LEFT JOIN movimentacoes_esterilizacao m
            ON m.aluno_id = a.id
           ${joinExtra}
+      LEFT JOIN periodos p ON a.periodo_id = p.id
       WHERE ${whereAlunos}
-      GROUP BY a.id, a.nome, a.periodo_id
+      GROUP BY a.id, a.nome, a.periodo_id, p.nome, p.turno
       ORDER BY a.nome ASC
       `,
       [...params, ...movParams]
@@ -314,6 +317,9 @@ async function relatorioPorAluno(req, res) {
       alunoId: r.alunoId,
       alunoNome: r.alunoNome,
       periodoId: r.periodoId,
+      periodoNome: r.periodoNome && r.periodoTurno
+        ? `${r.periodoNome} - ${r.periodoTurno}`
+        : (r.periodoNome || null),
       saldoTotal: Number(r.saldoTotal) || 0,
       teveEntrada: Number(r.cntEntrada) > 0,
       teveSaida:   Number(r.cntSaida) > 0,
@@ -359,7 +365,11 @@ async function movimentacoesPorAluno(req, res) {
           CONVERT_TZ(m.criado_em, '+00:00', 'America/Sao_Paulo'),
           '%Y-%m-%d %H:%i:%s'
         ) AS criado_em
+      , c.nome AS caixaNome
+      , o.nome AS operadorNome
       FROM movimentacoes_esterilizacao m
+      JOIN caixas c ON m.caixa_id = c.id
+      JOIN alunos o ON m.operador_id = o.id
       WHERE ${where.join(' AND ')}
       ORDER BY m.criado_em DESC, m.id DESC
       `,

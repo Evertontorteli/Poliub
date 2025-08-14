@@ -133,7 +133,7 @@ export default function TelaCaixas() {
         <h1 className="text-2xl font-medium">Lista de Caixas</h1>
         <button
           onClick={() => openModal()}
-          className="bg-[#1A1C2C] text-white px-4 py-2 rounded-full hover:bg-[#3B4854] transition font-bold"
+          className="bg-[#1A1C2C] text-white px-4 py-2 rounded-full hover:bg-[#3B4854] transition"
         >
           Nova Caixa
         </button>
@@ -147,7 +147,7 @@ export default function TelaCaixas() {
             placeholder="Pesquisar por ID, nome ou código de barras"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full border rounded px-3 py-2"
+            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
           />
         </div>
         {/* Paginação topo */}
@@ -298,7 +298,7 @@ export default function TelaCaixas() {
                 <label className="block mb-1 font-medium">Nome da Caixa</label>
                 <input
                   type="text"
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
                   value={nome}
                   onChange={e => setNome(e.target.value)}
                   required
@@ -308,7 +308,7 @@ export default function TelaCaixas() {
                 <label className="block mb-1 font-medium">Código de Barras (opcional)</label>
                 <input
                   type="text"
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
                   value={codigo}
                   onChange={e => setCodigo(e.target.value)}
                   placeholder="Deixe em branco para gerar automaticamente"

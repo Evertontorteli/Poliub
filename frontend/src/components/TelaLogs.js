@@ -3,6 +3,8 @@ import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import { Calendar } from "lucide-react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
 const PAGE_SIZE = 100;
 
@@ -89,12 +91,14 @@ export default function TelaLogs() {
     usuario: "",
     acao: "",
     entidade: "",
-    texto: "",
-    data: ""
+    texto: ""
   });
   const [pagina, setPagina] = useState(0);
+  const [showDatePopover, setShowDatePopover] = useState(false);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
 
-  const dateInputRef = useRef(null);
+  const datePopoverRef = useRef(null);
 
   // Buscar logs
   useEffect(() => {
@@ -106,7 +110,8 @@ export default function TelaLogs() {
           limit: PAGE_SIZE,
           offset: pagina * PAGE_SIZE
         };
-        if (filtros.data) params.data = filtros.data;
+        if (from) params.from = from;
+        if (to) params.to = to;
         const res = await axios.get("/api/logs", {
           headers: { Authorization: `Bearer ${user.token}` },
           params
@@ -119,7 +124,7 @@ export default function TelaLogs() {
       }
     };
     fetchLogs();
-  }, [user.token, filtros.data, pagina]);
+  }, [user.token, from, to, pagina]);
 
   // Gerar listas únicas para filtros dropdown
   const usuarios = Array.from(new Set(logs.map(l => l.usuario_nome).filter(Boolean)));
@@ -143,12 +148,20 @@ export default function TelaLogs() {
   });
 
   function handleDataClick() {
-    if (dateInputRef.current?.showPicker) {
-      dateInputRef.current.showPicker();
-    } else if (dateInputRef.current) {
-      dateInputRef.current.focus();
-    }
+    setShowDatePopover(v => !v);
   }
+
+  // Fechar popover quando clicar fora
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (datePopoverRef.current && !datePopoverRef.current.contains(event.target)) {
+        setShowDatePopover(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   function Paginacao() {
     return (
@@ -180,10 +193,20 @@ export default function TelaLogs() {
       <h2 className="text-2xl font-medium px-2 mb-6 text-[#23263A]">Auditoria do Sistema</h2>
       <div className="max-w-auto mx-auto mt-4 p-3 sm:p-6 bg-white rounded-2xl shadow">
 
-        {/* FILTROS DROPDOWN EM CIMA */}
-        <div className="flex flex-wrap gap-3 mb-2 rounded-2xl">
+        {/* TODOS OS CAMPOS NA MESMA LINHA */}
+        <div className="flex flex-wrap gap-3 mb-4 rounded-2xl">
+          {/* Campo de busca ocupa espaço restante */}
+          <input
+            type="text"
+            placeholder="Buscar em qualquer campo..."
+            className="flex-1 border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            value={filtros.texto}
+            onChange={e => { setFiltros(f => ({ ...f, texto: e.target.value })); setPagina(0); }}
+          />
+          
+          {/* Filtros dropdown em sequência */}
           <select
-            className="border rounded px-3 py-2 w-full sm:w-auto"
+            className="border rounded px-3 py-2 w-auto focus:outline-none focus:ring-2 focus:ring-blue-300"
             value={filtros.usuario}
             onChange={e => { setFiltros(f => ({ ...f, usuario: e.target.value })); setPagina(0); }}
           >
@@ -191,7 +214,7 @@ export default function TelaLogs() {
             {usuarios.map(u => <option key={u} value={u}>{u}</option>)}
           </select>
           <select
-            className="border rounded px-3 py-2 w-full sm:w-auto"
+            className="border rounded px-3 py-2 w-auto focus:outline-none focus:ring-2 focus:ring-blue-300"
             value={filtros.acao}
             onChange={e => { setFiltros(f => ({ ...f, acao: e.target.value })); setPagina(0); }}
           >
@@ -199,48 +222,70 @@ export default function TelaLogs() {
             {acoes.map(a => <option key={a} value={a}>{a.charAt(0).toUpperCase() + a.slice(1)}</option>)}
           </select>
           <select
-            className="border rounded px-3 py-2 w-full sm:w-auto"
+            className="border rounded px-3 py-2 w-auto focus:outline-none focus:ring-2 focus:ring-blue-300"
             value={filtros.entidade}
             onChange={e => { setFiltros(f => ({ ...f, entidade: e.target.value })); setPagina(0); }}
           >
             <option value="">Todas as entidades</option>
             {entidades.map(ent => <option key={ent} value={ent}>{ent.charAt(0).toUpperCase() + ent.slice(1)}</option>)}
           </select>
+          
           {/* Ícone de data */}
-          <div className="relative group flex items-center">
+          <div className="relative group flex items-center" ref={datePopoverRef}>
             <button
               type="button"
               className="p-2 hover:bg-gray-200 rounded-full transition"
               onClick={handleDataClick}
+              title="Filtrar por período"
             >
               <Calendar size={22} className="text-[#3172C0]" />
             </button>
-            <span className="absolute left-1/2 -translate-x-1/2 -top-8 w-max
-              bg-gray-900 text-white text-xs rounded py-1 px-2 z-50
-              pointer-events-none opacity-0 group-hover:opacity-100 transition"
-            >
-              Filtrar por data
-            </span>
-            <input
-              type="date"
-              ref={dateInputRef}
-              value={filtros.data}
-              onChange={e => { setFiltros(f => ({ ...f, data: e.target.value })); setPagina(0); }}
-              className="absolute opacity-0 w-0 h-0"
-              style={{ minWidth: 120 }}
-            />
+            
+            {/* Popover do DatePicker */}
+            {showDatePopover && (
+              <div className="absolute z-50 top-10 right-0 bg-white border rounded-xl shadow-lg p-3" ref={datePopoverRef}>
+                <DatePicker
+                  inline
+                  selectsRange
+                  startDate={from ? new Date(from) : null}
+                  endDate={to ? new Date(to) : null}
+                  onChange={(dates) => {
+                    const [start, end] = dates;
+                    const toYmd = (d) => d ? new Date(d).toISOString().slice(0, 10) : '';
+                    setFrom(toYmd(start));
+                    setTo(toYmd(end));
+                    if (end) setShowDatePopover(false);
+                  }}
+                  locale="pt-BR"
+                />
+                <div className="flex items-center justify-between gap-2 mt-3">
+                  <button
+                    type="button"
+                    className="px-3 py-1 rounded-2xl text-sm bg-gray-100 hover:bg-gray-200"
+                    title="Selecionar hoje"
+                    onClick={() => {
+                      const today = new Date();
+                      const toYmd = (d) => d ? new Date(d).toISOString().slice(0, 10) : '';
+                      const ymd = toYmd(today);
+                      setFrom(ymd);
+                      setTo(ymd);
+                      setShowDatePopover(false);
+                    }}
+                  >
+                    Hoje
+                  </button>
+                  <button
+                    type="button"
+                    className="px-3 py-1 rounded-2xl text-sm bg-gray-100 hover:bg-gray-200"
+                    title="Limpar período"
+                    onClick={() => { setFrom(''); setTo(''); setShowDatePopover(false); }}
+                  >
+                    Limpar
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
-
-        {/* CAMPO DE BUSCA EMBAIXO */}
-        <div className="mb-4 rounded-2xl">
-          <input
-            type="text"
-            placeholder="Buscar em qualquer campo..."
-            className="border rounded px-3 py-2 w-full"
-            value={filtros.texto}
-            onChange={e => { setFiltros(f => ({ ...f, texto: e.target.value })); setPagina(0); }}
-          />
         </div>
 
         <Paginacao />
