@@ -3,7 +3,8 @@ import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import { Calendar } from "lucide-react";
-import DatePicker from "react-datepicker";
+import DatePicker, { registerLocale } from "react-datepicker";
+import ptBR from "date-fns/locale/pt-BR";
 import "react-datepicker/dist/react-datepicker.css";
 
 const PAGE_SIZE = 100;
@@ -99,6 +100,9 @@ export default function TelaLogs() {
   const [to, setTo] = useState("");
 
   const datePopoverRef = useRef(null);
+  
+  // Registrar locale pt-BR
+  registerLocale('pt-BR', ptBR);
 
   // Buscar logs
   useEffect(() => {
@@ -112,12 +116,16 @@ export default function TelaLogs() {
         };
         if (from) params.from = from;
         if (to) params.to = to;
+        
+        console.log('Fetching logs with params:', params);
+        
         const res = await axios.get("/api/logs", {
           headers: { Authorization: `Bearer ${user.token}` },
           params
         });
         setLogs(res.data);
       } catch (err) {
+        console.error('Error fetching logs:', err);
         setErro("Erro ao carregar logs");
       } finally {
         setCarregando(false);
@@ -234,39 +242,56 @@ export default function TelaLogs() {
           <div className="relative group flex items-center" ref={datePopoverRef}>
             <button
               type="button"
-              className="p-2 hover:bg-gray-200 rounded-full transition"
+              className={`p-2 hover:bg-gray-200 rounded-full transition relative ${
+                from || to ? 'bg-blue-50' : ''
+              }`}
               onClick={handleDataClick}
               title="Filtrar por período"
             >
-              <Calendar size={22} className="text-[#3172C0]" />
+              <Calendar size={22} className={`${from || to ? 'text-blue-600' : 'text-[#3172C0]'}`} />
+              {(from || to) && (
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full"></span>
+              )}
             </button>
             
             {/* Popover do DatePicker */}
             {showDatePopover && (
-              <div className="absolute z-50 top-10 right-0 bg-white border rounded-xl shadow-lg p-3" ref={datePopoverRef}>
-                <DatePicker
-                  inline
-                  selectsRange
-                  startDate={from ? new Date(from) : null}
-                  endDate={to ? new Date(to) : null}
-                  onChange={(dates) => {
-                    const [start, end] = dates;
-                    const toYmd = (d) => d ? new Date(d).toISOString().slice(0, 10) : '';
-                    setFrom(toYmd(start));
-                    setTo(toYmd(end));
-                    if (end) setShowDatePopover(false);
-                  }}
-                  locale="pt-BR"
-                />
-                <div className="flex items-center justify-between gap-2 mt-3">
+              <div className="absolute z-50 top-10 right-0 bg-white border rounded-xl shadow-lg p-3 min-w-[300px]">
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Selecionar período</label>
+                  <DatePicker
+                    inline
+                    selectsRange
+                    startDate={from ? new Date(from) : null}
+                    endDate={to ? new Date(to) : null}
+                    onChange={(dates) => {
+                      const [start, end] = dates;
+                      const toYmd = (d) => d ? new Date(d).toISOString().slice(0, 10) : '';
+                      const fromDate = toYmd(start);
+                      const toDate = toYmd(end);
+                      console.log('DatePicker onChange:', { start, end, fromDate, toDate });
+                      setFrom(fromDate);
+                      setTo(toDate);
+                      if (end) setShowDatePopover(false);
+                    }}
+                    locale="pt-BR"
+                    showMonthDropdown
+                    showYearDropdown
+                    dropdownMode="select"
+                  />
+                </div>
+                
+                {/* Botões de ação */}
+                <div className="flex items-center justify-between gap-2 pt-2 border-t">
                   <button
                     type="button"
-                    className="px-3 py-1 rounded-2xl text-sm bg-gray-100 hover:bg-gray-200"
+                    className="px-3 py-1 rounded-2xl text-sm bg-blue-100 hover:bg-blue-200 text-blue-700"
                     title="Selecionar hoje"
                     onClick={() => {
                       const today = new Date();
                       const toYmd = (d) => d ? new Date(d).toISOString().slice(0, 10) : '';
                       const ymd = toYmd(today);
+                      console.log('Botão Hoje clicado, data:', ymd);
                       setFrom(ymd);
                       setTo(ymd);
                       setShowDatePopover(false);
@@ -276,9 +301,14 @@ export default function TelaLogs() {
                   </button>
                   <button
                     type="button"
-                    className="px-3 py-1 rounded-2xl text-sm bg-gray-100 hover:bg-gray-200"
+                    className="px-3 py-1 rounded-2xl text-sm bg-gray-100 hover:bg-gray-200 text-gray-700"
                     title="Limpar período"
-                    onClick={() => { setFrom(''); setTo(''); setShowDatePopover(false); }}
+                    onClick={() => { 
+                      console.log('Botão Limpar clicado');
+                      setFrom(''); 
+                      setTo(''); 
+                      setShowDatePopover(false); 
+                    }}
                   >
                     Limpar
                   </button>
@@ -287,6 +317,28 @@ export default function TelaLogs() {
             )}
           </div>
         </div>
+
+        {/* Indicador de filtros ativos */}
+        {(from || to) && (
+          <div className="mb-4 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="text-sm text-blue-700">
+              <span className="font-medium">Filtro de período ativo:</span>
+              {from && to ? (
+                <span> {from} até {to}</span>
+              ) : from ? (
+                <span> A partir de {from}</span>
+              ) : (
+                <span> Até {to}</span>
+              )}
+              <button
+                onClick={() => { setFrom(''); setTo(''); }}
+                className="ml-2 text-blue-500 hover:text-blue-700 underline"
+              >
+                Limpar
+              </button>
+            </div>
+          </div>
+        )}
 
         <Paginacao />
 

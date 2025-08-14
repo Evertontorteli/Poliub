@@ -322,7 +322,11 @@ async function relatorioPorAluno(req, res) {
         : (r.periodoNome || null),
       saldoTotal: Number(r.saldoTotal) || 0,
       teveEntrada: Number(r.cntEntrada) > 0,
-      teveSaida:   Number(r.cntSaida) > 0,
+      teveSaida: Number(r.cntSaida) > 0,
+      // Validação de caixa vencida (30 dias)
+      caixaVencida: Number(r.cntEntrada) === 0 && Number(r.cntSaida) === 0,
+      // Status baseado no período
+      status: Number(r.cntEntrada) > 0 || Number(r.cntSaida) > 0 ? 'ativo' : 'vencido'
     }));
 
     res.json(data);
