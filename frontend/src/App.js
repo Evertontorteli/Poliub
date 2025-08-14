@@ -31,6 +31,7 @@ import Ajuda from './components/Ajuda'
 import Login from './Login'
 import PrintAgendamentos from './pages/PrintAgendamentos'
 import PrintMovimentacoes from './pages/PrintMovimentacoes'
+import PrintMovimentacoesAluno from './pages/PrintMovimentacoesAluno'
 
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthProvider, useAuth } from './context/AuthContext'
@@ -189,6 +190,7 @@ export default function App() {
           <Route path="/login" element={<LoginWrapper />} />
           <Route path="/print-agendamentos" element={<PrintAgendamentos />} />
           <Route path="/print-movimentacoes" element={<PrintMovimentacoes />} />
+          <Route path="/print-movimentacoes-aluno" element={<PrintMovimentacoesAluno />} />
           
           <Route
             path="/*"

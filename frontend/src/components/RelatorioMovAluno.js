@@ -4,14 +4,31 @@ import axios from 'axios';
 import { Printer, Plus, Minus, Calendar, ArrowUpDown } from 'lucide-react';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import ptBR from 'date-fns/locale/pt-BR';
-import 'react-datepicker/dist/react-datepicker.css'
+import 'react-datepicker/dist/react-datepicker.css';
+import { useNavigate } from 'react-router-dom';
 
 export default function RelatorioMovAluno() {
+  const navigate = useNavigate();
   const [periodos, setPeriodos] = useState([]);
-  const [periodoId, setPeriodoId] = useState(''); // opcional
+  const [periodoId, setPeriodoId] = useState(null); // opcional
   const [searchTerm, setSearchTerm] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+
+  // Número total de colunas na tabela
+  const TOTAL_COLUNAS = 7;
+
+  // Período padrão de 30 dias
+  useEffect(() => {
+    if (!from && !to) {
+      const hoje = new Date();
+      const trintaDiasAtras = new Date(hoje.getTime() - (30 * 24 * 60 * 60 * 1000));
+      
+      const toYmd = (d) => d.toISOString().slice(0, 10);
+      setFrom(toYmd(trintaDiasAtras));
+      setTo(toYmd(hoje));
+    }
+  }, []);
 
   const [carregando, setCarregando] = useState(false);
   const [linhas, setLinhas] = useState([]); // resumo
@@ -59,7 +76,7 @@ export default function RelatorioMovAluno() {
       setCarregando(true);
       try {
         const params = {};
-        if (periodoId) params.periodoId = periodoId;
+        if (periodoId && periodoId !== '') params.periodoId = periodoId;
         if (from) params.from = from;
         if (to) params.to = to;
 
@@ -213,23 +230,69 @@ export default function RelatorioMovAluno() {
   };
 
   const handlePrint = () => {
-    window.print();
+    // Navegar para a página de impressão com os filtros atuais
+    const filters = {
+      searchTerm,
+      periodoId: periodoId && periodoId !== '' ? periodoId : null,
+      from,
+      to
+    };
+    
+    // Navegar para a página de impressão (mesmo comportamento do PrintListButton)
+    navigate('/print-movimentacoes-aluno', { state: filters });
   };
 
   const periodoOptions = useMemo(() => ([
+    { id: null, nome: 'Selecione um período (opcional)', disabled: true },
     { id: '', nome: 'Todos os períodos' },
     ...periodos.map(p => ({ id: String(p.id), nome: `${p.nome}${p.turno ? ' - ' + p.turno : ''}` })),
   ]), [periodos]);
 
-  return (
-    <div className="max-w-auto mx-auto py-8 px-4">
-      <div className="bg-white rounded-2xl shadow p-6">
-        <h2 className="text-lg font-medium mb-4 text-[#1d3557]">Movimentações por Aluno</h2>
+      return (
+      <div className="max-w-auto mx-auto py-4 px-4">
+        <div className="bg-white rounded-2xl shadow p-6">
+          <h2 className="text-lg font-medium mb-6 text-[#1d3557]">Movimentações por Aluno</h2>
+        
+        {/* Explicação da regra dos 30 dias */}
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-sm font-bold">ℹ</span>
+              </div>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-blue-800">Regra de Validade das Caixas</h3>
+              <p className="text-sm text-blue-700 mt-1">
+                <strong>Caixas vencidas:</strong> Alunos que não tiveram entrada nem saída no período selecionado 
+                (padrão: últimos 30 dias).
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Legenda das bolinhas de status */}
+        <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 bg-green-500 rounded-full"></div>
+              <span className="text-sm text-gray-700">Aluno ativo (teve movimentação no período)</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 bg-red-500 rounded-full"></div>
+              <span className="text-sm text-gray-700">Caixa vencida (sem movimentação no período)</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 bg-gray-500 rounded-full"></div>
+              <span className="text-sm text-gray-700">Sem movimentação alguma</span>
+            </div>
+          </div>
+        </div>
 
         {/* Filtros (sem botão Buscar) */}
-        <div className="flex flex-col md:flex-row md:items-end gap-3 pt-0 pb-2">
-          <div className="flex-1">
-            <label className="block text-sm text-gray-600 mb-1">Buscar</label>
+        <div className="flex flex-col lg:flex-row lg:items-end gap-4 pt-0 pb-4">
+          <div className="flex-1 min-w-0">
+            <label className="block text-sm text-gray-600 mb-2">Buscar</label>
             <input
               type="text"
               placeholder="Pesquisar aluno ou período..."
@@ -238,20 +301,26 @@ export default function RelatorioMovAluno() {
               onChange={e => setSearchTerm(e.target.value)}
             />
           </div>
-          <div className="w-56">
-            <label className="block text-sm text-gray-600 mb-1">Período (opcional)</label>
+          <div className="w-full lg:w-56">
+            <label className="block text-sm text-gray-600 mb-2">Período (opcional)</label>
             <select
               className="border rounded px-4 py-2 w-full rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-300"
-              value={periodoId}
-              onChange={e => setPeriodoId(e.target.value)}
+              value={periodoId || ''}
+              onChange={e => setPeriodoId(e.target.value === '' ? null : e.target.value)}
             >
               {periodoOptions.map(opt => (
-                <option key={opt.id || 'all'} value={opt.id}>{opt.nome}</option>
+                <option 
+                  key={opt.id === null ? 'placeholder' : opt.id || 'all'} 
+                  value={opt.id === null ? '' : opt.id}
+                  disabled={opt.disabled}
+                >
+                  {opt.nome}
+                </option>
               ))}
             </select>
           </div>
 
-          <div className="flex items-center gap-4 mt-4 md:mt-0 relative">
+          <div className="flex items-center justify-center lg:justify-start gap-4 mt-2 lg:mt-0 relative">
             <button
               type="button"
               className="p-2 hover:bg-gray-200 rounded-full transition"
@@ -309,50 +378,58 @@ export default function RelatorioMovAluno() {
           <div className="flex gap-2 ml-auto">
             <button
               type="button"
-              className="p-2 rounded hover:bg-blue-100 text-blue-800 transition"
+              className={`p-2 rounded hover:bg-blue-100 text-blue-800 transition relative ${
+                searchTerm || (periodoId && periodoId !== '') || from || to ? 'bg-blue-50' : ''
+              }`}
               onClick={handlePrint}
-              aria-label="Imprimir"
-              title="Imprimir"
+              aria-label="Imprimir relatório"
+              title="Imprimir relatório"
             >
-              <Printer size={24} className="text-[#3172C0]" />
+              <Printer size={24} className={`${searchTerm || (periodoId && periodoId !== '') || from || to ? 'text-blue-600' : 'text-[#3172C0]'}`} />
+              {(searchTerm || (periodoId && periodoId !== '') || from || to) && (
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full"></span>
+              )}
             </button>
           </div>
         </div>
         {/* Paginação */}
         <Paginador />
         {/* Tabela Resumo */}
-        <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border-separate border-spacing-0">
+        <div className="overflow-x-auto w-full">
+          <table className="w-full bg-white border-separate border-spacing-0">
             <thead>
               <tr className="bg-gray-100 text-gray-700 text-sm">
-                <th className="px-3 py-2 text-left font-semibold border-b w-10"></th>
+                <th className="px-3 py-3 text-left font-semibold border-b w-10"></th>
+                <th className="px-3 py-3 text-left font-semibold border-b w-16">Status</th>
                 <th
-                  className="px-3 py-2 text-left font-semibold border-b cursor-pointer select-none"
+                  className="px-3 py-3 text-left font-semibold border-b cursor-pointer select-none"
                   onClick={() => toggleSort('alunoNome')}
                   title="Ordenar por Aluno"
                 >
-                  Aluno <ArrowUpDown size={14} className="inline ml-1 text-gray-500" />
+                  <span className="hidden sm:inline">Aluno</span>
+                  <span className="sm:hidden">Nome</span>
+                  <ArrowUpDown size={14} className="inline ml-1 text-gray-500" />
                 </th>
-                <th className="px-3 py-2 text-left font-semibold border-b">Período</th>
+                <th className="px-3 py-3 text-left font-semibold border-b hidden md:table-cell">Período</th>
                 <th
-                  className="px-3 py-2 text-left font-semibold border-b cursor-pointer select-none"
+                  className="px-3 py-3 text-left font-semibold border-b cursor-pointer select-none"
                   onClick={() => toggleSort('saldoTotal')}
                   title="Ordenar por Saldo"
                 >
                   Saldo <ArrowUpDown size={14} className="inline ml-1 text-gray-500" />
                 </th>
-                <th className="px-3 py-2 text-left font-semibold border-b">Teve Entrada?</th>
-                <th className="px-3 py-2 text-left font-semibold border-b">Teve Saída?</th>
+                <th className="px-3 py-3 text-left font-semibold border-b hidden sm:table-cell">Teve Entrada?</th>
+                <th className="px-3 py-3 text-left font-semibold border-b hidden sm:table-cell">Teve Saída?</th>
               </tr>
             </thead>
             <tbody>
               {carregando ? (
                 <tr>
-                  <td colSpan={6} className="px-3 py-6 text-center text-gray-500">Carregando…</td>
+                  <td colSpan={TOTAL_COLUNAS} className="px-3 py-6 text-center text-gray-500">Carregando…</td>
                 </tr>
               ) : linhasFiltradas.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-3 py-6 text-center text-gray-500">
+                  <td colSpan={TOTAL_COLUNAS} className="px-3 py-6 text-center text-gray-500">
                     Nenhum aluno encontrado para os filtros selecionados.
                   </td>
                 </tr>
@@ -361,8 +438,8 @@ export default function RelatorioMovAluno() {
                   const aberto = !!detalhes[l.alunoId];
                   return (
                     <React.Fragment key={l.alunoId}>
-                      <tr className={`hover:bg-gray-50 ${!l.teveEntrada && !l.teveSaida ? 'text-red-600' : ''}`}>
-                        <td className="px-3 py-2">
+                      <tr className="hover:bg-gray-50">
+                        <td className="px-3 py-3">
                           <button
                             className="p-1 rounded hover:bg-blue-100 text-blue-800 transition"
                             onClick={() => toggleDetalhe(l.alunoId)}
@@ -373,17 +450,36 @@ export default function RelatorioMovAluno() {
                             {aberto ? <Minus size={16} /> : <Plus size={16} />}
                           </button>
                         </td>
-                        <td className="px-3 py-2">{l.alunoNome}</td>
-                        <td className="px-3 py-2">{l.periodoNome || '-'}</td>
-                        <td className="px-3 py-2">{l.saldoTotal}</td>
-                        <td className="px-3 py-2">
+                        <td className="px-3 py-3 text-center">
+                          {/* Bolinha de status */}
+                          <div className={`w-4 h-4 rounded-full mx-auto ${
+                            l.teveEntrada || l.teveSaida 
+                              ? 'bg-green-500' 
+                              : l.saldoTotal !== 0 
+                                ? 'bg-red-500' 
+                                : 'bg-gray-500'
+                          }`} 
+                          title={
+                            l.teveEntrada || l.teveSaida 
+                              ? 'Aluno ativo (teve movimentação no período)' 
+                              : l.saldoTotal !== 0 
+                                ? 'Caixa vencida (sem movimentação no período)' 
+                                : 'Sem movimentação alguma'
+                          }></div>
+                        </td>
+                        <td className="px-3 py-3 text-gray-900">
+                          {l.alunoNome}
+                        </td>
+                        <td className="px-3 py-3 hidden md:table-cell">{l.periodoNome || '-'}</td>
+                        <td className="px-3 py-3">{l.saldoTotal}</td>
+                        <td className="px-3 py-3 hidden sm:table-cell">
                           {l.teveEntrada ? (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-800">Sim</span>
                           ) : (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-800">Não</span>
                           )}
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-3 py-3 hidden sm:table-cell">
                           {l.teveSaida ? (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-800">Sim</span>
                           ) : (
@@ -393,8 +489,16 @@ export default function RelatorioMovAluno() {
                       </tr>
                       {aberto && (
                         <tr>
-                          <td colSpan={6} className="px-3 pt-0 pb-3">
-                            <div className="border rounded-xl p-3 bg-gray-50">
+                          <td colSpan={TOTAL_COLUNAS} className="px-3 pt-0 pb-3 w-full">
+                            <div className="border rounded-xl p-4 bg-gray-50 w-full">
+                              {/* Informações adicionais para mobile */}
+                              <div className="sm:hidden mb-3 p-2 bg-blue-50 rounded border border-blue-200">
+                                <div className="text-sm text-blue-800">
+                                  <div><strong>Período:</strong> {l.periodoNome || '-'}</div>
+                                  <div><strong>Teve Entrada:</strong> {l.teveEntrada ? 'Sim' : 'Não'}</div>
+                                  <div><strong>Teve Saída:</strong> {l.teveSaida ? 'Sim' : 'Não'}</div>
+                                </div>
+                              </div>
                               {detalhes[l.alunoId]?.loading ? (
                                 <div className="text-gray-500">Carregando movimentações…</div>
                               ) : (detalhes[l.alunoId]?.data || []).length === 0 ? (
@@ -404,23 +508,23 @@ export default function RelatorioMovAluno() {
                                   <table className="min-w-full text-sm">
                                     <thead>
                                       <tr className="text-gray-600">
-                                        <th className="px-2 py-1 text-left">Data</th>
-                                        <th className="px-2 py-1 text-left">Tipo</th>
-                                        <th className="px-2 py-1 text-left">Caixa</th>
-                                        <th className="px-2 py-1 text-left">Operador</th>
+                                        <th className="px-3 py-2 text-left">Data</th>
+                                        <th className="px-3 py-2 text-left">Tipo</th>
+                                        <th className="px-3 py-2 text-left">Caixa</th>
+                                        <th className="px-3 py-2 text-left">Operador</th>
                                       </tr>
                                     </thead>
                                     <tbody>
                                       {detalhes[l.alunoId].data.map(m => (
                                         <tr key={m.id} className="border-t odd:bg-white even:bg-gray-50">
-                                          <td className="px-2 py-1">
+                                          <td className="px-3 py-2">
                                             {m.criado_em
                                               ? new Date(String(m.criado_em).replace(' ', 'T')).toLocaleString('pt-BR')
                                               : '-'}
                                           </td>
-                                          <td className="px-2 py-1 capitalize">{m.tipo}</td>
-                                          <td className="px-2 py-1">{m.caixaNome}</td>
-                                          <td className="px-2 py-1">{m.operadorNome}</td>
+                                          <td className="px-3 py-2 capitalize">{m.tipo}</td>
+                                          <td className="px-3 py-2">{m.caixaNome}</td>
+                                          <td className="px-3 py-2">{m.operadorNome}</td>
                                         </tr>
                                       ))}
                                     </tbody>
@@ -433,8 +537,8 @@ export default function RelatorioMovAluno() {
                       )}
                       {idx !== linhasPagina.length - 1 && (
                         <tr>
-                          <td colSpan={6}>
-                            <hr className="border-t border-gray-200 my-0" />
+                          <td colSpan={TOTAL_COLUNAS} className="w-full">
+                            <hr className="border-t border-gray-200 my-0 w-full" />
                           </td>
                         </tr>
                       )}
