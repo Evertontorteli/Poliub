@@ -10,12 +10,7 @@ export default function PrintMovimentacoesAluno() {
   const [resumo, setResumo] = useState([])
   const [loading, setLoading] = useState(true)
 
-  // Utilitário para formatar "YYYY-MM-DD" → "DD/MM/YYYY"
-  function formatarData(isoDate) {
-    if (!isoDate) return '-'
-    const [yyyy, mm, dd] = isoDate.split('-')
-    return `${dd}/${mm}/${yyyy}`
-  }
+
 
   // 1) Busca dados do relatório
   useEffect(() => {
@@ -27,9 +22,7 @@ export default function PrintMovimentacoesAluno() {
 
         // Buscar dados do relatório
         const params = {}
-        if (filters.periodoId && filters.periodoId !== '') params.periodoId = filters.periodoId
-        if (filters.from) params.from = filters.from
-        if (filters.to) params.to = filters.to
+        if (filters.periodoId !== null && filters.periodoId !== '') params.periodoId = filters.periodoId
 
         console.log('Buscando relatório com params:', params)
         console.log('URL da requisição:', '/api/movimentacoes/relatorio')
@@ -85,21 +78,12 @@ export default function PrintMovimentacoesAluno() {
       <p className="text-gray-600 mb-4">Resumo de entradas, saídas e saldo de caixas por aluno</p>
 
       {/* Exibe filtros usados */}
-      {(filters.searchTerm || filters.periodoId || filters.from || filters.to) && (
+      {(filters.searchTerm || filters.periodoId) && (
         <div className="mb-4 text-gray-700">
           <span className="font-semibold">Filtros aplicados:</span>
           <ul className="list-disc list-inside ml-4">
             {filters.searchTerm && <li>Busca: "{filters.searchTerm}"</li>}
-            {filters.periodoId && filters.periodoId !== '' && <li>Período específico selecionado</li>}
-            {filters.from && filters.to && (
-              <li>Período: {formatarData(filters.from)} até {formatarData(filters.to)}</li>
-            )}
-            {filters.from && !filters.to && (
-              <li>A partir de: {formatarData(filters.from)}</li>
-            )}
-            {!filters.from && filters.to && (
-              <li>Até: {formatarData(filters.to)}</li>
-            )}
+            {filters.periodoId !== null && filters.periodoId !== '' && <li>Período específico selecionado</li>}
           </ul>
         </div>
       )}
@@ -178,7 +162,7 @@ export default function PrintMovimentacoesAluno() {
       <div className="mt-8 pt-4 border-t text-sm text-gray-500">
         <p>Relatório gerado em: {new Date().toLocaleString('pt-BR')}</p>
         <p>Total de alunos: {listaFiltrada.length}</p>
-        <p>Período do relatório: {filters.from && filters.to ? `${formatarData(filters.from)} até ${formatarData(filters.to)}` : 'Todos os períodos'}</p>
+        <p>Período do relatório: Todos os períodos (sistema sempre verifica os últimos 30 dias)</p>
         <p>Filtros aplicados: {filters.searchTerm ? `Busca: "${filters.searchTerm}"` : 'Sem filtro de busca'}</p>
       </div>
 

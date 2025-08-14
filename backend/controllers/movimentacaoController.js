@@ -258,7 +258,9 @@ function buildDateRange(from, to) {
  */
 async function relatorioPorAluno(req, res) {
   const { periodoId, from, to } = req.query;
-    const { start, end } = buildDateRange(from, to);
+  const { start, end } = buildDateRange(from, to);
+
+  console.log('[Backend] relatorioPorAluno chamado com:', { periodoId, from, to, start, end });
 
   const conn = await getConnection();
   try {
@@ -267,20 +269,11 @@ async function relatorioPorAluno(req, res) {
     if (periodoId) {
       whereAlunos = 'a.periodo_id = ?';
       params.push(periodoId);
+      console.log('[Backend] Filtro por período aplicado:', { periodoId, whereAlunos, params });
     }
 
-    // filtros de data aplicados na JOIN (coluna criado_em)
-    const movJoinClauses = [];
-    const movParams = [];
-    if (start) { movJoinClauses.push("CONVERT_TZ(m.criado_em, '+00:00', 'America/Sao_Paulo') >= ?"); movParams.push(start); }
-    if (end)   { movJoinClauses.push("CONVERT_TZ(m.criado_em, '+00:00', 'America/Sao_Paulo') <= ?"); movParams.push(end); }
-
-    const joinExtra = movJoinClauses.length
-      ? ` AND ${movJoinClauses.join(' AND ')}`
-      : '';
-
-    const [rows] = await conn.query(
-      `
+    // Construir SQL sempre usando os últimos 30 dias para determinar caixas vencidas
+    let sql = `
       SELECT
         a.id         AS alunoId,
         a.nome       AS alunoNome,
@@ -288,7 +281,7 @@ async function relatorioPorAluno(req, res) {
         p.nome       AS periodoNome,
         p.turno      AS periodoTurno,
 
-        /* saldo por contagem (sem coluna quantidade) */
+        /* saldo total (todas as movimentações) */
         COALESCE(SUM(
           CASE 
             WHEN m.tipo = 'entrada' THEN 1
@@ -297,21 +290,33 @@ async function relatorioPorAluno(req, res) {
           END
         ), 0) AS saldoTotal,
 
-        /* flags de existência */
-        COALESCE(SUM(CASE WHEN m.tipo = 'entrada' THEN 1 ELSE 0 END), 0) AS cntEntrada,
-        COALESCE(SUM(CASE WHEN m.tipo = 'saida'   THEN 1 ELSE 0 END), 0) AS cntSaida
+        /* flags de existência nos últimos 30 dias */
+        COALESCE(SUM(CASE WHEN m.tipo = 'entrada' AND CONVERT_TZ(m.criado_em, '+00:00', 'America/Sao_Paulo') >= ? THEN 1 ELSE 0 END), 0) AS cntEntrada,
+        COALESCE(SUM(CASE WHEN m.tipo = 'saida' AND CONVERT_TZ(m.criado_em, '+00:00', 'America/Sao_Paulo') >= ? THEN 1 ELSE 0 END), 0) AS cntSaida
 
       FROM alunos a
       LEFT JOIN movimentacoes_esterilizacao m
            ON m.aluno_id = a.id
-          ${joinExtra}
       LEFT JOIN periodos p ON a.periodo_id = p.id
       WHERE ${whereAlunos}
       GROUP BY a.id, a.nome, a.periodo_id, p.nome, p.turno
       ORDER BY a.nome ASC
-      `,
-      [...params, ...movParams]
-    );
+    `;
+
+    // Sempre usar os últimos 30 dias para determinar caixas vencidas
+    const trintaDiasAtras = new Date();
+    trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
+    const start = trintaDiasAtras.toISOString().slice(0, 19).replace('T', ' ');
+    
+    // A ordem dos placeholders na SQL é: (1) data, (2) data, (3) periodoId (se houver)
+    // Portanto, precisamos passar primeiro as datas e depois os filtros do WHERE
+    const finalParams = [start, start, ...params];
+    
+    console.log('[Backend] SQL final:', sql);
+    console.log('[Backend] Parâmetros finais da query:', { start, params, finalParams });
+
+    // Usar query preparada para evitar confusão de parâmetros
+    const [rows] = await conn.execute(sql, finalParams);
 
     const data = rows.map(r => ({
       alunoId: r.alunoId,
@@ -345,18 +350,15 @@ async function relatorioPorAluno(req, res) {
  */
 async function movimentacoesPorAluno(req, res) {
   const { alunoId } = req.params;
-  const { from, to } = req.query;
-  const { start, end } = buildDateRange(from, to);
 
   if (!alunoId) return res.status(400).json({ error: 'alunoId obrigatório' });
 
   const conn = await getConnection();
   try {
-    const where = ['m.aluno_id = ?'];
-    const params = [alunoId];
-
-    if (start) { where.push("CONVERT_TZ(m.criado_em, '+00:00', 'America/Sao_Paulo') >= ?"); params.push(start); }
-    if (end)   { where.push("CONVERT_TZ(m.criado_em, '+00:00', 'America/Sao_Paulo') <= ?"); params.push(end); }
+    // Sempre mostrar todas as movimentações, mas destacar as dos últimos 30 dias
+    const trintaDiasAtras = new Date();
+    trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
+    const start = trintaDiasAtras.toISOString().slice(0, 19).replace('T', ' ');
 
     const [rows] = await conn.query(
       `
@@ -368,16 +370,20 @@ async function movimentacoesPorAluno(req, res) {
         DATE_FORMAT(
           CONVERT_TZ(m.criado_em, '+00:00', 'America/Sao_Paulo'),
           '%Y-%m-%d %H:%i:%s'
-        ) AS criado_em
-      , c.nome AS caixaNome
-      , o.nome AS operadorNome
+        ) AS criado_em,
+        c.nome AS caixaNome,
+        o.nome AS operadorNome,
+        CASE 
+          WHEN CONVERT_TZ(m.criado_em, '+00:00', 'America/Sao_Paulo') >= ? THEN 1
+          ELSE 0
+        END AS nosUltimos30Dias
       FROM movimentacoes_esterilizacao m
       JOIN caixas c ON m.caixa_id = c.id
       JOIN alunos o ON m.operador_id = o.id
-      WHERE ${where.join(' AND ')}
+      WHERE m.aluno_id = ?
       ORDER BY m.criado_em DESC, m.id DESC
       `,
-      params
+      [start, alunoId]
     );
 
     res.json(rows);
