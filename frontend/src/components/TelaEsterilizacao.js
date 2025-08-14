@@ -342,7 +342,7 @@ export default function TelaEsterilizacao() {
               value={alunoPin}
               onChange={e => setAlunoPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
               onKeyDown={e => e.key === 'Enter' && validarPin()}
-              className="flex-1 border rounded px-3 py-2"
+              className="flex-1 border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
             />
             <button
               onClick={validarPin}
@@ -377,7 +377,7 @@ export default function TelaEsterilizacao() {
                 placeholder="Código ou nome da caixa"
                 value={codigo}
                 onChange={e => setCodigo(e.target.value)}
-                className="flex-1 border rounded px-3 py-2"
+                className="flex-1 border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
               />
               <button
                 onClick={buscarCaixa}

@@ -14,6 +14,7 @@ import 'react-datepicker/dist/react-datepicker.css'
 import { Calendar, QrCode, Box } from 'lucide-react'
 import Etiqueta from './Etiqueta'
 import MovimentacaoEsterilizacao from './MovimentacaoEsterilizacao'
+import RelatorioMovAluno from './RelatorioMovAluno'
 
 registerLocale('pt-BR', ptBR)
 
@@ -21,7 +22,7 @@ const COLORS = ['#4caf50', '#2196f3', '#ff9800', '#9c27b0', '#f44336', '#03a9f4'
 
 export default function DashboardEsterilizacao() {
   // Abas internas
-  const [aba, setAba] = useState('dashboard') // 'dashboard' ou 'movimentacao'
+  const [aba, setAba] = useState('dashboard') // 'dashboard' | 'movimentacao' | 'relatorio'
 
   // dashboard states
   const [movs, setMovs] = useState([])
@@ -142,22 +143,31 @@ export default function DashboardEsterilizacao() {
       {/* Abas (padrão minimalista, pode personalizar com Tailwind) */}
       <div className="flex gap-2 mb-6">
         <button
-          className={`px-6 py-2 rounded-t-xl font-semibold transition 
+          className={`px-6 py-3 rounded-2xl font-semibold transition border-2
             ${aba === 'dashboard'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-blue-100'}`}
+              ? 'bg-[#3172C0] text-white border-transparent'
+              : 'bg-white text-gray-700 border-gray-300 hover:bg-[#3172C0] hover:text-white'}`}
           onClick={() => setAba('dashboard')}
         >
           Dashboard
         </button>
         <button
-          className={`px-6 py-2 rounded-t-xl font-semibold transition 
+          className={`px-6 py-3 rounded-2xl font-semibold transition border-2
             ${aba === 'movimentacao'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-blue-100'}`}
+              ? 'bg-[#3172C0] text-white border-transparent'
+              : 'bg-white text-gray-700 border-gray-300 hover:bg-[#3172C0] hover:text-white'}`}
           onClick={() => setAba('movimentacao')}
         >
-          Movimentação
+          Histórico de Movimentações
+        </button>
+        <button
+          className={`px-6 py-3 rounded-2xl font-semibold transition border-2
+            ${aba === 'relatorio'
+              ? 'bg-[#3172C0] text-white border-transparent'
+              : 'bg-white text-gray-700 border-gray-300 hover:bg-[#3172C0] hover:text-white'}`}
+          onClick={() => setAba('relatorio')}
+        >
+          Movimentações por Aluno
         </button>
       </div>
 
@@ -258,6 +268,10 @@ export default function DashboardEsterilizacao() {
 
       {aba === 'movimentacao' && (
         <MovimentacaoEsterilizacao />
+      )}
+
+      {aba === 'relatorio' && (
+        <RelatorioMovAluno />
       )}
       
       {/* área oculta para impressão (se precisar) */}

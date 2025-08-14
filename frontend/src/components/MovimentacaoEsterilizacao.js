@@ -160,14 +160,14 @@ export default function MovimentacaoEsterilizacao() {
             placeholder="Pesquisar por caixa, aluno, operador, período..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="border rounded px-4 py-2 w-full rounded-2xl"
+            className="border rounded px-4 py-2 w-full rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-300"
           />
           <input
             type="text"
             placeholder="Filtrar por período"
             value={filterPeriodo}
             onChange={e => setFilterPeriodo(e.target.value)}
-            className="border rounded px-4 py-2 w-full md:w-1/4 rounded-2xl"
+            className="border rounded px-4 py-2 w-full md:w-1/4 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-300"
           />
           <div className="flex items-center gap-4 mt-4 md:mt-0 relative">
             <button
