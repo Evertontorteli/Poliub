@@ -268,8 +268,8 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
           {/* Campos visíveis só para outros perfis */}
           {!isAluno && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div>
-                <label className="block mb-2 font-medium text-gray-700">
+              <div className="group">
+                <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
                   Número do Prontuário <small>(opcional)</small>
                 </label>
                 <input
@@ -277,11 +277,11 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
                   maxLength={8}
                   value={numeroProntuario}
                   onChange={e => setNumeroProntuario(e.target.value)}
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
                 />
               </div>
-              <div>
-                <label className="block mb-2 font-medium text-gray-700">
+              <div className="group">
+                <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
                   Nº Gaveta <small>(opcional)</small>
                 </label>
                 <input
@@ -289,15 +289,15 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
                   name="numero_gaveta"
                   value={formData.numero_gaveta}
                   onChange={handleChange}
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
                 />
               </div>
             </div>
           )}
 
           {/* Nome */}
-          <div className="mb-6">
-            <label className="block mb-2 font-medium text-gray-700">
+          <div className="mb-6 group">
+            <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
               Nome e Sobrenome
             </label>
             <input
@@ -305,12 +305,12 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
               required
               value={nome}
               onChange={e => setNome(e.target.value)}
-              className="w-full border rounded px-3 py-2"
+              className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
             />
           </div>
           {/* Telefone */}
-          <div className="mb-6">
-            <label className="block mb-2 font-medium text-gray-700">
+          <div className="mb-6 group">
+            <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
               Telefone
             </label>
             <input
@@ -319,7 +319,7 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
               value={telefone}
               onChange={e => setTelefone(formatarTelefone(e.target.value))}
               placeholder="(XX) XXXXX-XXXX"
-              className="w-full border rounded px-3 py-2"
+              className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
             />
           </div>
 
@@ -328,8 +328,8 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
             <>
               {/* RG / CPF */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div>
-                  <label className="block mb-2 font-medium text-gray-700">
+                <div className="group">
+                  <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
                     RG <small>(opcional)</small>
                   </label>
                   <input
@@ -337,11 +337,11 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
                     name="rg"
                     value={formData.rg}
                     onChange={handleChange}
-                    className="w-full border rounded px-3 py-2"
+                    className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
                   />
                 </div>
-                <div>
-                  <label className="block mb-2 font-medium text-gray-700">
+                <div className="group">
+                  <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
                     CPF <small>(opcional)</small>
                   </label>
                   <input
@@ -350,14 +350,14 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
                     value={formData.cpf}
                     onChange={handleChange}
                     placeholder="000.000.000-00"
-                    className="w-full border rounded px-3 py-2"
+                    className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
                   />
                 </div>
               </div>
               {/* Nasc. / Idade */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div>
-                  <label className="block mb-2 font-medium text-gray-700">
+                <div className="group">
+                  <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
                     Data de Nascimento <small>(opcional)</small>
                   </label>
                   <input
@@ -365,11 +365,11 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
                     name="data_nascimento"
                     value={formData.data_nascimento}
                     onChange={handleDateChange}
-                    className="w-full border rounded px-3 py-2"
+                    className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
                   />
                 </div>
-                <div>
-                  <label className="block mb-2 font-medium text-gray-700">
+                <div className="group">
+                  <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
                     Idade
                   </label>
                   <input
@@ -377,13 +377,13 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
                     readOnly
                     name="idade"
                     value={formData.idade}
-                    className="w-full bg-gray-100 border rounded px-3 py-2"
+                    className="w-full bg-gray-100 border rounded px-3 py-2 focus:outline-none"
                   />
                 </div>
               </div>
               {/* CEP */}
-              <div className="mb-6">
-                <label className="block mb-2 font-medium text-gray-700">
+              <div className="mb-6 group">
+                <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
                   CEP <small>(opcional)</small>
                 </label>
                 <input
@@ -393,12 +393,12 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
                   onChange={handleChange}
                   onBlur={handleCepBlur}
                   placeholder="00000-000"
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
                 />
               </div>
               {/* Endereço / Nº / Cidade */}
-              <div className="mb-6">
-                <label className="block mb-2 font-medium text-gray-700">
+              <div className="mb-6 group">
+                <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
                   Endereço <small>(opcional)</small>
                 </label>
                 <input
@@ -406,12 +406,12 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
                   name="endereco"
                   value={formData.endereco}
                   onChange={handleChange}
-                  className="w-full border rounded px-3 py-2"
+                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
                 />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div>
-                  <label className="block mb-2 font-medium text-gray-700">
+                <div className="group">
+                  <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
                     Número <small>(opcional)</small>
                   </label>
                   <input
@@ -419,11 +419,11 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
                     name="numero"
                     value={formData.numero}
                     onChange={handleChange}
-                    className="w-full border rounded px-3 py-2"
+                    className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
                   />
                 </div>
-                <div>
-                  <label className="block mb-2 font-medium text-gray-700">
+                <div className="group">
+                  <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
                     Cidade <small>(opcional)</small>
                   </label>
                   <input
@@ -431,20 +431,20 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
                     name="cidade"
                     value={formData.cidade}
                     onChange={handleChange}
-                    className="w-full border rounded px-3 py-2"
+                    className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
                   />
                 </div>
               </div>
               {/* Observações */}
-              <div className="mb-6">
-                <label className="block mb-2 font-medium text-gray-700">
+              <div className="mb-6 group">
+                <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
                   Observações <small>(opcional)</small>
                 </label>
                 <textarea
                   name="observacao"
                   value={formData.observacao}
                   onChange={handleChange}
-                  className="w-full border rounded px-3 py-2 h-24"
+                  className="w-full border rounded px-3 py-2 h-24 focus:outline-none focus:ring-2 focus:ring-blue-300"
                 />
               </div>
             </>

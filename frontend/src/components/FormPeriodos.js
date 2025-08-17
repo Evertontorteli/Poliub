@@ -45,19 +45,19 @@ export default function FormPeriodo({ periodoEditando, onSalvar, onCancel }) {
       <h2 className="text-2xl font-bold mb-2">
         {periodoEditando ? "Editar Período" : "Cadastrar Novo Período"}
       </h2>
-      <div className="mb-2">
-        <label className="block mb-1 font-medium">Nome do Período</label>
+      <div className="mb-2 group">
+        <label className="block mb-1 font-medium transition-colors group-focus-within:text-blue-600">Nome do Período</label>
         <input
-          className="border rounded px-3 py-2 w-full"
+          className="border rounded px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-300"
           value={nome}
           onChange={(e) => setNome(e.target.value)}
           required
         />
       </div>
-      <div className="mb-2">
-        <label className="block mb-1 font-medium">Turno</label>
+      <div className="mb-2 group">
+        <label className="block mb-1 font-medium transition-colors group-focus-within:text-blue-600">Turno</label>
         <select
-          className="border rounded px-3 py-2 w-full"
+          className="border rounded px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-300"
           value={turno}
           onChange={(e) => setTurno(e.target.value)}
           required

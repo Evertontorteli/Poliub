@@ -190,11 +190,11 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
       <h2 className="text-2xl font-bold">{alunoEditando ? 'Editar Aluno' : 'Cadastrar Aluno'}</h2>
 
       {/* Nome Completo */}
-      <div>
-        <label className="block mb-1 font-medium">Nome Completo</label>
+      <div className="group">
+        <label className="block mb-1 font-medium transition-colors group-focus-within:text-blue-600">Nome Completo</label>
         <input
           type="text"
-          className="w-full border rounded px-3 py-2"
+          className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
           value={nome}
           onChange={e => setNome(e.target.value)}
           required
@@ -203,22 +203,22 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
 
       {/* RA e Box */}
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block mb-1 font-medium">RA</label>
+        <div className="group">
+          <label className="block mb-1 font-medium transition-colors group-focus-within:text-blue-600">RA</label>
           <input
             type="text"
-            className="w-full border rounded px-3 py-2"
+            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
             value={ra}
             maxLength={9}
             onChange={e => setRa(e.target.value.replace(/\D/g, '').slice(0, 9))}
             required
           />
         </div>
-        <div>
-          <label className="block mb-1 font-medium">Box</label>
+        <div className="group">
+          <label className="block mb-1 font-medium transition-colors group-focus-within:text-blue-600">Box</label>
           <input
             type="text"
-            className="w-full border rounded px-3 py-2"
+            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
             value={box}
             maxLength={3}
             onChange={e => setBox(e.target.value.replace(/\D/g, '').slice(0, 3))}
@@ -227,10 +227,10 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
       </div>
 
       {/* Período */}
-      <div>
-        <label className="block mb-1 font-medium">Período</label>
+      <div className="group">
+        <label className="block mb-1 font-medium transition-colors group-focus-within:text-blue-600">Período</label>
         <select
-          className="w-full border rounded px-3 py-2"
+          className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
           value={periodoId}
           onChange={e => setPeriodoId(e.target.value)}
           required
@@ -246,14 +246,14 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
 
       <div className="grid grid-cols-2 gap-4">
         {/* Login */}
-        <div>
-          <label className="block mb-1 font-medium flex items-center">
+        <div className="group">
+          <label className="block mb-1 font-medium flex items-center transition-colors group-focus-within:text-blue-600">
             Login
             <Tooltip text="Login único para acessar o sistema. Não use acentos ou espaços." />
           </label>
           <input
             type="text"
-            className="w-full border rounded px-3 py-2"
+            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
             value={usuario}
             onChange={e => setUsuario(e.target.value)}
             required
@@ -261,15 +261,15 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
         </div>
 
         {/* Nova Senha */}
-        <div>
-          <label className="block mb-1 font-medium flex items-center">
+        <div className="group">
+          <label className="block mb-1 font-medium flex items-center transition-colors group-focus-within:text-blue-600">
             {alunoEditando ? 'Nova senha (opcional)' : 'Senha'}
             <Tooltip text="A senha deve ter pelo menos 4 caracteres. Preencha somente se deseja trocar a senha." />
           </label>
           <div className="relative">
             <input
               type={showSenha ? 'text' : 'password'}
-              className="w-full border rounded px-3 py-2 pr-10"
+              className="w-full border rounded px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-300"
               value={senha}
               onChange={e => setSenha(e.target.value)}
               required={!alunoEditando}
@@ -287,30 +287,30 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
 
       <div className="grid grid-cols-2 gap-4">
         {/* Código Esterilização */}
-        <div>
-          <label className="block mb-1 font-medium flex items-center">
+        <div className="group">
+          <label className="block mb-1 font-medium flex items-center transition-colors group-focus-within:text-blue-600">
             Código esterilização
             <Tooltip text="Código opcional para rastrear o material esterilizado utilizado pelo aluno. Use até 4 dígitos." />
           </label>
           <input
             type="text"
             maxLength={4}
-            className="w-full border rounded px-3 py-2"
+            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
             value={codEsterilizacao}
             onChange={e => setCodEsterilizacao(e.target.value.replace(/\D/g, '').slice(0, 4))}
           />
         </div>
 
         {/* PIN */}
-        <div>
-          <label className="block mb-1 font-medium flex items-center">
+        <div className="group">
+          <label className="block mb-1 font-medium flex items-center transition-colors group-focus-within:text-blue-600">
             PIN
             <Tooltip text="PIN numérico de 4 dígitos. Usado para autenticação rápida do aluno no momento de entrada e saída de caixas." />
           </label>
           <input
             type="text"
             maxLength={4}
-            className="w-full border rounded px-3 py-2"
+            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
             value={pin}
             onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
           />
@@ -320,10 +320,10 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
 
 
       {/* Permissão */}
-      <div>
-        <label className="block mb-1 font-medium">Permissão</label>
+      <div className="group">
+        <label className="block mb-1 font-medium transition-colors group-focus-within:text-blue-600">Permissão</label>
         <select
-          className="w-full border rounded px-3 py-2"
+          className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
           value={role}
           onChange={e => setRole(e.target.value)}
         >

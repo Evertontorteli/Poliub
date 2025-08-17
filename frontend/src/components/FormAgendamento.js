@@ -216,8 +216,8 @@ async function handleSubmit(e) {
         </div>
 
         {/* Disciplinas */}
-        <div className="mb-6">
-          <label className="block mb-1 font-medium">Disciplina</label>
+        <div className="mb-6 group">
+          <label className="block mb-1 font-medium transition-colors group-focus-within:text-blue-600">Disciplina</label>
           <div className="flex flex-wrap gap-2">
             {disciplinas.map(d => (
               <button
@@ -246,10 +246,10 @@ async function handleSubmit(e) {
 
         {/* Paciente autocomplete */}
         {tipoAtendimento !== 'Solicitar' && (
-          <div className="mb-6 relative" ref={inputRef}>
-            <label className="block mb-1 font-medium">Paciente</label>
+          <div className="mb-6 relative group" ref={inputRef}>
+            <label className="block mb-1 font-medium transition-colors group-focus-within:text-blue-600">Paciente</label>
             <input
-              className="w-full border rounded px-3 py-2"
+              className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
               placeholder="Digite nome ou telefone"
               value={buscaPaciente}
               onChange={e => {
@@ -281,12 +281,12 @@ async function handleSubmit(e) {
               <div className="mt-2 space-y-1">
                 <input
                   readOnly
-                  className="w-full border rounded px-3 py-2 bg-gray-100"
+                  className="w-full border rounded px-3 py-2 bg-gray-100 focus:outline-none"
                   value={nomePaciente}
                 />
                 <input
                   readOnly
-                  className="w-full border rounded px-3 py-2 bg-gray-100"
+                  className="w-full border rounded px-3 py-2 bg-gray-100 focus:outline-none"
                   value={telefone}
                 />
               </div>
@@ -299,19 +299,19 @@ async function handleSubmit(e) {
           Data e Hora do Agendamento
         </label>
         <div className="mb-6 flex gap-4">
-          <div className="flex-1">
+          <div className="flex-1 group">
             <input
               type="date"
-              className="w-full border rounded-full px-3 py-2"
+              className="w-full border rounded-full px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
               value={data}
               onChange={e => setData(e.target.value)}
               required
             />
           </div>
-          <div className="flex-1">
+          <div className="flex-1 group">
             <input
               type="time"
-              className="w-full border rounded-full px-3 py-2"
+              className="w-full border rounded-full px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
               value={hora}
               onChange={e => setHora(e.target.value)}
               required
@@ -320,17 +320,17 @@ async function handleSubmit(e) {
         </div>
 
         {/* Operador / Auxiliar */}
-        <div className="mb-6">
-          <label className="block mb-4 font-medium">
+        <div className="mb-6 group">
+          <label className="block mb-4 font-medium transition-colors group-focus-within:text-blue-600">
             Alunos que irão realizar o procedimento
           </label>
           <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <label className="block mb-1 text-sm font-semibold">
+            <div className="flex-1 group">
+              <label className="block mb-1 text-sm font-semibold transition-colors group-focus-within:text-blue-600">
                 Operador
               </label>
               <select
-                className="w-full border rounded px-3 py-2"
+                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
                 value={operadorId}
                 onChange={e => setOperadorId(e.target.value)}
                 required
@@ -343,12 +343,12 @@ async function handleSubmit(e) {
                 ))}
               </select>
             </div>
-            <div className="flex-1">
-              <label className="block mb-1 text-sm font-semibold">
+            <div className="flex-1 group">
+              <label className="block mb-1 text-sm font-semibold transition-colors group-focus-within:text-blue-600">
                 Auxiliar (Opcional)
               </label>
               <select
-                className="w-full border rounded px-3 py-2"
+                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
                 value={auxiliar1Id}
                 onChange={e => setAuxiliar1Id(e.target.value)}
               >

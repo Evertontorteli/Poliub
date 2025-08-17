@@ -56,20 +56,20 @@ function FormDisciplina({ onNovaDisciplina, disciplinaEditando, onFimEdicao }) {
         <h2 className="text-2xl font-bold mb-6 text-gray-800">
           {disciplinaEditando ? 'Editar Disciplina' : 'Cadastrar Nova Disciplina'}
         </h2>
-        <div className="mb-6">
-          <label className="block mb-2 font-medium text-gray-700">Nome da Disciplina</label>
+        <div className="mb-6 group">
+          <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">Nome da Disciplina</label>
           <input
-            className="w-full border rounded px-3 py-2"
+            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
             value={nome}
             onChange={e => setNome(e.target.value)}
             required
             placeholder="Digite o nome da disciplina"
           />
         </div>
-        <div className="mb-6">
-          <label className="block mb-2 font-medium text-gray-700">Período</label>
+        <div className="mb-6 group">
+          <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">Período</label>
           <select
-            className="w-full border rounded px-3 py-2"
+            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
             value={periodoId}
             onChange={e => setPeriodoId(e.target.value)}
             required

@@ -98,21 +98,21 @@ export default function DropboxCard({ value, onChange, retentionDays }) {
             </span>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Pasta (ex.: /Backups)</label>
+          <div className="group">
+            <label className="block text-sm font-medium mb-1 transition-colors group-focus-within:text-blue-600">Pasta (ex.: /Backups)</label>
             <input
               type="text"
-              className="w-full border rounded px-3 py-2"
+              className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
               value={local.folder}
               onChange={(e) => setLocal((p) => ({ ...p, folder: e.target.value }))}
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Access Token (Dropbox)</label>
+          <div className="group">
+            <label className="block text-sm font-medium mb-1 transition-colors group-focus-within:text-blue-600">Access Token (Dropbox)</label>
             <input
               type="password"
-              className="w-full border rounded px-3 py-2"
+              className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
               value={local.accessToken}
               onChange={(e) => setLocal((p) => ({ ...p, accessToken: e.target.value }))}
               placeholder="Cole o Access Token do seu app Dropbox"

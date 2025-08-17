@@ -104,11 +104,11 @@ export default function GoogleDriveCard({ value, onChange, retentionDays, onChan
           </div>
 
           {/* Folder ID */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Folder ID</label>
+          <div className="group">
+            <label className="block text-sm font-medium mb-1 transition-colors group-focus-within:text-blue-600">Folder ID</label>
             <input
               type="text"
-              className="w-full border rounded px-3 py-2"
+              className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
               placeholder="ID da pasta de destino no Drive"
               value={local.folderId}
               onChange={(e) => setLocal((p) => ({ ...p, folderId: e.target.value }))}
@@ -119,11 +119,11 @@ export default function GoogleDriveCard({ value, onChange, retentionDays, onChan
           </div>
 
           {/* Service Account Email */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Service Account - client_email</label>
+          <div className="group">
+            <label className="block text-sm font-medium mb-1 transition-colors group-focus-within:text-blue-600">Service Account - client_email</label>
             <input
               type="email"
-              className="w-full border rounded px-3 py-2"
+              className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
               placeholder="ex.: my-service@project.iam.gserviceaccount.com"
               value={local.clientEmail}
               onChange={(e) => setLocal((p) => ({ ...p, clientEmail: e.target.value }))}
@@ -131,10 +131,10 @@ export default function GoogleDriveCard({ value, onChange, retentionDays, onChan
           </div>
 
           {/* Private Key */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Service Account - private_key</label>
+          <div className="group">
+            <label className="block text-sm font-medium mb-1 transition-colors group-focus-within:text-blue-600">Service Account - private_key</label>
             <textarea
-              className="w-full border rounded px-3 py-2 min-h-[120px]"
+              className="w-full border rounded px-3 py-2 min-h-[120px] focus:outline-none focus:ring-2 focus:ring-blue-300"
               placeholder={`-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n`}
               value={local.privateKey}
               onChange={(e) => setLocal((p) => ({ ...p, privateKey: e.target.value }))}
@@ -156,11 +156,11 @@ export default function GoogleDriveCard({ value, onChange, retentionDays, onChan
           </div>
 
           {local.useSharedDrive && (
-            <div>
-              <label className="block text-sm font-medium mb-1">Drive ID (Shared Drive)</label>
+            <div className="group">
+              <label className="block text-sm font-medium mb-1 transition-colors group-focus-within:text-blue-600">Drive ID (Shared Drive)</label>
               <input
                 type="text"
-                className="w-full border rounded px-3 py-2"
+                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
                 placeholder="ID da Shared Drive (não é a pasta)"
                 value={local.driveId}
                 onChange={(e) => setLocal((p) => ({ ...p, driveId: e.target.value }))}
@@ -174,12 +174,12 @@ export default function GoogleDriveCard({ value, onChange, retentionDays, onChan
 
           {/* Retenção (opcional, mesmo padrão do seu layout) */}
           {typeof retentionDays !== 'undefined' && onChangeRetention && (
-            <div>
-              <label className="block text-sm font-medium mb-1">Manter por (dias)</label>
+            <div className="group">
+              <label className="block text-sm font-medium mb-1 transition-colors group-focus-within:text-blue-600">Manter por (dias)</label>
               <input
                 type="number"
                 min={1}
-                className="w-full border rounded px-3 py-2"
+                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
                 value={retentionDays}
                 onChange={(e) => onChangeRetention(parseInt(e.target.value || '30', 10))}
               />

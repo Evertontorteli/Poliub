@@ -300,10 +300,11 @@ export default function DashboardRecepcao() {
           </h2>
           {/* Filtros */}
           <div className="flex flex-col md:flex-row md:items-end gap-3 pt-0 pb-2">
-            <div className="flex-1">
+            <div className="flex-1 group">
+              <label className="block text-sm text-gray-600 mb-1 transition-colors group-focus-within:text-blue-600">Buscar</label>
               <input
                 type="text"
-                className="border rounded px-4 py-2 w-full rounded-2xl"
+                className="border rounded px-4 py-2 w-full rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-300"
                 placeholder="Operador, Auxiliar, Período, Paciente ou Status"
                 value={busca}
                 onChange={(e) => setBusca(e.target.value)}

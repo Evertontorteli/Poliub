@@ -77,13 +77,14 @@ function ListaPacientes({ reloadKey, onEditar, onSelcionar }) {
     <div className="mx-auto py-2 px-2">
       <div className="bg-white rounded-2xl p-2 shadow">
         {/* Pesquisa */}
-        <div className="mb-4">
+        <div className="mb-4 group">
+          <label className="block text-sm text-gray-600 mb-1 transition-colors group-focus-within:text-blue-600">Buscar</label>
           <input
             type="text"
             placeholder="Pesquisar por prontuário, nome ou telefone"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full border rounded px-3 py-2"
+            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
           />
         </div>
         {/* Paginação topo */}
