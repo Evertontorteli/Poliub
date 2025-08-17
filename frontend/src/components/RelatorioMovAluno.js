@@ -250,8 +250,8 @@ export default function RelatorioMovAluno() {
 
         {/* Filtros (sem botão Buscar) */}
         <div className="flex flex-col lg:flex-row lg:items-end gap-4 pt-0 pb-4">
-          <div className="flex-1 min-w-0">
-            <label className="block text-sm text-gray-600 mb-2">Buscar</label>
+          <div className="flex-1 min-w-0 group">
+            <label className="block text-sm text-gray-600 mb-2 transition-colors group-focus-within:text-blue-600">Buscar</label>
             <input
               type="text"
               placeholder="Pesquisar aluno ou período..."
@@ -260,8 +260,8 @@ export default function RelatorioMovAluno() {
               onChange={e => setSearchTerm(e.target.value)}
             />
           </div>
-          <div className="w-full lg:w-56">
-            <label className="block text-sm text-gray-600 mb-2">Período (opcional)</label>
+          <div className="w-full lg:w-56 group">
+            <label className="block text-sm text-gray-600 mb-2 transition-colors group-focus-within:text-blue-600">Período (opcional)</label>
             <select
               className="border rounded px-4 py-2 w-full rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-300"
               value={periodoId === null ? '' : periodoId}

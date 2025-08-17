@@ -260,7 +260,7 @@ async function relatorioPorAluno(req, res) {
   const { periodoId, from, to } = req.query;
   const { start, end } = buildDateRange(from, to);
 
-  console.log('[Backend] relatorioPorAluno chamado com:', { periodoId, from, to, start, end });
+  
 
   const conn = await getConnection();
   try {
@@ -269,7 +269,6 @@ async function relatorioPorAluno(req, res) {
     if (periodoId) {
       whereAlunos = 'a.periodo_id = ?';
       params.push(periodoId);
-      console.log('[Backend] Filtro por período aplicado:', { periodoId, whereAlunos, params });
     }
 
     // Construir SQL sempre usando os últimos 30 dias para determinar caixas vencidas
@@ -290,9 +289,23 @@ async function relatorioPorAluno(req, res) {
           END
         ), 0) AS saldoTotal,
 
-        /* flags de existência nos últimos 30 dias */
-        COALESCE(SUM(CASE WHEN m.tipo = 'entrada' AND CONVERT_TZ(m.criado_em, '+00:00', 'America/Sao_Paulo') >= ? THEN 1 ELSE 0 END), 0) AS cntEntrada,
-        COALESCE(SUM(CASE WHEN m.tipo = 'saida' AND CONVERT_TZ(m.criado_em, '+00:00', 'America/Sao_Paulo') >= ? THEN 1 ELSE 0 END), 0) AS cntSaida
+        /* flags de existência nos últimos 30 dias (UTC) */
+        COALESCE(
+          SUM(
+            CASE
+              WHEN m.tipo = 'entrada' AND m.criado_em >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY)
+              THEN 1 ELSE 0
+            END
+          ), 0
+        ) AS cntEntrada,
+        COALESCE(
+          SUM(
+            CASE
+              WHEN m.tipo = 'saida' AND m.criado_em >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY)
+              THEN 1 ELSE 0
+            END
+          ), 0
+        ) AS cntSaida
 
       FROM alunos a
       LEFT JOIN movimentacoes_esterilizacao m
@@ -303,17 +316,10 @@ async function relatorioPorAluno(req, res) {
       ORDER BY a.nome ASC
     `;
 
-    // Sempre usar os últimos 30 dias para determinar caixas vencidas
-    const trintaDiasAtras = new Date();
-    trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
-    const start = trintaDiasAtras.toISOString().slice(0, 19).replace('T', ' ');
+    // Sem placeholders de data: usamos expressão DATE_SUB(UTC_TIMESTAMP()) direto no SQL
+    const finalParams = [...params];
     
-    // A ordem dos placeholders na SQL é: (1) data, (2) data, (3) periodoId (se houver)
-    // Portanto, precisamos passar primeiro as datas e depois os filtros do WHERE
-    const finalParams = [start, start, ...params];
     
-    console.log('[Backend] SQL final:', sql);
-    console.log('[Backend] Parâmetros finais da query:', { start, params, finalParams });
 
     // Usar query preparada para evitar confusão de parâmetros
     const [rows] = await conn.execute(sql, finalParams);
@@ -355,11 +361,7 @@ async function movimentacoesPorAluno(req, res) {
 
   const conn = await getConnection();
   try {
-    // Sempre mostrar todas as movimentações, mas destacar as dos últimos 30 dias
-    const trintaDiasAtras = new Date();
-    trintaDiasAtras.setDate(trintaDiasAtras.getDate() - 30);
-    const start = trintaDiasAtras.toISOString().slice(0, 19).replace('T', ' ');
-
+    // Sempre mostrar todas as movimentações, com flag para últimos 30 dias (UTC)
     const [rows] = await conn.query(
       `
       SELECT
@@ -367,14 +369,11 @@ async function movimentacoesPorAluno(req, res) {
         m.aluno_id,
         m.caixa_id,
         m.tipo,          /* 'entrada' | 'saida' */
-        DATE_FORMAT(
-          CONVERT_TZ(m.criado_em, '+00:00', 'America/Sao_Paulo'),
-          '%Y-%m-%d %H:%i:%s'
-        ) AS criado_em,
+        DATE_FORMAT(m.criado_em, '%Y-%m-%d %H:%i:%s') AS criado_em,
         c.nome AS caixaNome,
         o.nome AS operadorNome,
         CASE 
-          WHEN CONVERT_TZ(m.criado_em, '+00:00', 'America/Sao_Paulo') >= ? THEN 1
+          WHEN m.criado_em >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY) THEN 1
           ELSE 0
         END AS nosUltimos30Dias
       FROM movimentacoes_esterilizacao m
@@ -383,7 +382,7 @@ async function movimentacoesPorAluno(req, res) {
       WHERE m.aluno_id = ?
       ORDER BY m.criado_em DESC, m.id DESC
       `,
-      [start, alunoId]
+      [alunoId]
     );
 
     res.json(rows);

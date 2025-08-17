@@ -124,6 +124,12 @@ export default function TelaAlunos() {
     ).values(),
   ].filter((p) => p.id);
 
+  // Exibir rótulo de período com no máximo 25 caracteres
+  const formatPeriodoLabel = (p) => {
+    const base = `${p.nome}${p.turno ? ` (${p.turno})` : ""}`;
+    return base.length > 25 ? base.slice(0, 25) + "…" : base;
+  };
+
   // Filtro combinado
   const filtered = alunos.filter((a) => {
     const term = searchTerm.toLowerCase();
@@ -193,38 +199,49 @@ export default function TelaAlunos() {
 
       <div className="bg-white rounded-2xl shadow p-2 md:p-2">
         {/* Filtros responsivos */}
-        <div className="flex flex-col md:flex-row gap-2 mb-4">
-          <input
-            type="text"
-            placeholder="Buscar por nome, RA ou Box..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full md:w-1/3 border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-          />
-          <select
-            className="w-full md:w-1/4 border border-gray-300 rounded px-4 py-2"
-            value={periodoFiltro}
-            onChange={(e) => setPeriodoFiltro(e.target.value)}
-          >
-            <option value="">Todos os Períodos</option>
-            {periodosUnicos.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.nome} {p.turno ? `(${p.turno})` : ""}
-              </option>
-            ))}
-          </select>
-          <input
-            type="text"
-            placeholder="Cód. Esterilização"
-            value={codEsterilizacaoFiltro}
-            maxLength={4}
-            onChange={(e) =>
-              setCodEsterilizacaoFiltro(
-                e.target.value.replace(/\D/g, "").slice(0, 4)
-              )
-            }
-            className="w-full md:w-1/4 border border-gray-300 rounded px-4 py-2"
-          />
+        <div className="flex flex-col md:flex-row md:items-end gap-2 mb-4">
+          <div className="w-full md:flex-1 group">
+            <label className="block text-sm text-gray-600 mb-1 transition-colors group-focus-within:text-blue-600">Buscar</label>
+            <input
+              type="text"
+              placeholder="Buscar por nome, RA ou Box..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            />
+          </div>
+          <div className="w-full md:w-auto md:ml-auto flex flex-col sm:flex-row gap-2">
+            <div className="w-full sm:w-[25ch] group">
+              <label className="block text-sm text-gray-600 mb-1 transition-colors group-focus-within:text-blue-600">Período</label>
+              <select
+                className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                value={periodoFiltro}
+                onChange={(e) => setPeriodoFiltro(e.target.value)}
+              >
+                <option value="">Todos os Períodos</option>
+                {periodosUnicos.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {formatPeriodoLabel(p)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="w-full sm:w-[15ch] group">
+              <label className="block text-sm text-gray-600 mb-1 transition-colors group-focus-within:text-blue-600">Cód. Esterilização</label>
+              <input
+                type="text"
+                placeholder="Cód. Esterilização"
+                value={codEsterilizacaoFiltro}
+                maxLength={15}
+                onChange={(e) =>
+                  setCodEsterilizacaoFiltro(
+                    e.target.value.replace(/\D/g, "").slice(0, 15)
+                  )
+                }
+                className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Paginação Topo */}
