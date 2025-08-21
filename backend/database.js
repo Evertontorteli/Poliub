@@ -4,6 +4,9 @@ require('dotenv').config();
 
 let pool;
 
+// Configurações do Railway
+const railwayConfig = require('./config/railway');
+
 // Opções recomendadas para o pool (mysql2)
 function poolOpts() {
   return {
@@ -14,6 +17,11 @@ function poolOpts() {
     idleTimeout: Number(process.env.MYSQL_IDLE_TIMEOUT || 60000), // 60s
     enableKeepAlive: true,
     keepAliveInitialDelay: 0,
+    // Configuração de timezone para resolver problema de 3 horas
+    timezone: railwayConfig.mysql.timezone,
+    dateStrings: railwayConfig.mysql.dateStrings,
+    // Configurações de inicialização para forçar UTC
+    multipleStatements: true,
   };
 }
 
@@ -27,6 +35,10 @@ function poolFromUrl(uri) {
       user: decodeURIComponent(u.username || ''),
       password: decodeURIComponent(u.password || ''),
       database: (u.pathname || '').replace(/^\//, ''),
+      // Configuração de timezone para Railway
+      timezone: railwayConfig.mysql.timezone,
+      dateStrings: railwayConfig.mysql.dateStrings,
+      multipleStatements: true,
     };
     const ssl = (u.searchParams.get('ssl') || '').toLowerCase();
     if (ssl && ssl !== 'false') cfg.ssl = { minVersion: 'TLSv1.2' }; // liga TLS se ?ssl=true
@@ -39,7 +51,18 @@ function poolFromUrl(uri) {
 
 async function testConnection(p) {
   const conn = await p.getConnection();
-  try { await conn.query('SELECT 1'); } finally { conn.release(); }
+  try { 
+    await conn.query('SELECT 1'); 
+    
+    // Configura timezone da sessão para UTC usando configurações do Railway
+    for (const sql of railwayConfig.mysql.initSql) {
+      await conn.query(sql);
+    }
+    console.log('✅ Timezone configurado para UTC (+00:00) via Railway config');
+    
+  } finally { 
+    conn.release(); 
+  }
 }
 
 async function initDb() {

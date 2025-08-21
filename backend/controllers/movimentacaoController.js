@@ -369,7 +369,7 @@ async function movimentacoesPorAluno(req, res) {
         m.aluno_id,
         m.caixa_id,
         m.tipo,          /* 'entrada' | 'saida' */
-        DATE_FORMAT(m.criado_em, '%Y-%m-%d %H:%i:%s') AS criado_em,
+        DATE_FORMAT(CONVERT_TZ(m.criado_em, '+00:00', 'America/Sao_Paulo'), '%Y-%m-%d %H:%i:%s') AS criado_em,
         c.nome AS caixaNome,
         o.nome AS operadorNome,
         CASE 

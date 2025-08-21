@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { initDb, getConnection } = require('./database');
+const timezoneMiddleware = require('./middlewares/timezoneMiddleware');
 
 const app = express();
 
@@ -45,6 +46,9 @@ io.on('connection', (socket) => {
     app.use(cors());
     app.options('*', cors());
     app.use(express.json());
+    
+    // Middleware para configurar timezone UTC
+    app.use(timezoneMiddleware);
 
     // 3) Rotas
     app.use('/api', require('./routes/auth'));
