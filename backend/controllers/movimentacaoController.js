@@ -369,13 +369,11 @@ async function movimentacoesPorAluno(req, res) {
         m.aluno_id,
         m.caixa_id,
         m.tipo,          /* 'entrada' | 'saida' */
-        DATE_FORMAT(CONVERT_TZ(m.criado_em, '+00:00', 'America/Sao_Paulo'), '%Y-%m-%d %H:%i:%s') AS criado_em,
+        DATE_FORMAT(CONVERT_TZ(m.criado_em, '+00:00', 'America/Sao_Paulo'), '%d/%m/%Y %H:%i:%s') AS criado_em,
+        TIMESTAMPDIFF(DAY, m.criado_em, UTC_TIMESTAMP()) AS diasDesde,
+        CASE WHEN m.tipo = 'entrada' AND TIMESTAMPDIFF(DAY, m.criado_em, UTC_TIMESTAMP()) > 30 THEN 1 ELSE 0 END AS vencida,
         c.nome AS caixaNome,
-        o.nome AS operadorNome,
-        CASE 
-          WHEN m.criado_em >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY) THEN 1
-          ELSE 0
-        END AS nosUltimos30Dias
+        o.nome AS operadorNome
       FROM movimentacoes_esterilizacao m
       JOIN caixas c ON m.caixa_id = c.id
       JOIN alunos o ON m.operador_id = o.id

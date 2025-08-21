@@ -151,20 +151,23 @@ export default function RelatorioMovAluno() {
     }
 
     // abre em modo loading e busca
-    setDetalhes(prev => ({ ...prev, [alunoId]: { loading: true, data: [] } }));
+    setDetalhes(prev => ({ ...prev, [alunoId]: { loading: true, data: [], estoque: [] } }));
 
     try {
-      const res = await axios.get(`/api/movimentacoes/alunos/${alunoId}/movimentacoes`);
+      const [resMov, resEstoque] = await Promise.all([
+        axios.get(`/api/movimentacoes/alunos/${alunoId}/movimentacoes`),
+        axios.get(`/api/movimentacoes/estoque/${alunoId}`)
+      ]);
 
       setDetalhes(prev => ({
         ...prev,
-        [alunoId]: { loading: false, data: res.data || [] }
+        [alunoId]: { loading: false, data: resMov.data || [], estoque: resEstoque.data || [] }
       }));
     } catch (e) {
       console.error('[Relatório] erro ao buscar detalhe:', e);
       setDetalhes(prev => ({
         ...prev,
-        [alunoId]: { loading: false, data: [] }
+        [alunoId]: { loading: false, data: [], estoque: [] }
       }));
     }
   };
@@ -323,13 +326,7 @@ export default function RelatorioMovAluno() {
                   <ArrowUpDown size={14} className="inline ml-1 text-gray-500" />
                 </th>
                 <th className="px-3 py-3 text-left font-semibold border-b hidden md:table-cell">Período</th>
-                <th
-                  className="px-3 py-3 text-left font-semibold border-b cursor-pointer select-none"
-                  onClick={() => toggleSort('saldoTotal')}
-                  title="Ordenar por Saldo"
-                >
-                  Saldo <ArrowUpDown size={14} className="inline ml-1 text-gray-500" />
-                </th>
+                <th className="px-3 py-3 text-left font-semibold border-b">Saldo</th>
                 <th className="px-3 py-3 text-left font-semibold border-b hidden sm:table-cell">Teve Entrada?</th>
                 <th className="px-3 py-3 text-left font-semibold border-b hidden sm:table-cell">Teve Saída?</th>
               </tr>
@@ -364,25 +361,27 @@ export default function RelatorioMovAluno() {
                         </td>
                         <td className="px-3 py-3 text-center">
                           {/* Bolinha de status */}
-                          <div className={`w-4 h-4 rounded-full mx-auto ${l.teveEntrada || l.teveSaida
-                              ? 'bg-green-500'
-                              : l.saldoTotal !== 0
-                                ? 'bg-red-500'
-                                : 'bg-gray-500'
+                          <div className={`w-4 h-4 rounded-full mx-auto ${l.saldoTotal !== 0
+                              ? (l.teveEntrada || l.teveSaida ? 'bg-green-500' : 'bg-red-500')
+                              : 'bg-gray-500'
                             }`}
                             title={
-                              l.teveEntrada || l.teveSaida
-                                ? 'Aluno ativo (teve movimentação nos últimos 30 dias)'
-                                : l.saldoTotal !== 0
-                                  ? 'Caixa vencida (sem movimentação nos últimos 30 dias)'
-                                  : 'Sem movimentação alguma'
+                              l.saldoTotal === 0
+                                ? 'Sem registro'
+                                : (l.teveEntrada || l.teveSaida
+                                  ? 'Ativo (teve movimentação)'
+                                  : 'Vencido (sem movimentação > 30 dias)')
                             }></div>
                         </td>
                         <td className="px-3 py-3 text-gray-900">
                           {l.alunoNome}
                         </td>
                         <td className="px-3 py-3 hidden md:table-cell">{l.periodoNome || '-'}</td>
-                        <td className="px-3 py-3">{l.saldoTotal}</td>
+                        <td className="px-3 py-3">
+                          <span className={`font-semibold ${Number(l.saldoTotal) !== 0 ? 'text-blue-700' : 'text-gray-700'}`}>
+                            {l.saldoTotal}
+                          </span>
+                        </td>
                         <td className="px-3 py-3 hidden sm:table-cell">
                           {l.teveEntrada ? (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-800">Sim</span>
@@ -416,6 +415,19 @@ export default function RelatorioMovAluno() {
                                 <div className="text-gray-500">Nenhuma movimentação encontrada.</div>
                               ) : (
                                 <div className="overflow-x-auto">
+                                  {/* Saldo por caixa */}
+                                  {(detalhes[l.alunoId]?.estoque || []).length > 0 && (
+                                    <div className="mb-3">
+                                      <div className="text-sm font-semibold text-gray-700 mb-1">Saldo por caixa</div>
+                                      <div className="flex flex-wrap gap-2">
+                                        {detalhes[l.alunoId].estoque.map((e, idx) => (
+                                          <span key={`${e.caixa_nome}-${idx}`} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-50 text-blue-700 border border-blue-200">
+                                            {e.caixa_nome}: {e.saldo}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
                                   <table className="min-w-full text-sm">
                                     <thead>
                                       <tr className="text-gray-600">
@@ -428,25 +440,27 @@ export default function RelatorioMovAluno() {
                                     </thead>
                                     <tbody>
                                       {detalhes[l.alunoId].data.map(m => (
-                                        <tr key={m.id} className={`border-t odd:bg-white even:bg-gray-50 ${m.nosUltimos30Dias ? 'bg-green-50' : 'bg-gray-50'
-                                          }`}>
+                                        <tr key={m.id} className={`border-t odd:bg-white even:bg-gray-50 ${m.tipo === 'entrada' && m.vencida ? 'bg-red-50' : ''}`}>
                                           <td className="px-3 py-2">
-                                            {m.criado_em
-                                              ? new Date(String(m.criado_em).replace(' ', 'T')).toLocaleString('pt-BR')
-                                              : '-'}
+                                            {m.criado_em ? m.criado_em : '-'}
+                                            {m.tipo === 'entrada' && (
+                                              <div className="text-xs text-gray-600">
+                                                {m.diasDesde} dia(s) desde a entrada {m.vencida ? '• Vencida' : ''}
+                                              </div>
+                                            )}
                                           </td>
                                           <td className="px-3 py-2 capitalize">{m.tipo}</td>
                                           <td className="px-3 py-2">{m.caixaNome}</td>
                                           <td className="px-3 py-2">{m.operadorNome}</td>
                                           <td className="px-3 py-2">
-                                            {m.nosUltimos30Dias ? (
-                                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-800">
-                                                Últimos 30 dias
-                                              </span>
+                                            {m.tipo === 'entrada' ? (
+                                              m.vencida ? (
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-800">Vencida</span>
+                                              ) : (
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-800">Dentro do prazo</span>
+                                              )
                                             ) : (
-                                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-800">
-                                                Antigo
-                                              </span>
+                                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-800">-</span>
                                             )}
                                           </td>
                                         </tr>
