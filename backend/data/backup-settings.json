@@ -2,17 +2,23 @@
   "retentionDays": 30,
   "destinations": {
     "gdrive": {
-      "enabled": true,
-      "folderId": "1O6wtFCPc202If3NTIfkCWDiFmvFkQsnR",
-      "clientEmail": "poliub@poliub.iam.gserviceaccount.com",
-      "privateKey": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCyRCdacC3PB9mG\n9DBzN22vQsOTJzXEGMTKKAnuYVcG6h9ceTf+q4Z61Wz7zVQu1ashhlTlfonTQw8D\n04/glhwK6NfiuUV80bxWgaTFEaghjQbnMOeM37MuvV2PNAkRN+rmfLIKHiPOLE37\n+GFlACXaLUn1V9QNqzP6ErJddQFUIuq+md1ZRzpVtBQj5CftX+/PWcJ3XojjR38q\n8Vd107pPEBEDDgLNApS9K5wkAX4lMfqCCE3LyYMAGn3rPqKKRKqxy6bDlDQ+I/Gf\nSmJI2xdU33+rK37qHO+qL7R0+UB4e1aKAAihV1e9UEfay2Aa95n5T2LHcRCqKMFF\nHivb+axlAgMBAAECggEABUarx4B0dUvX2Kes22weN0a0P8xe9KvVqd9ffopWUg0R\n2ox353YE0pPd2DdZMNMAGqDoLav+Fkjwzn3aJJ0svUyWPyPuoOVwO+XgY44Z5MxQ\nvPz0jXXSzs+p+jgMYKcVW7cAafjpubYT+iDSznN1AK0VzZ4eLOgOmhh9kPM1PoaG\nnkaEQM6FShzBP7UC++QXKdRrmSGjW5E2ZRpysqmyueDcwecs0GdM9JmNdWaz1VPF\nnGLnORFnTUxBsAAxmfq0qmbepw/gbcB3VT1jm5NpLaviTrv7PMyodMW6y9ALiJTs\njAUuugXUTfYQ6GR700kAuKi1VvVerczdfUMbIOzZQQKBgQDy0up2LtZhU+ovbhcb\nTVrbkCzCTtMWy4OzaB6MmnBeGV8TqElf7j1YfQEZ4pfPQAdefzuEyukOdHp7DRKE\npBA3qbcjWCh6kMmGoDKJSWdQGp0WKGq1sSIjhzcn/0mBhD8dkbQGpFFJ5mIO/B3f\nWlqiuW7U1DM71nWJ7SgcwVutkQKBgQC78HZzAF5bioP7yjlFWJBme1OG1q9eOXoR\nOsVxzIKLYgwmH7F+A9eTz70h6kioKQNUw5nZEKHCXapwjfF7Rnd/sAWXnyz4J0Yg\nKGVihvNkieFGzlcd2gLFQsD/WA4+MH2JT1o1CcCh80042nJYtFyO2lOkeZfNdSEp\nmckLtlu3lQKBgQCIqROzt+CHnkaqsvbmMr7z20yVfu9mYNuaWPr4fuLG0tijo47I\nIrj72D6KZvCxf4OmN000C07nB773CgBmDj/iU+3yQmdls5732akXguxWNOQ72DtW\nTn68KBlutUqVTeyHo70CD/B/+t0tOc9GKP/hnSM3PMYo4yX7njF5HYmPQQKBgBUQ\n5RYK6oi0RAsLJdRCEx2JoVkx40JaivY3cj5JQDDDcr0rPEf1wkpNNNQCYNaIklkD\n+9C67obM3Pf00SaSRX7IijfunanLLS8ZmBOtMMcKNXgsVNOBxmG6E8wLYL1Tzh6A\nCIp9Z1w/214ODlcnEGDq1AlRn9Rl1qvFEyX+8NTpAoGBAM9ZQwZC0hL+bK6jKfV1\nMeMFUpaGiYBAf3+QOKbxv2vKSIbWxx3/Tm3ucrnmLqN2pBk9/SX6Yo7GbI6wTxgO\nYU+k8lEQy+utpYeYu+yTg70OcUKGGOWJy0SENHG3B25v2fnQkl809+PKUwn+F4wP\n9qc0Ot6wJd8RcTnCogmkSkhS\n-----END PRIVATE KEY-----\n",
-      "useSharedDrive": true,
+      "enabled": false,
+      "folderId": "",
+      "clientEmail": "",
+      "privateKey": "",
+      "useSharedDrive": false,
       "driveId": ""
     },
     "dropbox": {
       "enabled": false,
       "folder": "/Backups",
       "accessToken": ""
+    },
+    "mega": {
+      "enabled": true,
+      "email": "evertontorteli@gmail.com",
+      "password": "poliubatendimento010203",
+      "folder": "/Backups"
     }
   },
   "schedule": {

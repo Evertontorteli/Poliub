@@ -1,38 +1,85 @@
 // backend/scripts/backup-cron.js
 require('dotenv').config();
 const fs = require('fs');
+const cron = require('node-cron');
 const { runBackup } = require('../services/backupEngine');
-const gdrive = require('../services/upload/googleDrive');
-const dropbox = require('../services/upload/dropbox');
+const settingsController = require('../controllers/backupSettingsController');
 
-(async () => {
+function log(...args) { console.log('[backup-cron]', ...args); }
+
+let io = null;
+function setIo(instance) { io = instance; }
+
+async function executeOnce() {
   try {
-    const destinations = (process.env.BACKUP_DEST || 'gdrive').split(',').map(s => s.trim());
-    const days = Number(process.env.BACKUP_RETENTION_DAYS || 30);
+    const settings = settingsController._readSettings();
+    const m = settings?.destinations?.mega;
+    if (!m?.enabled) {
+      log('Mega desabilitado nas configurações; ignorando execução.');
+      return;
+    }
 
-    const gdriveFolderId = process.env.GDRIVE_FOLDER_ID || undefined;
-    const dropboxFolder = process.env.DROPBOX_FOLDER || '/Backups';
+    try { io && io.emit('backup:started', { ts: new Date().toISOString(), destino: 'mega' }); } catch {}
 
     const { zipPath, sqlPath, base } = await runBackup();
     const filename = `${base}.zip`;
 
-    if (destinations.includes('gdrive')) {
-      await gdrive.uploadFile(zipPath, filename, gdriveFolderId);
-      await gdrive.cleanupOlderThanDays(gdriveFolderId, days, 'backup_');
-    }
-    if (destinations.includes('dropbox')) {
-      await dropbox.uploadFile(zipPath, filename, dropboxFolder);
-      await dropbox.cleanupOlderThanDays(dropboxFolder, days, 'backup_');
-    }
+    const mega = require('../services/upload/mega');
+    const uploaded = await mega.uploadFile(zipPath, filename, {
+      email: m.email,
+      password: m.password,
+      folder: m.folder || '/Backups'
+    });
 
-    // limpa arquivos temp
+    const cleanupDays = Number.isFinite(settings.retentionDays) ? settings.retentionDays : 30;
+    await mega.cleanupOlderThanDays({
+      email: m.email,
+      password: m.password,
+      folder: m.folder || '/Backups',
+      days: cleanupDays,
+      prefix: 'backup_'
+    });
+
     try { fs.existsSync(zipPath) && fs.unlinkSync(zipPath); } catch {}
     try { fs.existsSync(sqlPath) && fs.unlinkSync(sqlPath); } catch {}
 
-    console.log('Backup CRON finalizado com sucesso:', { filename, destinations });
-    process.exit(0);
+    log('Execução concluída.', uploaded);
+    try { io && io.emit('backup:finished', { ts: new Date().toISOString(), destino: 'mega', result: uploaded }); } catch {}
   } catch (e) {
-    console.error('Backup CRON falhou:', e.message);
-    process.exit(1);
+    console.error('[backup-cron] erro:', e.message);
+    try { io && io.emit('backup:finished', { ts: new Date().toISOString(), destino: 'mega', error: e.message }); } catch {}
   }
-})();
+}
+
+function scheduleFromSettings() {
+  const s = settingsController._readSettings();
+  if (!s?.schedule?.enabled) {
+    log('Agendamento desabilitado nas configurações.');
+    return null;
+  }
+
+  const days = Array.isArray(s.schedule.days) ? s.schedule.days : [1, 3, 5]; // 1=Seg ... 7=Dom
+  const times = Array.isArray(s.schedule.times) ? s.schedule.times : ['03:00'];
+  const tz = s.schedule.timezone || 'America/Sao_Paulo';
+
+  // Monta regras cron para cada combinação de dia/hora
+  const tasks = [];
+  for (const hhmm of times) {
+    const [hh, mm] = String(hhmm).split(':').map(n => parseInt(n, 10));
+    const dom = '*'; // usamos dia-da-semana
+    const mes = '*';
+    const mesDia = '*';
+    const cronExpr = `${mm} ${hh} ${mesDia} ${mes} ${days.join(',')}`; // m h * * dow
+    log('Agendando:', cronExpr, 'TZ=', tz);
+    const task = cron.schedule(cronExpr, () => executeOnce(), { timezone: tz });
+    tasks.push(task);
+  }
+  return tasks;
+}
+
+// Ao ser executado diretamente, agenda e mantém o processo vivo (Railway Cron/Process)
+if (require.main === module) {
+  scheduleFromSettings();
+}
+
+module.exports = { executeOnce, scheduleFromSettings, setIo };

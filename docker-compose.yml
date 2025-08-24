@@ -2,13 +2,15 @@ services:
   backend:
     build: ./backend
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       - NODE_ENV=production
+      - MYSQL_URL=mysql://root:senha123@mysql:3306/poliub
       - MYSQL_HOST=localhost
       - MYSQL_USER=root
       - MYSQL_PASSWORD=senha123
       - MYSQL_DATABASE=poliub
+      - ENABLE_BACKUP_SCHEDULER=true
     depends_on:
       - mysql
 

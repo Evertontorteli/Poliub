@@ -27,6 +27,12 @@ function ensureDefaults(obj) {
         enabled: !!obj?.destinations?.dropbox?.enabled,
         folder: obj?.destinations?.dropbox?.folder || '/Backups',
         accessToken: obj?.destinations?.dropbox?.accessToken || ''
+      },
+      mega: {
+        enabled: !!obj?.destinations?.mega?.enabled,
+        email: obj?.destinations?.mega?.email || '',
+        password: obj?.destinations?.mega?.password || '',
+        folder: obj?.destinations?.mega?.folder || '/Backups'
       }
     },
     schedule: {

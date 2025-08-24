@@ -89,7 +89,10 @@ io.on('connection', (socket) => {
       if (process.env.ENABLE_BACKUP_SCHEDULER === 'true') {
         console.log('[scheduler] Habilitado. Iniciando...');
         try {
-          require('./scheduler/backupScheduler').start();
+          const cron = require('./scripts/backup-cron');
+          // conecta io ao cron para emitir eventos
+          if (typeof cron.setIo === 'function') cron.setIo(io);
+          cron.scheduleFromSettings();
         } catch (e) {
           console.error('[scheduler] Falha ao iniciar:', e.message);
         }

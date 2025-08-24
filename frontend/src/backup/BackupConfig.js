@@ -4,8 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 
 import BackupManual from './BackupManual';
-import GoogleDriveCard from './cards/GoogleDriveCard';
-import DropboxCard from './cards/DropboxCard';
+import MegaCard from './cards/MegaCard';
 import SchedulerCard from './BackupSchedulerCard';
 
 export default function BackupConfig() {
@@ -24,18 +23,11 @@ export default function BackupConfig() {
       const safe = {
         retentionDays: data?.retentionDays ?? 30,
         destinations: {
-          gdrive: {
-            enabled: !!data?.destinations?.gdrive?.enabled,
-            folderId: data?.destinations?.gdrive?.folderId || '',
-            clientEmail: data?.destinations?.gdrive?.clientEmail || '',
-            privateKey: data?.destinations?.gdrive?.privateKey || '',
-            useSharedDrive: !!data?.destinations?.gdrive?.useSharedDrive,
-            driveId: data?.destinations?.gdrive?.driveId || ''
-          },
-          dropbox: {
-            enabled: !!data?.destinations?.dropbox?.enabled,
-            folder: data?.destinations?.dropbox?.folder || '/Backups',
-            accessToken: data?.destinations?.dropbox?.accessToken || ''
+          mega: {
+            enabled: !!data?.destinations?.mega?.enabled,
+            email: data?.destinations?.mega?.email || '',
+            password: data?.destinations?.mega?.password || '',
+            folder: data?.destinations?.mega?.folder || '/Backups'
           }
         },
         schedule: {
@@ -53,18 +45,11 @@ export default function BackupConfig() {
       setSettings({
         retentionDays: 30,
         destinations: {
-          gdrive: {
+          mega: {
             enabled: false,
-            folderId: '',
-            clientEmail: '',
-            privateKey: '',
-            useSharedDrive: false,
-            driveId: ''
-          },
-          dropbox: {
-            enabled: false,
-            folder: '/Backups',
-            accessToken: ''
+            email: '',
+            password: '',
+            folder: '/Backups'
           }
         },
         schedule: {
@@ -91,18 +76,11 @@ export default function BackupConfig() {
       const safe = {
         retentionDays: data?.retentionDays ?? 30,
         destinations: {
-          gdrive: {
-            enabled: !!data?.destinations?.gdrive?.enabled,
-            folderId: data?.destinations?.gdrive?.folderId || '',
-            clientEmail: data?.destinations?.gdrive?.clientEmail || '',
-            privateKey: data?.destinations?.gdrive?.privateKey || '',
-            useSharedDrive: !!data?.destinations?.gdrive?.useSharedDrive,
-            driveId: data?.destinations?.gdrive?.driveId || ''
-          },
-          dropbox: {
-            enabled: !!data?.destinations?.dropbox?.enabled,
-            folder: data?.destinations?.dropbox?.folder || '/Backups',
-            accessToken: data?.destinations?.dropbox?.accessToken || ''
+          mega: {
+            enabled: !!data?.destinations?.mega?.enabled,
+            email: data?.destinations?.mega?.email || '',
+            password: data?.destinations?.mega?.password || '',
+            folder: data?.destinations?.mega?.folder || '/Backups'
           }
         },
         schedule: {
@@ -137,25 +115,12 @@ export default function BackupConfig() {
 
       {/* Destinos (cards expansíveis) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <GoogleDriveCard
-          value={settings.destinations.gdrive}
-          onChange={async (val) => {
-            await save({
-              destinations: { ...settings.destinations, gdrive: val }
-            });
-          }}
-          retentionDays={settings.retentionDays}
-          onChangeRetention={async (days) => {
-            await save({ retentionDays: days });
-          }}
-        />
-
-        <DropboxCard
-          value={settings.destinations.dropbox}
+        <MegaCard
+          value={settings.destinations.mega}
           retentionDays={settings.retentionDays}
           onChange={async (val) => {
             await save({
-              destinations: { ...settings.destinations, dropbox: val }
+              destinations: { ...settings.destinations, mega: val }
             });
           }}
         />

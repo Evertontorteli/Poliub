@@ -102,22 +102,21 @@ function LayoutInterno() {
     socket.on('connect_error', err =>
       console.error('❌ socket connect error:', err)
     )
-    socket.on('novoAgendamentoRecepcao', ({
-      nome_aluno,
-      nome_paciente,
-      data,
-      hora,
-      disciplina_nome,
-      periodo_nome,
-      periodo_turno
-    }) => {
-      const [yyyy, mm, dd] = data.slice(0, 10).split('-')
-      const dataFmt = `${dd}/${mm}/${yyyy}`
-      toast.info(
-        `Nova Solicitação: ${nome_aluno} em ${dataFmt} às ${hora}` +
-        ` — Disciplina: ${disciplina_nome} (${periodo_nome} ${periodo_turno})`
-      )
+
+    // Notificações de backup automático
+    socket.on('backup:started', (payload) => {
+      const quando = new Date(payload?.ts || Date.now())
+      toast.info(`Backup automático iniciado (${quando.toLocaleString('pt-BR')})`)
     })
+    socket.on('backup:finished', (payload) => {
+      const quando = new Date(payload?.ts || Date.now())
+      if (payload?.error) {
+        toast.error(`Backup automático falhou: ${payload.error}`)
+      } else {
+        toast.success(`Backup automático concluído (${quando.toLocaleString('pt-BR')})`)
+      }
+    })
+
     return () => socket.disconnect()
   }, [user])
 

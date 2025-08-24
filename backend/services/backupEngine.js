@@ -107,10 +107,46 @@ async function runBackup() {
     try {
       const conn = { ...c.connection };
       if (c.ssl) conn.ssl = { rejectUnauthorized: false };
-      await mysqldump({ connection: conn, dumpToFile: sqlPath });
+      // Pré-checagem: se não houver tabelas no schema, gera arquivo vazio descritivo
+      let tableNames = null;
+      try {
+        const mysql = safeRequire('mysql2/promise');
+        const testConn = await mysql.createConnection(conn);
+        try {
+          const [rows] = await testConn.query('SHOW TABLES');
+          const names = Array.isArray(rows) ? rows.map(r => Object.values(r)[0]).filter(Boolean) : [];
+          if (names.length === 0) {
+            fs.writeFileSync(sqlPath, `-- Dump gerado automaticamente\n-- Banco '${conn.database}' sem tabelas no momento.\n`);
+            used = c;
+            break;
+          }
+          tableNames = names;
+        } finally {
+          try { await testConn.end(); } catch {}
+        }
+      } catch {/* ignora falhas de pre-check e tenta dump normalmente */}
+
+      const dumpOptions = tableNames && Array.isArray(tableNames) && tableNames.length
+        ? { dump: { tables: tableNames } }
+        : {};
+      await mysqldump({ connection: conn, dumpToFile: sqlPath, ...dumpOptions });
       used = c;
       break;
-    } catch (e) { lastErr = e; }
+    } catch (e) {
+      // Trata caso de banco sem tabelas: mysqldump pode lançar ER_EMPTY_QUERY
+      const isEmptyDb = e && (e.code === 'ER_EMPTY_QUERY' || /Query was empty/i.test(e.message || ''));
+      if (isEmptyDb) {
+        try {
+          fs.writeFileSync(sqlPath, `-- Dump gerado automaticamente\n-- Banco '${c.connection.database}' sem tabelas no momento.\n`);
+          used = c;
+          break;
+        } catch (writeErr) {
+          lastErr = writeErr;
+        }
+      } else {
+        lastErr = e;
+      }
+    }
   }
   if (!used) {
     throw new Error(`Falha no dump: ${lastErr?.message || 'sem detalhe'}`);

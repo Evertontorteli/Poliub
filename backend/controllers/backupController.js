@@ -4,28 +4,20 @@ const fs = require('fs');
 const path = require('path');
 
 const { runBackup } = require('../services/backupEngine');
-const gdrive = require('../services/upload/googleDrive');
-const dropbox = require('../services/upload/dropbox');
-// const settingsStore = require('../models/backupSettingsStore'); // (não usado)
+// Removidos: Google Drive e Dropbox
+// const gdrive = require('../services/upload/googleDrive');
+// const dropbox = require('../services/upload/dropbox');
 const settingsController = require('./backupSettingsController');
+const { registrarLog } = require('../models/logModel');
 
 /** Timestamp seguro para nomes de arquivo */
 function ts() {
   return new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').slice(0, 19);
 }
 
-/** Extrai apenas o ID do Google Drive, caso o usuário cole a URL inteira */
-function sanitizeFolderId(input) {
-  if (!input) return '';
-  // pega algo com 25+ chars de letras, números, _ e -
-  const match = String(input).match(/[-\w]{25,}/);
-  return match ? match[0] : String(input).trim();
-}
-
 /** Require “preguiçoso” para não derrubar o servidor se pacote faltar */
 function safeRequire(moduleName) {
   try {
-    // eslint-disable-next-line import/no-dynamic-require, global-require
     return require(moduleName);
   } catch (e) {
     const msg = `Dependência ausente: "${moduleName}". Instale com: npm i ${moduleName}`;
@@ -117,35 +109,6 @@ function buildConnectionCandidates() {
   return candidates;
 }
 
-/** Testa Google Drive: usa body OU settings salvos (com override pelo body) */
-exports.testGDrive = async (req, res) => {
-  try {
-    const saved = settingsController._readSettings();
-    const body = req.body || {};
-
-    const cfg = {
-      folderId:       sanitizeFolderId(body.folderId || saved?.destinations?.gdrive?.folderId),
-      clientEmail:    body.clientEmail    || saved?.destinations?.gdrive?.clientEmail,
-      privateKey:     body.privateKey     || saved?.destinations?.gdrive?.privateKey,
-      useSharedDrive: body.useSharedDrive ?? saved?.destinations?.gdrive?.useSharedDrive,
-      driveId:        body.driveId        || saved?.destinations?.gdrive?.driveId,
-    };
-
-    if (!cfg.folderId || !cfg.clientEmail || !cfg.privateKey) {
-      return res.status(400).json({
-        error: 'folderId, clientEmail e privateKey são obrigatórios (preencha no card do GDrive e salve).'
-      });
-    }
-
-    const resp = await gdrive.testConnection(cfg);
-    if (resp.ok) return res.json(resp);
-    return res.status(400).json(resp);
-  } catch (err) {
-    console.error('testGDrive erro:', err);
-    return res.status(500).json({ error: 'Falha ao testar Google Drive.', reason: err.message });
-  }
-};
-
 /**
  * Gera dump .sql (tentando candidatos em ordem) e envia .zip via stream.
  */
@@ -228,8 +191,42 @@ exports.backupManual = async (req, res) => {
   }
 };
 
+// POST /api/backup/test/mega
+exports.testMega = async (req, res) => {
+  try {
+    const mega = safeRequire('../services/upload/mega');
+    const saved = settingsController._readSettings();
+    const m = req.body?.mega || saved?.destinations?.mega;
+
+    if (!m || m.enabled !== true) {
+      return res.status(400).json({ error: 'Mega não está habilitado.' });
+    }
+    if (!m.email || !m.password) {
+      return res.status(400).json({ error: 'Informe email e senha do Mega.' });
+    }
+
+    const resp = await mega.testConnection({ email: m.email, password: m.password, folder: m.folder || '/Backups' });
+
+    // Loga o teste
+    try {
+      await registrarLog({
+        usuario_id: req.user?.id || null,
+        usuario_nome: req.user?.nome || 'sistema',
+        acao: 'backup_test_mega',
+        entidade: 'backup',
+        entidade_id: null,
+        detalhes: { ok: resp.ok, folder: m.folder || '/Backups' }
+      });
+    } catch {}
+
+    return res.json(resp);
+  } catch (err) {
+    return res.status(500).json({ error: 'Falha no teste do Mega.', reason: err.message });
+  }
+};
+
 // POST /api/backup/run
-// body: { destinations: ['gdrive','dropbox'], cleanupDays?: number, gdrive?: {...}, dropbox?: {...} }
+// body: { destinations: ['mega'], cleanupDays?: number, mega?: { email, password, folder } }
 exports.runAndUpload = async (req, res) => {
   const { destinations = [], cleanupDays = 30 } = req.body || {};
   if (!Array.isArray(destinations) || !destinations.length) {
@@ -248,86 +245,68 @@ exports.runAndUpload = async (req, res) => {
     // 2) Carrega settings salvos (e permite override via body)
     const saved = settingsController._readSettings();
 
-    // ===== GDRIVE =====
-    if (destinations.includes('gdrive')) {
-      const g = req.body.gdrive || saved?.destinations?.gdrive;
+    // ===== MEGA =====
+    if (destinations.includes('mega')) {
+      const mega = safeRequire('../services/upload/mega');
+      const m = req.body.mega || saved?.destinations?.mega;
 
-      if (!g || g.enabled !== true) {
+      if (!m || m.enabled !== true) {
         return res.status(400).json({
-          error: 'Google Drive não está habilitado.',
-          reason: 'Ative o destino no Backup > Google Drive e salve as credenciais.'
+          error: 'Mega não está habilitado.',
+          reason: 'Ative o destino no Backup > Mega e salve email/senha.'
         });
       }
 
-      const cfg = {
-        folderId:      sanitizeFolderId(g.folderId),
-        clientEmail:   g.clientEmail,
-        privateKey:    g.privateKey,
-        useSharedDrive: !!g.useSharedDrive,
-        driveId:       g.driveId || ''
-      };
-
-      if (!cfg.folderId || !cfg.clientEmail || !cfg.privateKey) {
+      if (!m.email || !m.password) {
         return res.status(400).json({
-          error: 'Configuração incompleta do Google Drive.',
-          missing: {
-            folderId: !cfg.folderId,
-            clientEmail: !cfg.clientEmail,
-            privateKey: !cfg.privateKey
-          }
+          error: 'Configuração incompleta do Mega.',
+          missing: { email: !m.email, password: !m.password }
         });
       }
 
-      // upload
-      result.uploaded.gdrive = await gdrive.uploadFile(zipPath, filename, cfg);
-
-      // limpeza (retenção)
-      result.cleanup.gdrive = await gdrive.cleanupOlderThanDays(
-        cfg.folderId,
-        Number.isFinite(cleanupDays) ? cleanupDays : 30,
-        'backup_',
-        cfg
-      );
-    }
-
-    // ===== DROPBOX (se estiver usando) =====
-    if (destinations.includes('dropbox')) {
-      const d = req.body.dropbox || saved?.destinations?.dropbox;
-
-      if (!d || d.enabled !== true) {
-        return res.status(400).json({
-          error: 'Dropbox não está habilitado.',
-          reason: 'Ative o destino no Backup > Dropbox e salve o Access Token.'
-        });
-      }
-
-      if (!d.accessToken) {
-        return res.status(400).json({
-          error: 'Configuração incompleta do Dropbox.',
-          missing: { accessToken: !d.accessToken }
-        });
-      }
-
-      const folder = d.folder || '/Backups';
-
-      // upload
-      result.uploaded.dropbox = await dropbox.uploadFile(zipPath, filename, {
-        accessToken: d.accessToken,
-        folder
+      const up = await mega.uploadFile(zipPath, filename, {
+        email: m.email,
+        password: m.password,
+        folder: m.folder || '/Backups'
       });
+      result.uploaded.mega = up;
 
-      // limpeza
-      result.cleanup.dropbox = await dropbox.cleanupOlderThanDays({
-        accessToken: d.accessToken,
-        folder,
+      // limpeza após upload
+      result.cleanup.mega = await mega.cleanupOlderThanDays({
+        email: m.email,
+        password: m.password,
+        folder: m.folder || '/Backups',
         days: Number.isFinite(cleanupDays) ? cleanupDays : 30,
         prefix: 'backup_'
       });
+
+      // Loga a execução
+      try {
+        await registrarLog({
+          usuario_id: req.user?.id || null,
+          usuario_nome: req.user?.nome || 'sistema',
+          acao: 'backup_executado',
+          entidade: 'backup',
+          entidade_id: null,
+          detalhes: { destino: 'mega', arquivo: filename, upload: up }
+        });
+      } catch {}
     }
 
     return res.json(result);
   } catch (err) {
     console.error('runAndUpload erro:', err);
+    // Loga falha
+    try {
+      await registrarLog({
+        usuario_id: req.user?.id || null,
+        usuario_nome: req.user?.nome || 'sistema',
+        acao: 'backup_falha',
+        entidade: 'backup',
+        entidade_id: null,
+        detalhes: { error: err.message }
+      });
+    } catch {}
     return res.status(500).json({ error: 'Falha ao executar backup/upload', reason: err.message });
   } finally {
     try { zipPath && fs.existsSync(zipPath) && fs.unlinkSync(zipPath); } catch {}
