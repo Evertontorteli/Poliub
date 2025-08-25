@@ -3,6 +3,23 @@
 // Serviço de upload baseado em megajs
 // Instale: npm i megajs
 
+// Shim para ambientes Node que não expõem WebCrypto globalmente (ex.: Railway)
+// megajs espera `globalThis.crypto.getRandomValues`
+try {
+  const { webcrypto, randomFillSync } = require('crypto');
+  if (!globalThis.crypto) {
+    // usa webcrypto se disponível (Node >= 15)
+    if (webcrypto) globalThis.crypto = webcrypto;
+  }
+  if (!globalThis.crypto || typeof globalThis.crypto.getRandomValues !== 'function') {
+    globalThis.crypto = globalThis.crypto || {};
+    globalThis.crypto.getRandomValues = (typedArray) => {
+      // fallback com randomFillSync
+      return randomFillSync(typedArray);
+    };
+  }
+} catch (_) { /* ignora se crypto não estiver disponível */ }
+
 function safeRequire(name) {
 	try { return require(name); } catch (e) {
 		const err = new Error(`Dependência ausente: ${name}. Instale com: npm i ${name}`);
