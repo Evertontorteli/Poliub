@@ -8,14 +8,23 @@ function Login({ onLogin }) {
   const [senha, setSenha] = useState("");
   const [mensagem, setMensagem] = useState("");
   const [showSenha, setShowSenha] = useState(false);
+  const [remember, setRemember] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
+    setMensagem("");
+    setLoading(true);
     try {
       const res = await axios.post("/api/login", { usuario, senha });
-      onLogin(res.data);
-    } catch {
-      setMensagem("Usuário ou senha inválidos!");
+      // passa o remember como segundo argumento (AuthContext suporta)
+      onLogin({ ...res.data, __remember: remember });
+    } catch (err) {
+      const msg = err?.response?.data?.error || "Usuário ou senha inválidos!";
+      setMensagem(msg);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -40,28 +49,33 @@ function Login({ onLogin }) {
           <p className="text-left text-gray-600">Faça login na sua conta</p>
 
           <div className="relative">
+            <label htmlFor="usuario" className="sr-only">Usuário</label>
             <input
               id="usuario"
-              name="usuario"
+              name="username"
               type="text"
               placeholder="Usuário"
               value={usuario}
               onChange={(e) => setUsuario(e.target.value)}
               required
+              autoComplete="username"
               className="w-full border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
             />
           </div>
 
           <div className="relative">
+            <label htmlFor="senha" className="sr-only">Senha</label>
             <input
               id="senha"
-              name="senha"
+              name="password"
               type={showSenha ? "text" : "password"}
               placeholder="Senha"
               value={senha}
               onChange={(e) => setSenha(e.target.value)}
               required
+              autoComplete="current-password"
               className="w-full border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 pr-16"
+              aria-invalid={!!mensagem}
             />
             <button
               type="button"
@@ -72,15 +86,23 @@ function Login({ onLogin }) {
             </button>
           </div>
 
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+              Manter conectado
+            </label>
+          </div>
+
           <button
             type="submit"
-            className="w-full bg-[#1A1C2C] hover:bg-[#3B4854] text-white font-semibold py-2 rounded-full transition"
+            disabled={loading}
+            className={`w-full bg-[#1A1C2C] hover:bg-[#3B4854] text-white font-semibold py-2 rounded-full transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
           >
-            Entrar
+            {loading ? 'Entrando…' : 'Entrar'}
           </button>
 
           {mensagem && (
-            <p className="text-center text-red-600">{mensagem}</p>
+            <p className="text-center text-red-600" role="alert" aria-live="polite">{mensagem}</p>
           )}
         </form>
       </div>

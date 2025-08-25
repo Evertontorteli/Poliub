@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const ctrl = require('../controllers/agendamentoController');
-const { verificaTokenComSessaoUnica } = require('../middlewares/authMiddleware');
+const { verificaTokenComSessaoUnica, apenasRecepcao } = require('../middlewares/authMiddleware');
 
 // Middleware global — protege todas as rotas abaixo!
 router.use(verificaTokenComSessaoUnica);
@@ -33,6 +33,7 @@ router.post('/', ctrl.criarAgendamento);
 router.put('/:id', ctrl.atualizarAgendamento);
 
 // DELETE /api/agendamentos/:id
-router.delete('/:id', ctrl.deletarAgendamento);
+// Restrito à recepção no roteador para garantir bloqueio simples
+router.delete('/:id', apenasRecepcao, ctrl.deletarAgendamento);
 
 module.exports = router;

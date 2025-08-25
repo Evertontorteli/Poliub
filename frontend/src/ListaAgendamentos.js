@@ -25,14 +25,16 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
   const [filtroData, setFiltroData] = useState('');
   const [filtroHora, setFiltroHora] = useState('');
   const [pagina, setPagina] = useState(1);
+  const [role, setRole] = useState(localStorage.getItem('role') || '');
 
   const navigate = useNavigate();
 
   useEffect(() => {
     setCarregando(true);
     const token = localStorage.getItem('token');
-    const role = localStorage.getItem('role');
-    const url = role === 'recepcao'
+    const roleLocal = localStorage.getItem('role');
+    setRole(roleLocal || '');
+    const url = roleLocal === 'recepcao'
       ? '/api/agendamentos'
       : '/api/agendamentos/meus';
 
@@ -296,14 +298,16 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
                       >
                         <Pencil size={18} />
                       </button>
-                      <button
-                        onClick={() => handleDeletar(ag.id, ag.pacienteNome)}
-                        className="p-2 rounded hover:bg-red-100 text-red-700 transition"
-                        title="Deletar agendamento"
-                        aria-label="Deletar agendamento"
-                      >
-                        <Trash size={18} />
-                      </button>
+                      {role === 'recepcao' && (
+                        <button
+                          onClick={() => handleDeletar(ag.id, ag.pacienteNome)}
+                          className="p-2 rounded hover:bg-red-100 text-red-700 transition"
+                          title="Deletar agendamento"
+                          aria-label="Deletar agendamento"
+                        >
+                          <Trash size={18} />
+                        </button>
+                      )}
                     </td>
                   </tr>
                   {/* Separador entre linhas, exceto a última */}
@@ -341,14 +345,16 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
                   >
                     <Pencil size={17} />
                   </button>
-                  <button
-                    onClick={() => handleDeletar(ag.id, ag.pacienteNome)}
-                    className="p-1 rounded hover:bg-red-100 text-red-700"
-                    title="Deletar agendamento"
-                    aria-label="Deletar agendamento"
-                  >
-                    <Trash size={17} />
-                  </button>
+                  {role === 'recepcao' && (
+                    <button
+                      onClick={() => handleDeletar(ag.id, ag.pacienteNome)}
+                      className="p-1 rounded hover:bg-red-100 text-red-700"
+                      title="Deletar agendamento"
+                      aria-label="Deletar agendamento"
+                    >
+                      <Trash size={17} />
+                    </button>
+                  )}
                 </div>
               </div>
               <div><b>Box:</b> <span className="text-gray-800">{ag.operadorBox ?? '-'}</span></div>

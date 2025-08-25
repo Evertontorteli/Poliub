@@ -34,14 +34,20 @@ export function AuthProvider({ children }) {
 
   /**
    * Faz login: recebe o objeto completo de usuário,
-   * armazena em state e em localStorage (tanto "user" quanto mantenho "role"/"token")
+   * armazena em state e, se remember=true, persiste em localStorage.
    */
-  function login({ id, nome, usuario, role, token }) {
+  function login({ id, nome, usuario, role, token }, { remember = true } = {}) {
     const u = { id, nome, usuario, role, token };
     setUser(u);
-    localStorage.setItem("user", JSON.stringify(u));
-    localStorage.setItem("role", role);
-    localStorage.setItem("token", token);
+    if (remember) {
+      localStorage.setItem("user", JSON.stringify(u));
+      localStorage.setItem("role", role);
+      localStorage.setItem("token", token);
+    } else {
+      localStorage.removeItem("user");
+      localStorage.removeItem("role");
+      localStorage.removeItem("token");
+    }
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
   }
 

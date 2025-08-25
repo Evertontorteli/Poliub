@@ -167,7 +167,10 @@ function LoginWrapper() {
   const { login } = useAuth()
   const navigate = useNavigate()
   function onLoginHandler(dadosDoLogin) {
-    login(dadosDoLogin)
+    const remember = dadosDoLogin?.__remember !== false
+    const payload = { ...dadosDoLogin }
+    delete payload.__remember
+    login(payload, { remember })
     navigate('/', { replace: true })
   }
   return <Login onLogin={onLoginHandler} />
