@@ -1,19 +1,22 @@
 // src/components/ListaAgendamentos.jsx
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Pencil, Trash } from 'lucide-react';
+import { Pencil, Trash, XCircle, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "react-toastify";
+import Modal from './components/Modal';
 
 const STATUS_LABELS = {
   'Novo': 'Novo',
   'Retorno': 'Retorno',
   'Solicitado': 'Solicitado',
+  'Cancelado': 'Cancelado',
 };
 const STATUS_COLORS = {
   'Novo': "bg-[#2FA74E] text-white",
   'Retorno': "bg-[#FEC139] text-[#555555]",
   'Solicitado': "bg-[#DA3648] text-white",
+  'Cancelado': "bg-gray-300 text-gray-700",
 };
 
 const POR_PAGINA = 100;
@@ -26,6 +29,9 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
   const [filtroHora, setFiltroHora] = useState('');
   const [pagina, setPagina] = useState(1);
   const [role, setRole] = useState(localStorage.getItem('role') || '');
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelMotivo, setCancelMotivo] = useState('');
+  const [cancelId, setCancelId] = useState(null);
 
   const navigate = useNavigate();
 
@@ -115,6 +121,25 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
         console.error('Erro ao deletar agendamento:', err.response?.data || err.message);
         toast.error('Não foi possível deletar o agendamento.');
       });
+  };
+
+  const openCancel = (id) => { setCancelId(id); setCancelMotivo(''); setShowCancelModal(true); };
+  const submitCancel = async () => {
+    if (!cancelId) return;
+    const token = localStorage.getItem('token');
+    try {
+      await axios.post(`/api/agendamentos/${cancelId}/cancel`, { motivo: cancelMotivo }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setAgendamentos(prev => prev.map(a => a.id === cancelId ? { ...a, status: 'Cancelado', canceledReason: cancelMotivo } : a));
+      toast.success('Agendamento cancelado.');
+      setShowCancelModal(false);
+      setCancelId(null);
+    } catch (err) {
+      console.error('Erro ao cancelar agendamento:', err.response?.data || err.message);
+      const msg = err.response?.data?.error || 'Não foi possível cancelar o agendamento.';
+      toast.error(msg);
+    }
   };
 
   // NÃO DISPARA MAIS TOAST AQUI!
@@ -286,10 +311,18 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
                         ? ag.data.slice(0, 10).split('-').reverse().join('/')
                         : '-'} {ag.hora || '-'}
                     </td>
-                    <td className="px-3 py-2 text-right flex gap-2 justify-end">
-                      <span className={`inline-block px-2 py-2 rounded-full text-xs font-semibold min-w-[34px] text-center ${STATUS_COLORS[ag.status] || 'bg-gray-200 text-gray-700'}`}>
+                    <td className="px-3 py-2 text-right flex gap-2 justify-end items-center">
+                      <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold min-w-[34px] text-center ${STATUS_COLORS[ag.status] || 'bg-gray-200 text-gray-700'}`}>
                         {STATUS_LABELS[ag.status] || '-'}
                       </span>
+                      {ag.status === 'Cancelado' && (
+                        <span
+                          className="inline-flex items-center text-gray-500"
+                          title={ag.canceledReason || 'Agendamento cancelado'}
+                        >
+                          <Info size={16} />
+                        </span>
+                      )}
                       <button
                         onClick={() => handleEditar(ag)}
                         className="p-2 rounded hover:bg-blue-100 text-blue-800 transition"
@@ -298,15 +331,38 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
                       >
                         <Pencil size={18} />
                       </button>
-                      {role === 'recepcao' && (
-                        <button
-                          onClick={() => handleDeletar(ag.id, ag.pacienteNome)}
-                          className="p-2 rounded hover:bg-red-100 text-red-700 transition"
-                          title="Deletar agendamento"
-                          aria-label="Deletar agendamento"
-                        >
-                          <Trash size={18} />
-                        </button>
+                      {role === 'recepcao' ? (
+                        <>
+                          {ag.status !== 'Cancelado' && (
+                            <button
+                              onClick={() => openCancel(ag.id)}
+                              className="p-2 rounded hover:bg-gray-100 text-gray-700 transition"
+                              title="Cancelar agendamento"
+                              aria-label="Cancelar agendamento"
+                            >
+                              <XCircle size={18} />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleDeletar(ag.id, ag.pacienteNome)}
+                            className="p-2 rounded hover:bg-red-100 text-red-700 transition"
+                            title="Deletar agendamento"
+                            aria-label="Deletar agendamento"
+                          >
+                            <Trash size={18} />
+                          </button>
+                        </>
+                      ) : (
+                        ag.status !== 'Cancelado' && (
+                          <button
+                            onClick={() => openCancel(ag.id)}
+                            className="p-2 rounded hover:bg-gray-100 text-gray-700 transition"
+                            title="Cancelar agendamento"
+                            aria-label="Cancelar agendamento"
+                          >
+                            <XCircle size={18} />
+                          </button>
+                        )
                       )}
                     </td>
                   </tr>
@@ -333,10 +389,18 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
             >
               <div className="flex justify-between mb-1 text-xs text-gray-500">
                 <span>#{inicio + idx + 1}</span>
-                <div className="flex gap-2">
-                  <span className={`inline-block px-2 py-2 rounded-full text-xs font-semibold ${STATUS_COLORS[ag.status] || 'bg-gray-200 text-gray-700'}`}>
+                <div className="flex gap-2 items-center">
+                  <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[ag.status] || 'bg-gray-200 text-gray-700'}`}>
                     {STATUS_LABELS[ag.status] || '-'}
                   </span>
+                  {ag.status === 'Cancelado' && (
+                    <span
+                      className="inline-flex items-center text-gray-500"
+                      title={ag.canceledReason || 'Agendamento cancelado'}
+                    >
+                      <Info size={14} />
+                    </span>
+                  )}
                   <button
                     onClick={() => handleEditar(ag)}
                     className="p-1 rounded hover:bg-blue-100 text-blue-800"
@@ -345,15 +409,38 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
                   >
                     <Pencil size={17} />
                   </button>
-                  {role === 'recepcao' && (
-                    <button
-                      onClick={() => handleDeletar(ag.id, ag.pacienteNome)}
-                      className="p-1 rounded hover:bg-red-100 text-red-700"
-                      title="Deletar agendamento"
-                      aria-label="Deletar agendamento"
-                    >
-                      <Trash size={17} />
-                    </button>
+                  {role === 'recepcao' ? (
+                    <>
+                      {ag.status !== 'Cancelado' && (
+                        <button
+                          onClick={() => openCancel(ag.id)}
+                          className="p-1 rounded hover:bg-gray-100 text-gray-700"
+                          title="Cancelar agendamento"
+                          aria-label="Cancelar agendamento"
+                        >
+                          <XCircle size={17} />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDeletar(ag.id, ag.pacienteNome)}
+                        className="p-1 rounded hover:bg-red-100 text-red-700"
+                        title="Deletar agendamento"
+                        aria-label="Deletar agendamento"
+                      >
+                        <Trash size={17} />
+                      </button>
+                    </>
+                  ) : (
+                    ag.status !== 'Cancelado' && (
+                      <button
+                        onClick={() => openCancel(ag.id)}
+                        className="p-1 rounded hover:bg-gray-100 text-gray-700"
+                        title="Cancelar agendamento"
+                        aria-label="Cancelar agendamento"
+                      >
+                        <XCircle size={17} />
+                      </button>
+                    )
                   )}
                 </div>
               </div>
@@ -399,6 +486,22 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
         </div>
         <Paginador />
       </div>
+      {showCancelModal && (
+        <Modal isOpen={showCancelModal} onRequestClose={() => setShowCancelModal(false)}>
+          <h3 className="text-lg font-semibold mb-2">Cancelar agendamento</h3>
+          <p className="text-sm text-gray-600 mb-3">Informe um motivo (opcional) para o cancelamento.</p>
+          <textarea
+            value={cancelMotivo}
+            onChange={e => setCancelMotivo(e.target.value)}
+            className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            rows={3}
+            placeholder="Motivo do cancelamento (opcional)"
+          />
+          <div className="mt-4 flex gap-2 justify-end">
+            <button onClick={submitCancel} className="bg-[#1A1C2C] hover:bg-[#3B4854] text-white px-4 py-2 rounded-full">Confirmar cancelamento</button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

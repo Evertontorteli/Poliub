@@ -116,6 +116,20 @@ const Agendamento = {
     }
   },
 
+  // Atualiza apenas o status do agendamento
+  atualizarStatus: async (id, status) => {
+    const conn = await getConnection();
+    try {
+      const [result] = await conn.query(
+        'UPDATE agendamentos SET status = ? WHERE id = ?',
+        [status, id]
+      );
+      return result;
+    } finally {
+      conn.release();
+    }
+  },
+
 
   // DELETAR agendamento
   deletar: async (id) => {

@@ -117,6 +117,13 @@ function LayoutInterno() {
       }
     })
 
+    // Notificação de agendamento cancelado
+    socket.on('agendamento:cancelado', ({ id, por, motivo }) => {
+      const quem = por === 'aluno' ? 'Aluno' : 'Recepção'
+      const extra = motivo ? ` — Motivo: ${motivo}` : ''
+      toast.info(`Agendamento #${id} cancelado por ${quem}.${extra}`)
+    })
+
     return () => socket.disconnect()
   }, [user])
 

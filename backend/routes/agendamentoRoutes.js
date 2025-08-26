@@ -36,4 +36,7 @@ router.put('/:id', ctrl.atualizarAgendamento);
 // Restrito à recepção no roteador para garantir bloqueio simples
 router.delete('/:id', apenasRecepcao, ctrl.deletarAgendamento);
 
+// POST /api/agendamentos/:id/cancel → recepção (qualquer) ou aluno (próprios)
+router.post('/:id/cancel', ctrl.cancelarAgendamento);
+
 module.exports = router;

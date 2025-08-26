@@ -3,6 +3,57 @@
 const Agendamento = require('../models/agendamentoModel');
 const db = require('../database'); // getConnection()
 const Log = require('../models/logModel.js');
+// 6) CANCELAR AGENDAMENTO (status="Cancelado")
+exports.cancelarAgendamento = async (req, res) => {
+  const { id } = req.params;
+  const { motivo = '' } = req.body || {};
+  try {
+    const conn = await db.getConnection();
+    const [rows] = await conn.execute('SELECT * FROM agendamentos WHERE id = ?', [id]);
+    const atual = rows[0];
+    if (!atual) {
+      conn.release();
+      return res.status(404).json({ error: 'Agendamento não encontrado.' });
+    }
+
+    // Permissões: recepção pode cancelar qualquer; aluno só os próprios (operador/aux1/aux2)
+    if (req.user.role === 'aluno') {
+      const uid = String(req.user.id);
+      const envolvidos = [atual.aluno_id, atual.auxiliar1_id, atual.auxiliar2_id].map(v => String(v));
+      if (!envolvidos.includes(uid)) {
+        conn.release();
+        return res.status(403).json({ error: 'Não autorizado a cancelar este agendamento.' });
+      }
+    } else if (req.user.role !== 'recepcao') {
+      conn.release();
+      return res.status(403).json({ error: 'Role não autorizado para cancelar agendamento.' });
+    }
+
+    await Agendamento.atualizarStatus(id, 'Cancelado');
+
+    // LOG
+    await Log.criar({
+      usuario_id: req.user.id,
+      usuario_nome: req.user.nome,
+      acao: 'cancelou',
+      entidade: 'agendamento',
+      entidade_id: id,
+      detalhes: { motivo }
+    });
+    conn.release();
+
+    // Notificação opcional via socket
+    try {
+      const io = req.app.get('io');
+      io && io.emit('agendamento:cancelado', { id: Number(id), por: req.user.role, motivo });
+    } catch {}
+
+    return res.json({ mensagem: 'Agendamento cancelado.' });
+  } catch (err) {
+    console.error('Erro ao cancelar agendamento:', err);
+    return res.status(500).json({ error: 'Erro ao cancelar agendamento.' });
+  }
+};
 
 
 /**
@@ -41,6 +92,47 @@ async function adicionaBoxAoOperador(agendamentos) {
   }
 }
 
+/**
+ * Anexa "canceledReason" aos agendamentos a partir da tabela de logs
+ * Considera o último log (mais recente) com { entidade='agendamento', acao='cancelou' }
+ */
+async function anexarMotivoCancelamento(agendamentos) {
+  if (!Array.isArray(agendamentos) || agendamentos.length === 0) return agendamentos;
+  const conn = await db.getConnection();
+  try {
+    const ids = [...new Set(agendamentos.map(a => Number(a.id)).filter(Boolean))];
+    if (ids.length === 0) return agendamentos;
+
+    const [rows] = await conn.query(
+      `SELECT entidade_id, detalhes
+         FROM logs
+        WHERE entidade = 'agendamento' AND acao = 'cancelou' AND entidade_id IN (?)
+        ORDER BY id DESC`,
+      [ids]
+    );
+    const map = new Map();
+    for (const r of rows) {
+      const key = Number(r.entidade_id);
+      if (map.has(key)) continue; // já temos o mais recente
+      let motivo = '';
+      const d = r.detalhes || '';
+      try {
+        const trimmed = String(d).trim();
+        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+          const obj = JSON.parse(trimmed);
+          motivo = obj && typeof obj.motivo === 'string' ? obj.motivo : '';
+        } else {
+          motivo = trimmed;
+        }
+      } catch { motivo = ''; }
+      map.set(key, motivo);
+    }
+    return agendamentos.map(a => ({ ...a, canceledReason: map.get(Number(a.id)) || a.canceledReason || '' }));
+  } finally {
+    conn.release();
+  }
+}
+
 // 1) LISTAR TODOS OS AGENDAMENTOS (só recepção)
 exports.listarAgendamentos = async (req, res) => {
   try {
@@ -56,6 +148,7 @@ exports.listarAgendamentos = async (req, res) => {
     }
 
     results = await adicionaBoxAoOperador(results);
+    results = await anexarMotivoCancelamento(results);
     return res.json(results);
   } catch (err) {
     console.error('Erro ao listar agendamentos:', err);
@@ -76,6 +169,7 @@ exports.listarMeusAgendamentos = async (req, res) => {
     );
 
     resultados = await adicionaBoxAoOperador(resultados);
+    resultados = await anexarMotivoCancelamento(resultados);
     return res.json(resultados);
   } catch (err) {
     console.error('Erro ao listar meus agendamentos:', err);

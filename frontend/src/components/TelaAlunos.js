@@ -136,7 +136,8 @@ export default function TelaAlunos() {
     const matchesText =
       (a.nome || "").toLowerCase().includes(term) ||
       (a.ra || "").toString().includes(term) ||
-      (a.box || "").toString().includes(term);
+      (a.box || "").toString().includes(term) ||
+      (a.id || "").toString().includes(term);
 
     const matchesPeriodo =
       !periodoFiltro || String(a.periodo_id) === String(periodoFiltro);
@@ -204,7 +205,7 @@ export default function TelaAlunos() {
             <label className="block text-sm text-gray-600 mb-1 transition-colors group-focus-within:text-blue-600">Buscar</label>
             <input
               type="text"
-              placeholder="Buscar por nome, RA ou Box..."
+              placeholder="Buscar por nome, RA, ID ou Box..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
@@ -253,6 +254,7 @@ export default function TelaAlunos() {
             <thead>
               <tr className="bg-gray-100 text-gray-600 text-sm">
                 <th className="px-3 py-2 text-left font-semibold border-b">#</th>
+                <th className="px-3 py-2 text-left font-semibold border-b">ID</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">Box</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">Nome</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">RA</th>
@@ -269,6 +271,7 @@ export default function TelaAlunos() {
                 <React.Fragment key={a.id}>
                   <tr className="border-none hover:bg-gray-50 transition">
                     <td className="px-3 py-2 text-gray-500">{inicio + idx + 1}</td>
+                    <td className="px-3 py-2 text-gray-600">{a.id}</td>
                     <td className="px-3 py-2 text-gray-600">{a.box || "-"}</td>
                     <td className="px-3 py-2 font-medium text-gray-800">{a.nome}</td>
                     <td className="px-3 py-2 text-gray-600">{a.ra}</td>
@@ -305,7 +308,7 @@ export default function TelaAlunos() {
                   {/* Separador entre linhas, exceto a última */}
                   {idx !== alunosPagina.length - 1 && (
                     <tr>
-                      <td colSpan={10}>
+                      <td colSpan={11}>
                         <hr className="border-t border-gray-200 my-0" />
                       </td>
                     </tr>
@@ -345,6 +348,9 @@ export default function TelaAlunos() {
                     </button>
                   )}
                 </div>
+              </div>
+              <div>
+                <b>ID:</b> <span className="text-gray-700">{a.id}</span>
               </div>
               <div>
                 <b>Box:</b> <span className="text-gray-700">{a.box || "-"}</span>
