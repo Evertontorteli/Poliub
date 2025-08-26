@@ -132,7 +132,8 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
   const pacientesFiltrados = pacientes.filter(p => {
     const term = buscaPaciente.toLowerCase();
     return p.nome.toLowerCase().includes(term)
-        || (p.telefone && p.telefone.includes(term));
+        || (p.telefone && p.telefone.includes(term))
+        || (p.cidade && p.cidade.toLowerCase().includes(term));
   });
 
   function handleSelecionarPaciente(p) {
@@ -268,6 +269,9 @@ async function handleSubmit(e) {
                     onClick={() => handleSelecionarPaciente(p)}
                   >
                     {p.nome} – {p.telefone}
+                    {p.cidade ? (
+                      <span className="text-gray-500 ml-1">— {p.cidade}</span>
+                    ) : null}
                   </li>
                 ))}
                 {pacientesFiltrados.length === 0 && (
