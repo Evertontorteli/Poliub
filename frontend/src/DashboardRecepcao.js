@@ -18,12 +18,14 @@ export default function DashboardRecepcao() {
   const [busca, setBusca] = useState("");
   const [filtroData, setFiltroData] = useState("");
   const [filtroHora, setFiltroHora] = useState("");
+  const [diaSemanaFiltro, setDiaSemanaFiltro] = useState("");
   const [mostrarModal, setMostrarModal] = useState(false);
   const [agendamentoEditando, setAgendamentoEditando] = useState(null);
   const [swipedId, setSwipedId] = useState(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelMotivo, setCancelMotivo] = useState('');
   const [cancelId, setCancelId] = useState(null);
+  const [countsByDisc, setCountsByDisc] = useState({});
 
   // Paginação
   const [pagina, setPagina] = useState(1);
@@ -110,6 +112,40 @@ export default function DashboardRecepcao() {
 
   useEffect(() => { setPagina(1); }, [busca, filtroData, filtroHora, agendamentosFiltrados.length]);
 
+  // Atualiza contagem de agendamentos futuros por disciplina visível
+  useEffect(() => {
+    let cancel = false;
+    async function loadCounts() {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const entries = await Promise.all(
+        (disciplinasVisiveis || []).map(async (d) => {
+          try {
+            const { data } = await axios.get(`/api/agendamentos?disciplinaId=${d.id}`);
+            const lista = Array.isArray(data) ? data : [];
+            // Considera apenas não cancelados e datas futuras (>= hoje)
+            const futuros = lista.filter(ag => ag && ag.data && (ag.status !== 'Cancelado') && ag.data.slice(0,10) >= todayStr);
+            if (futuros.length === 0) return [d.id, 0];
+            // Conta por data e pega a mais próxima
+            const porData = futuros.reduce((acc, ag) => {
+              const ds = ag.data.slice(0,10);
+              acc[ds] = (acc[ds] || 0) + 1;
+              return acc;
+            }, {});
+            const proximasDatas = Object.keys(porData).sort();
+            const primeira = proximasDatas[0];
+            const count = primeira ? porData[primeira] : 0;
+            return [d.id, count];
+          } catch {
+            return [d.id, 0];
+          }
+        })
+      );
+      if (!cancel) setCountsByDisc(Object.fromEntries(entries));
+    }
+    loadCounts();
+    return () => { cancel = true; };
+  }, [selectedPeriodo, diaSemanaFiltro, disciplinas.length]);
+
   const handleImprimir = () => {
     const disciplinaId = disciplinaSelecionada?.id || null;
     const disciplinaNome = disciplinaSelecionada?.nome || "";
@@ -147,9 +183,7 @@ export default function DashboardRecepcao() {
   };
 
   const handleSalvarAgendamentoEditado = () => {
-    if (disciplinaSelecionada) {
-      buscarAgendamentosDaDisciplina(disciplinaSelecionada);
-    }
+    if (disciplinaSelecionada) buscarAgendamentosDaDisciplina(disciplinaSelecionada);
     setMostrarModal(false);
     setAgendamentoEditando(null);
   };
@@ -188,24 +222,22 @@ export default function DashboardRecepcao() {
   }
 
   const handleDataClick = () => {
-    if (dataInputRef.current?.showPicker) {
-      dataInputRef.current.showPicker();
-    } else if (dataInputRef.current) {
-      dataInputRef.current.focus();
-    }
+    if (dataInputRef.current?.showPicker) dataInputRef.current.showPicker();
+    else if (dataInputRef.current) dataInputRef.current.focus();
   };
   const handleHoraClick = () => {
-    if (horaInputRef.current?.showPicker) {
-      horaInputRef.current.showPicker();
-    } else if (horaInputRef.current) {
-      horaInputRef.current.focus();
-    }
+    if (horaInputRef.current?.showPicker) horaInputRef.current.showPicker();
+    else if (horaInputRef.current) horaInputRef.current.focus();
   };
 
   // Disciplinas por período
-  const disciplinasVisiveis = selectedPeriodo
-    ? disciplinas.filter(d => d.periodo_id === selectedPeriodo)
-    : disciplinas;
+  const disciplinasVisiveis = (() => {
+    const base = selectedPeriodo
+      ? disciplinas.filter(d => d.periodo_id === selectedPeriodo)
+      : disciplinas;
+    if (!diaSemanaFiltro) return base;
+    return base.filter(d => (d.dia_semana || "") === diaSemanaFiltro);
+  })();
 
   // Paginador
   function Paginador() {
@@ -241,42 +273,59 @@ export default function DashboardRecepcao() {
 
       <div className="mb-4">
         <h2 className="text-2xl font-medium mb-3 text-[#344054]">Períodos</h2>
-        <div className="flex flex-wrap gap-2">
-          {periodos.map(p => (
-            <button
-              key={p.id}
-              onClick={() => {
-                setSelectedPeriodo(p.id);
-                setDisciplinaSelecionada(null);
-              }}
-              className={`
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap gap-2">
+            {periodos.map(p => (
+              <button
+                key={p.id}
+                onClick={() => {
+                  setSelectedPeriodo(p.id);
+                  setDisciplinaSelecionada(null);
+                }}
+                className={`
       px-4 py-2 rounded-full border transition
       ${selectedPeriodo === p.id
-                  ? "bg-[#3172C0] text-white border-transparent"
-                  : "bg-white text-gray-700 border-gray-300 hover:bg-[#3172C0] hover:text-white"
-                }
+                    ? "bg-[#3172C0] text-white border-transparent"
+                    : "bg-white text-gray-700 border-gray-300 hover:bg-[#3172C0] hover:text-white"
+                  }
     `}
+              >
+                <span className="inline-flex items-center">
+                  {p.nome}
+                  {p.turno && (
+                    <span className="ml-2 text-sm">
+                      {p.turno}
+                    </span>
+                  )}
+                </span>
+              </button>
+            ))}
+            {selectedPeriodo && (
+              <button
+                onClick={() => setSelectedPeriodo(null)}
+                className="px-2 py-2 rounded-full text-red-600 hover:bg-red-100 transition"
+              >
+                Limpar
+              </button>
+            )}
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            <label className="text-sm text-gray-600">Dia da semana</label>
+            <select
+              className="border rounded px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+              value={diaSemanaFiltro}
+              onChange={(e) => setDiaSemanaFiltro(e.target.value)}
             >
-              <span className="inline-flex items-center">
-                {p.nome}
-                {p.turno && (
-                  <span className="ml-2 text-sm">
-                    {p.turno}
-                  </span>
-                )}
-              </span>
-            </button>
-          ))}
-
-
-          {selectedPeriodo && (
-            <button
-              onClick={() => setSelectedPeriodo(null)}
-              className="px-2 py-2 rounded-full text-red-600 hover:bg-red-100 transition"
-            >
-              Limpar
-            </button>
-          )}
+              <option value="">Todos</option>
+              <option value="Segunda-Feira">Segunda-Feira</option>
+              <option value="Terça-Feira">Terça-Feira</option>
+              <option value="Quarta-Feira">Quarta-Feira</option>
+              <option value="Quinta-Feira">Quinta-Feira</option>
+              <option value="Sexta-Feira">Sexta-Feira</option>
+              <option value="Sábado">Sábado</option>
+              <option value="Domingo">Domingo</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -284,22 +333,27 @@ export default function DashboardRecepcao() {
       {/* Disciplinas */}
       <div className="mb-6">
         <h2 className="text-2xl font-medium mb-3 text-[#344054]">Disciplinas</h2>
-        <div className="flex flex-wrap gap-2">
+        
+        <div className="flex flex-wrap gap-3">
           {disciplinasVisiveis.map((disc, idx) => (
             <button
               key={disc.id}
               onClick={() => buscarAgendamentosDaDisciplina(disc)}
               className={`
-                min-w-[150px] flex-full rounded-2xl px-6 py-8 text-left border-2 transition
-                ${disciplinaSelecionada?.id === disc.id
-                  ? "border-[#CCD7E1] bg-[#8D8D8D] text-[white]"
-                  : `border-transparent hover:border-[#CCD7E1] hover:bg-[#8D8D8D] ${cardColors[idx % cardColors.length]
-                  } text-[white]`
-                }
+                relative w-auto min-w-[10.5rem] md:min-w-[12rem] max-w-full md:max-w-[18rem] min-h-[6rem]
+                rounded-xl px-4 py-4 text-center border transition overflow-hidden
+                flex flex-col items-center justify-center
+                bg-white text-gray-700 border-gray-300 shadow-sm hover:shadow-md
+                ${disciplinaSelecionada?.id === disc.id ? "ring-2 ring-blue-300" : ""}
               `}
             >
-              <div className="font-bold text-lg mb-1">{disc.nome}</div>
-              <div className="text-sm">{disc.periodo_nome} {disc.turno}</div>
+              <span
+                className={`absolute left-0 top-0 h-full w-1 ${cardColors[idx % cardColors.length]} rounded-l-xl`}
+                aria-hidden="true"
+              />
+              <div className="text-lg md:text-xl font-bold text-gray-600 leading-none mb-1">{countsByDisc[disc.id] ?? 0}</div>
+              <div className="font-bold text-sm text-gray-600 mb-1 text-left line-clamp-2" title={disc.nome}>{disc.nome}</div>
+              <div className="text-xs text-gray-600 whitespace-normal break-words" title={`${disc.periodo_nome} ${disc.turno}${disc.dia_semana ? ` • ${disc.dia_semana}` : ''}`}>{disc.periodo_nome} {disc.turno}{disc.dia_semana ? ` • ${disc.dia_semana}` : ''}</div>
             </button>
           ))}
         </div>

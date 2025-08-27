@@ -11,6 +11,7 @@ function ListaDisciplinas({ reloadKey, onEditar }) {
   const [carregando, setCarregando] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [pagina, setPagina] = useState(1);
+  const [diaSemanaFiltro, setDiaSemanaFiltro] = useState('');
 
   useEffect(() => {
     setCarregando(true);
@@ -24,7 +25,7 @@ function ListaDisciplinas({ reloadKey, onEditar }) {
       .finally(() => setCarregando(false));
   }, [reloadKey]);
 
-  useEffect(() => { setPagina(1); }, [searchTerm, disciplinas.length]);
+  useEffect(() => { setPagina(1); }, [searchTerm, diaSemanaFiltro, disciplinas.length]);
 
   const handleDeletar = (id, nome) => {
     if (!window.confirm('Tem certeza que deseja deletar esta disciplina?')) return;
@@ -42,11 +43,13 @@ function ListaDisciplinas({ reloadKey, onEditar }) {
 
   const filtered = disciplinas.filter(d => {
     const term = searchTerm.toLowerCase();
-    return (
+    const matchTexto = (
       d.nome.toLowerCase().includes(term) ||
       d.periodo_nome.toLowerCase().includes(term) ||
       d.turno.toLowerCase().includes(term)
     );
+    const matchDia = !diaSemanaFiltro || (d.dia_semana || '') === diaSemanaFiltro;
+    return matchTexto && matchDia;
   });
 
   // Paginação
@@ -82,15 +85,32 @@ function ListaDisciplinas({ reloadKey, onEditar }) {
 
   return (
     <div className="mx-auto py-2 px-2">
-      {/* Barra de pesquisa */}
-      <div className="mb-4">
+      {/* Filtros */}
+      <div className="mb-4 flex flex-col sm:flex-row gap-2">
         <input
           type="text"
           placeholder="Buscar por disciplina, período ou turno..."
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
-          className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+          className="w-full sm:flex-1 border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
         />
+        <div className="flex items-center gap-2 sm:w-auto">
+          <label className="text-sm text-gray-600">Dia</label>
+          <select
+            className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            value={diaSemanaFiltro}
+            onChange={e => setDiaSemanaFiltro(e.target.value)}
+          >
+            <option value="">Todos</option>
+            <option value="Segunda-Feira">Segunda-Feira</option>
+            <option value="Terça-Feira">Terça-Feira</option>
+            <option value="Quarta-Feira">Quarta-Feira</option>
+            <option value="Quinta-Feira">Quinta-Feira</option>
+            <option value="Sexta-Feira">Sexta-Feira</option>
+            <option value="Sábado">Sábado</option>
+            <option value="Domingo">Domingo</option>
+          </select>
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl shadow p-2">
@@ -106,6 +126,7 @@ function ListaDisciplinas({ reloadKey, onEditar }) {
                 <th className="px-3 py-2 text-left font-semibold border-b">Disciplina</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">Período</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">Turno</th>
+                <th className="px-3 py-2 text-left font-semibold border-b">Dia</th>
                 <th className="px-3 py-2 text-right font-semibold border-b">Ações</th>
               </tr>
             </thead>
@@ -117,6 +138,7 @@ function ListaDisciplinas({ reloadKey, onEditar }) {
                     <td className="px-3 py-2 font-medium text-gray-800">{d.nome}</td>
                     <td className="px-3 py-2 text-gray-500">{d.periodo_nome}</td>
                     <td className="px-3 py-2 text-gray-500">{d.turno}</td>
+                    <td className="px-3 py-2 text-gray-500">{d.dia_semana || '-'}</td>
                     <td className="px-3 py-2 text-right flex gap-2 justify-end">
                       <button
                         onClick={() => onEditar(d)}
@@ -181,6 +203,7 @@ function ListaDisciplinas({ reloadKey, onEditar }) {
               <div><b>Disciplina:</b> <span className="text-gray-800">{d.nome}</span></div>
               <div><b>Período:</b> <span className="text-gray-700">{d.periodo_nome}</span></div>
               <div><b>Turno:</b> <span className="text-gray-700">{d.turno}</span></div>
+              <div><b>Dia:</b> <span className="text-gray-700">{d.dia_semana || '-'}</span></div>
             </div>
           ))}
         </div>
