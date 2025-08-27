@@ -110,6 +110,8 @@ export default function PrintAgendamentos() {
   }
 
   const agendamentosFiltrados = filtrarAgendamentos(todosAgendamentos);
+  // Limita a impressão a no máximo 40 registros
+  const agendamentosParaImprimir = agendamentosFiltrados.slice(0, 40);
 
   return (
     <div className="printable bg-white p-8">
@@ -164,7 +166,7 @@ export default function PrintAgendamentos() {
           </thead>
 
           <tbody className="bg-white divide-y divide-gray-200">
-            {agendamentosFiltrados.map((ag, idx) => (
+            {agendamentosParaImprimir.map((ag, idx) => (
               <tr key={ag.id || idx} className="hover:bg-gray-50">
                 <td className="px-2 py-2 text-sm text-gray-800 text-center">{idx + 1}</td>
                 <td className="px-2 py-2 text-sm text-gray-800 text-center">{ag.operadorBox ?? '-'}</td>
@@ -199,9 +201,9 @@ export default function PrintAgendamentos() {
         {`
           /* Mais espaço entre linhas (preview e print) */
           .printable th, .printable td {
-            padding-top: 10px !important;
-            padding-bottom: 10px !important;
-            line-height: 1.35;
+            padding-top: 8px !important;
+            padding-bottom: 8px !important;
+            line-height: 1.3;
           }
 
           @media print {
@@ -220,8 +222,16 @@ export default function PrintAgendamentos() {
             .printable table {
               width: 100% !important;
               border-collapse: collapse !important;
+              font-size: 11px !important;
             }
-            .printable th, .printable td { vertical-align: middle; }
+            .printable th, .printable td {
+              vertical-align: middle;
+              padding-top: 5px !important;
+              padding-bottom: 5px !important;
+              line-height: 1.15 !important;
+              font-size: 11px !important;
+            }
+            .printable h2 { font-size: 16px !important; margin-bottom: 8px !important; }
           }
         `}
       </style>
