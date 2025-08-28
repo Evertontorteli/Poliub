@@ -1,6 +1,7 @@
 // backend/controllers/backupSettingsController.js
 const fs = require('fs');
 const path = require('path');
+const { readDb, writeDb } = require('../models/backupSettingsDb');
 
 const SETTINGS_PATH = path.join(__dirname, '..', 'data', 'backup-settings.json');
 
@@ -45,33 +46,42 @@ function ensureDefaults(obj) {
   return safe;
 }
 
-function readSettingsFile() {
+async function readSettingsFile() {
   try {
     const dir = path.dirname(SETTINGS_PATH);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     if (!fs.existsSync(SETTINGS_PATH)) {
       const defaults = ensureDefaults({});
       fs.writeFileSync(SETTINGS_PATH, JSON.stringify(defaults, null, 2));
-      return defaults;
+      // tenta carregar do DB
+      const fromDb = await readDb();
+      return ensureDefaults(fromDb || defaults);
     }
     const raw = fs.readFileSync(SETTINGS_PATH, 'utf8');
-    return ensureDefaults(JSON.parse(raw));
+    const fileData = ensureDefaults(JSON.parse(raw));
+    const fromDb = await readDb();
+    return ensureDefaults(fromDb || fileData);
   } catch (err) {
     console.error('[settings] erro ao ler arquivo:', err.message);
+    try {
+      const fromDb = await readDb();
+      if (fromDb) return ensureDefaults(fromDb);
+    } catch {}
     return ensureDefaults({});
   }
 }
 
-function writeSettingsFile(obj) {
+async function writeSettingsFile(obj) {
   const data = ensureDefaults(obj);
   fs.writeFileSync(SETTINGS_PATH, JSON.stringify(data, null, 2));
+  try { await writeDb(data); } catch (e) { console.error('[settings] falha ao salvar no DB:', e.message); }
   return data;
 }
 
 // GET /api/backup/settings
 exports.getSettings = async (_req, res) => {
   try {
-    const s = readSettingsFile();
+    const s = await readSettingsFile();
     res.json(s);
   } catch (err) {
     res.status(500).json({ error: 'Falha ao ler configurações.' });
@@ -88,7 +98,7 @@ exports.putSettings = async (req, res) => {
         incoming.destinations.gdrive.privateKey
       );
     }
-    const saved = writeSettingsFile(incoming);
+    const saved = await writeSettingsFile(incoming);
     res.json(saved);
   } catch (err) {
     console.error('[settings] erro ao salvar:', err.message);
@@ -97,4 +107,4 @@ exports.putSettings = async (req, res) => {
 };
 
 // Utilitário para outros módulos
-exports._readSettings = readSettingsFile;
+exports._readSettings = () => readSettingsFile();

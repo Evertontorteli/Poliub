@@ -15,6 +15,7 @@ export default function DashboardRecepcao() {
   const [disciplinas, setDisciplinas] = useState([]);
   const [disciplinaSelecionada, setDisciplinaSelecionada] = useState(null);
   const [agendamentosFiltrados, setAgendamentosFiltrados] = useState([]);
+  const [steriResumo, setSteriResumo] = useState({});
   const [busca, setBusca] = useState("");
   const [filtroData, setFiltroData] = useState("");
   const [filtroHora, setFiltroHora] = useState("");
@@ -87,6 +88,39 @@ export default function DashboardRecepcao() {
 
         setAgendamentosFiltrados(agsFiltrados);
       });
+  }
+
+  // Carrega resumo de esterilização (por aluno) com base no período da disciplina selecionada
+  useEffect(() => {
+    async function carregarResumo() {
+      try {
+        const periodoId = disciplinaSelecionada?.periodo_id;
+        if (!periodoId) {
+          setSteriResumo({});
+          return;
+        }
+        const res = await axios.get('/api/movimentacoes/relatorio', { params: { periodoId } });
+        const map = {};
+        (res.data || []).forEach(r => {
+          if (r && r.alunoId != null) map[r.alunoId] = r;
+        });
+        setSteriResumo(map);
+      } catch (e) {
+        setSteriResumo({});
+      }
+    }
+    carregarResumo();
+  }, [disciplinaSelecionada?.periodo_id]);
+
+  function getSterilizationDot(alunoId) {
+    const r = steriResumo[Number(alunoId)] || null;
+    if (!r) return { cls: 'bg-gray-300', tip: 'Sem dados' };
+    const saldo = Number(r.saldoTotal) || 0;
+    const teveMov = !!(r.teveEntrada || r.teveSaida);
+    if (saldo === 0) return { cls: 'bg-gray-500', tip: 'Sem registro' };
+    return teveMov
+      ? { cls: 'bg-green-500', tip: 'Ativo (teve movimentação nos últimos 30 dias)' }
+      : { cls: 'bg-red-500', tip: 'Vencido (sem movimentação > 30 dias)' };
   }
 
 
@@ -448,12 +482,14 @@ export default function DashboardRecepcao() {
 
           {/* Tabela Desktop */}
           <div className="hidden md:block">
-            <table className="min-w-full bg-white border-separate border-spacing-0">
+            <table className="min-w-full w-full bg-white border-separate border-spacing-0">
               <thead>
                 <tr className="bg-gray-100 text-[#344054] text-sm">
                   <th className="px-3 py-2 text-left font-semibold border-b">#</th>
                   <th className="px-3 py-2 text-left font-semibold border-b">Box</th>
+                  <th className="px-3 py-2 text-center font-semibold border-b">Ester. Op.</th>
                   <th className="px-3 py-2 text-left font-semibold border-b">Operador</th>
+                  <th className="px-3 py-2 text-center font-semibold border-b">Ester. Aux.</th>
                   <th className="px-3 py-2 text-left font-semibold border-b">Auxiliar</th>
                   <th className="px-3 py-2 text-left font-semibold border-b">Disciplina</th>
                   <th className="px-3 py-2 text-left font-semibold border-b">Paciente</th>
@@ -468,7 +504,38 @@ export default function DashboardRecepcao() {
                     <tr className="border-none hover:bg-gray-50 transition">
                       <td className="px-3 py-2 text-gray-500">{inicio + idx + 1}</td>
                       <td className="px-3 py-2 text-gray-500">{ag.operadorBox ?? '-'}</td>
+                      <td className="px-3 py-2">
+                        {(() => {
+                          const st = getSterilizationDot(ag.aluno_id);
+                          return (
+                            <div
+                              className={`w-4 h-4 rounded-full mx-auto ${st.cls}`}
+                              title={st.tip}
+                            />
+                          );
+                        })()}
+                      </td>
                       <td className="px-3 py-2 font-medium text-gray-500">{ag.operadorNome || '-'}</td>
+                      <td className="px-3 py-2">
+                        {(() => {
+                          const auxId = ag.auxiliar1_id || ag.auxiliar2_id || null;
+                          if (!auxId) {
+                            return (
+                              <div
+                                className={`w-4 h-4 rounded-full mx-auto bg-gray-300`}
+                                title="Sem auxiliar"
+                              />
+                            );
+                          }
+                          const st = getSterilizationDot(auxId);
+                          return (
+                            <div
+                              className={`w-4 h-4 rounded-full mx-auto ${st.cls}`}
+                              title={st.tip}
+                            />
+                          );
+                        })()}
+                      </td>
                       <td className="px-3 py-2 text-gray-500">{ag.auxiliarNome || '-'}</td>
                       <td className="px-3 py-2 text-gray-500">{disciplinaSelecionada.nome}</td>
                       <td className="px-3 py-2 text-gray-800">{ag.pacienteNome || '-'}</td>
@@ -556,7 +623,7 @@ export default function DashboardRecepcao() {
                     </tr>
                     {idx !== agsPagina.length - 1 && (
                       <tr>
-                        <td colSpan={9}>
+                        <td colSpan={11}>
                           <hr className="border-t border-gray-200 my-0" />
                         </td>
                       </tr>

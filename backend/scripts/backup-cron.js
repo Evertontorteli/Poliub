@@ -12,7 +12,7 @@ function setIo(instance) { io = instance; }
 
 async function executeOnce() {
   try {
-    const settings = settingsController._readSettings();
+    const settings = await settingsController._readSettings();
     const m = settings?.destinations?.mega;
     if (!m?.enabled) {
       log('Mega desabilitado nas configurações; ignorando execução.');
@@ -51,8 +51,8 @@ async function executeOnce() {
   }
 }
 
-function scheduleFromSettings() {
-  const s = settingsController._readSettings();
+async function scheduleFromSettings() {
+  const s = await settingsController._readSettings();
   if (!s?.schedule?.enabled) {
     log('Agendamento desabilitado nas configurações.');
     return null;

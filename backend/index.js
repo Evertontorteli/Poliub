@@ -85,6 +85,17 @@ io.on('connection', (socket) => {
     server.listen(PORT, () => {
       console.log(`🔌 Servidor HTTP + Socket.IO rodando na porta ${PORT}`);
 
+      // Sincroniza configurações de backup do arquivo -> banco (bootstrap leve)
+      try {
+        const settingsCtrl = require('./controllers/backupSettingsController');
+        const { writeDb } = require('./models/backupSettingsDb');
+        Promise.resolve(settingsCtrl._readSettings())
+          .then((s) => writeDb(s))
+          .catch((e) => console.warn('[settings bootstrap] falha ao sincronizar:', e.message));
+      } catch (e) {
+        console.warn('[settings bootstrap] módulo indisponível:', e.message);
+      }
+
       // Scheduler opcional (não bloqueia boot)
       if (process.env.ENABLE_BACKUP_SCHEDULER === 'true') {
         console.log('[scheduler] Habilitado. Iniciando...');
