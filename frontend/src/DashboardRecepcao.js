@@ -353,7 +353,14 @@ export default function DashboardRecepcao() {
               />
               <div className="text-lg md:text-xl font-bold text-gray-600 leading-none mb-1">{countsByDisc[disc.id] ?? 0}</div>
               <div className="font-bold text-sm text-gray-600 mb-1 text-left line-clamp-2" title={disc.nome}>{disc.nome}</div>
-              <div className="text-xs text-gray-600 whitespace-normal break-words" title={`${disc.periodo_nome} ${disc.turno}${disc.dia_semana ? ` • ${disc.dia_semana}` : ''}`}>{disc.periodo_nome} {disc.turno}{disc.dia_semana ? ` • ${disc.dia_semana}` : ''}</div>
+              <div className="text-xs text-gray-600 whitespace-normal break-words flex items-center gap-2" title={`${disc.periodo_nome} ${disc.turno}${disc.dia_semana ? ` • ${disc.dia_semana}` : ''}`}>
+                <span>{disc.periodo_nome} {disc.turno}</span>
+                {disc.dia_semana ? (
+                  <span className="inline-block px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] md:text-xs">
+                    {disc.dia_semana}
+                  </span>
+                ) : null}
+              </div>
             </button>
           ))}
         </div>

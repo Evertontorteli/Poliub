@@ -38,8 +38,24 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
   const [auxiliar1Id, setAuxiliar1Id] = useState('');
   const [mensagem, setMensagem] = useState('');
 
-  // Ref para clique fora do autocomplete
+  // Refs
   const inputRef = useRef(null);
+  const disciplinasRef = useRef(null);
+  const [carousel, setCarousel] = useState({ current: 0, total: 1 });
+
+  useEffect(() => {
+    function updatePages() {
+      const el = disciplinasRef.current;
+      if (!el) return;
+      const total = Math.max(1, Math.ceil(el.scrollWidth / el.clientWidth));
+      const current = Math.round(el.scrollLeft / el.clientWidth);
+      setCarousel({ current, total });
+    }
+    updatePages();
+    const onResize = () => updatePages();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [disciplinas.length]);
 
   useEffect(() => {
     const headers = { Authorization: `Bearer ${token}` };
@@ -193,7 +209,7 @@ async function handleSubmit(e) {
 
 
   return (
-    <div className="bg-white mx-auto max-w-2xl rounded-2xl p-6">
+    <div className="bg-white mx-auto max-w-2xl rounded-2xl p-2">
       <form onSubmit={handleSubmit} autoComplete="off">
         <h2 className="text-2xl font-bold mb-6 text-gray-800">
           Agendar Paciente
@@ -216,33 +232,74 @@ async function handleSubmit(e) {
           ))}
         </div>
 
-        {/* Disciplinas */}
+        {/* Disciplinas (carrossel) */}
         <div className="mb-6 group">
-          <label className="block mb-1 font-medium transition-colors group-focus-within:text-blue-600">Disciplina</label>
-          <div className="flex flex-wrap gap-2">
-            {disciplinas.map(d => (
-              <button
-                key={d.id}
-                type="button"
-                onClick={() => setDisciplinaId(String(d.id))}
-                className={`px-4 py-2 rounded-2xl border transition text-left ${
-                  disciplinaId === String(d.id)
-                    ? 'bg-[#D9E0FF] text-gray-800 font-semibold border-blue-300'
-                    : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
-                }`}
-              >
-                <div className="font-medium">{d.nome}</div>
-                <div className="text-xs text-gray-600 mt-1">
-                  {d.periodo_nome} &bull; {d.turno}
-                </div>
-              </button>
+          <div className="flex items-center mb-1">
+            <label className={`font-medium transition-colors group-focus-within:text-blue-600 ${!disciplinaId ? 'text-red-600' : ''}`}>Disciplina</label>
+            {!disciplinaId && (
+              <span className="ml-2 text-xs text-red-600">Selecione uma disciplina</span>
+            )}
+          </div>
+          <div className="relative">
+            <div
+              ref={disciplinasRef}
+              onScroll={() => {
+                const el = disciplinasRef.current; if (!el) return;
+                const total = Math.max(1, Math.ceil(el.scrollWidth / el.clientWidth));
+                const current = Math.round(el.scrollLeft / el.clientWidth);
+                setCarousel({ current, total });
+              }}
+              className="flex gap-2 overflow-x-auto overscroll-x-contain snap-x snap-mandatory scroll-smooth pb-2"
+            >
+              {disciplinas.map(d => (
+                <button
+                  key={d.id}
+                  type="button"
+                  onClick={() => setDisciplinaId(String(d.id))}
+                  className={`min-w-[220px] h-28 snap-start snap-always px-4 py-2 rounded-2xl border transition text-left flex flex-col justify-center ${
+                    disciplinaId === String(d.id)
+                      ? 'bg-[#D9E0FF] text-gray-800 font-semibold border-blue-300'
+                      : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
+                  }`}
+                >
+                  <div className="font-medium text-xs md:text-sm leading-snug">{d.nome}</div>
+                  <div className="text-[10px] md:text-xs text-gray-600 mt-1 flex items-center gap-2">
+                    <span>{d.periodo_nome} {d.turno}</span>
+                    {d.dia_semana ? (
+                      <span className="inline-block px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] md:text-xs">
+                        {d.dia_semana}
+                      </span>
+                    ) : null}
+                  </div>
+                </button>
+              ))}
+            </div>
+            {/* Setas laterais */}
+            <button
+              type="button"
+              className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-9 h-9 items-center justify-center bg-white/80 border border-gray-200 text-gray-500 rounded-full shadow-sm hover:bg-white hover:shadow opacity-80 hover:opacity-100"
+              onClick={() => { const el = disciplinasRef.current; if (!el) return; el.scrollBy({ left: -el.clientWidth, behavior: 'smooth' }); }}
+              aria-label="Anterior"
+              title="Anterior"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+            <button
+              type="button"
+              className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-9 h-9 items-center justify-center bg-white/80 border border-gray-200 text-gray-500 rounded-full shadow-sm hover:bg-white hover:shadow opacity-80 hover:opacity-100"
+              onClick={() => { const el = disciplinasRef.current; if (!el) return; el.scrollBy({ left: el.clientWidth, behavior: 'smooth' }); }}
+              aria-label="Próximo"
+              title="Próximo"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+          </div>
+          {/* Dots de paginação */}
+          <div className="flex justify-center gap-2 mt-1">
+            {Array.from({ length: carousel.total }).map((_, i) => (
+              <span key={i} className={`w-2 h-2 rounded-full ${i === carousel.current ? 'bg-blue-600' : 'bg-gray-300'}`}></span>
             ))}
           </div>
-          {!disciplinaId && (
-            <p className="text-red-600 text-xs mt-1">
-              Selecione uma disciplina
-            </p>
-          )}
         </div>
 
         {/* Paciente autocomplete */}
