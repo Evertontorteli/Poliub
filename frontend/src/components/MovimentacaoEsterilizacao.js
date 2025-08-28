@@ -34,7 +34,8 @@ function toDateForTZ(value) {
 export default function MovimentacaoEsterilizacao() {
   const [movs, setMovs] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
-  const [filterPeriodo, setFilterPeriodo] = useState('')
+  const [filterPeriodo, setFilterPeriodo] = useState('') // guarda ID do período
+  const [periodos, setPeriodos] = useState([])
   const [filterDate, setFilterDate] = useState('')
   const dateInputRef = useRef(null)
   const [printData, setPrintData] = useState(null)
@@ -47,6 +48,9 @@ export default function MovimentacaoEsterilizacao() {
     axios.get('/api/movimentacoes')
       .then(res => setMovs(res.data))
       .catch(console.error)
+    axios.get('/api/periodos')
+      .then(res => setPeriodos(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setPeriodos([]))
   }, [])
 
   // filtros de texto, período e data
@@ -55,7 +59,7 @@ export default function MovimentacaoEsterilizacao() {
     const okTxt = [m.caixaNome, m.tipo, m.alunoNome, m.operadorNome, m.periodoNome]
       .some(f => f?.toLowerCase().includes(txt))
     const okPeriodo = !filterPeriodo
-      || m.periodoNome?.toLowerCase().includes(filterPeriodo.toLowerCase())
+      || String(m.periodo_id) === String(filterPeriodo)
     const dateKey = formatInTimeZone(
       toDateForTZ(m.criado_em),
       TIME_ZONE,
@@ -162,13 +166,21 @@ export default function MovimentacaoEsterilizacao() {
             onChange={e => setSearchTerm(e.target.value)}
             className="border rounded px-4 py-2 w-full rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-300"
           />
-          <input
-            type="text"
-            placeholder="Filtrar por período"
-            value={filterPeriodo}
-            onChange={e => setFilterPeriodo(e.target.value)}
-            className="border rounded px-4 py-2 w-full md:w-1/4 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-300"
-          />
+          <div className="w-full md:w-1/4">
+            <select
+              value={filterPeriodo}
+              onChange={e => setFilterPeriodo(e.target.value)}
+              className="border rounded px-4 py-2 w-full rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-300"
+              aria-label="Filtrar por período"
+            >
+              <option value="">Todos os períodos</option>
+              {periodos.map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.nome}{p.turno ? ` - ${p.turno}` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="flex items-center gap-4 mt-4 md:mt-0 relative">
             <button
               type="button"
@@ -203,6 +215,7 @@ export default function MovimentacaoEsterilizacao() {
                 <th className="px-3 py-2 text-left font-semibold border-b">Caixa</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">Aluno</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">Período</th>
+                <th className="px-3 py-2 text-left font-semibold border-b">Turno</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">Data</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">Operador</th>
                 <th className="px-3 py-2 text-right font-semibold border-b">Ações</th>
@@ -231,6 +244,7 @@ export default function MovimentacaoEsterilizacao() {
                       <td className="px-3 text-gray-500 py-2 font-medium">{m.caixaNome}</td>
                       <td className="px-3 text-gray-800 py-2">{m.alunoNome}</td>
                       <td className="px-3 text-gray-800 py-2">{m.periodoNome}</td>
+                      <td className="px-3 text-gray-800 py-2">{m.periodoTurno || '-'}</td>
                       <td className="px-3 text-gray-500 py-2">
                         {formatInTimeZone(
                           toDateForTZ(m.criado_em),
@@ -295,6 +309,7 @@ export default function MovimentacaoEsterilizacao() {
                 <div><b>Caixa:</b> <span className="text-gray-800">{m.caixaNome}</span></div>
                 <div><b>Aluno:</b> <span className="text-gray-800">{m.alunoNome}</span></div>
                 <div><b>Período:</b> <span className="text-gray-800">{m.periodoNome}</span></div>
+                <div><b>Turno:</b> <span className="text-gray-800">{m.periodoTurno || '-'}</span></div>
                 <div><b>Data:</b> <span className="text-gray-800">
                   {formatInTimeZone(
                     toDateForTZ(m.criado_em),

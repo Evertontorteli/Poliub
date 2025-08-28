@@ -75,14 +75,14 @@ export default function DashboardRecepcao() {
       .get(`/api/agendamentos?disciplinaId=${disciplina.id}`)
       .then((res) => {
         const hoje = new Date();
-        const trintaDiasAtras = new Date();
-        trintaDiasAtras.setDate(hoje.getDate() - 32);
+        const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+        const limiteFuturo = new Date(inicioHoje);
+        limiteFuturo.setDate(inicioHoje.getDate() + 32);
 
         const agsFiltrados = res.data.filter((ag) => {
           if (!ag.data) return false;
-          // Usa apenas a parte da data (pode ajustar caso ag.data já venha como Date)
           const dataAgDate = new Date(ag.data.slice(0, 10) + 'T00:00:00');
-          return dataAgDate >= trintaDiasAtras;
+          return dataAgDate >= inicioHoje && dataAgDate <= limiteFuturo;
         });
 
         setAgendamentosFiltrados(agsFiltrados);
@@ -368,9 +368,8 @@ export default function DashboardRecepcao() {
             </span>
           </h2>
           <h2 className="text-sm text-center font-light px-4 pt-0 pb-2">
-
             <span className="text-grey-800">
-              Apenas agendamentos dos últimos <strong>30 dias</strong> são exibidos na lista.
+              Exibindo apenas os próximos <strong>32 dias</strong> a partir de hoje.
             </span>
           </h2>
           {/* Filtros */}

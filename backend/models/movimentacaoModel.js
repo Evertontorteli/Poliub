@@ -51,6 +51,7 @@ class Movimentacao {
            c.nome      AS caixaNome,
            a.nome      AS alunoNome,
            p.nome      AS periodoNome,
+           p.turno     AS periodoTurno,
            o.nome      AS operadorNome
          FROM movimentacoes_esterilizacao m
          JOIN caixas   c ON m.caixa_id    = c.id
@@ -89,6 +90,7 @@ class Movimentacao {
            c.nome      AS caixaNome,
            a.nome      AS alunoNome,
            p.nome      AS periodoNome,
+           p.turno     AS periodoTurno,
            o.nome      AS operadorNome
          FROM movimentacoes_esterilizacao m
          JOIN caixas   c ON m.caixa_id    = c.id
@@ -197,6 +199,7 @@ class Movimentacao {
            c.nome      AS caixaNome,
            a.nome      AS alunoNome,
            p.nome      AS periodoNome,
+           p.turno     AS periodoTurno,
            o.nome      AS operadorNome
          FROM movimentacoes_esterilizacao m
          JOIN caixas   c ON m.caixa_id    = c.id

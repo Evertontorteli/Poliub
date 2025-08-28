@@ -238,7 +238,7 @@ export default function DashboardEsterilizacao() {
                       </span>
                     </div>
                     <div className="text-sm text-gray-700">
-                      Aluno: {m.alunoNome} | Operador: {m.operadorNome}
+                      Aluno: {m.alunoNome} | Período: {m.periodoNome}{m.periodoTurno ? ` - ${m.periodoTurno}` : ''} | Operador: {m.operadorNome}
                     </div>
                   </li>
                 ))}
