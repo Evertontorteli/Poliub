@@ -1,5 +1,5 @@
 // src/components/DashboardAluno.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { useAuth } from "./context/AuthContext";
 import { PlusCircle, MinusCircle } from 'lucide-react';
@@ -11,6 +11,8 @@ export default function DashboardAluno() {
   const [agendamentos, setAgendamentos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCard, setSelectedCard] = useState(null);
+  const cardsRef = useRef(null);
+  const [carousel, setCarousel] = useState({ current: 0, total: 1 });
 
   // Novos estados para caixas
   const [caixas, setCaixas] = useState([]);
@@ -105,11 +107,11 @@ export default function DashboardAluno() {
     })
     : [];
 
-  const cardColors = {
+  const stripeColors = {
     solicitacoes: "bg-[#DA6C6C]",
     proximos: "bg-[#0698DC]",
     atendidos: "bg-[#2FA74E]",
-    caixas: "bg-[#F6BE00] text-gray-800"
+    caixas: "bg-[#F6BE00]",
   };
 
   const toggleCard = key => setSelectedCard(prev => (prev === key ? null : key));
@@ -124,20 +126,28 @@ export default function DashboardAluno() {
       <h1 className="text-3xl font-bold mb-8">Olá, {user.nome}!</h1>
 
       {/* --- CARDS --- */}
-      <div className="grid grid-cols-2 gap-4 mb-8 md:flex md:flex-wrap">
+      <div
+        ref={cardsRef}
+        onScroll={() => {
+          const el = cardsRef.current; if (!el) return;
+          const total = Math.max(1, Math.ceil(el.scrollWidth / el.clientWidth));
+          const current = Math.round(el.scrollLeft / el.clientWidth);
+          setCarousel({ current, total });
+        }}
+        className="flex gap-2 overflow-x-auto overflow-y-visible snap-x snap-mandatory scroll-smooth px-1 pt-1 pb-2 md:grid md:grid-cols-4 md:gap-2 md:overflow-visible mb-2"
+      >
         <button
           onClick={() => toggleCard("caixas")}
-          className={`min-w-[150px] flex-1 rounded-2xl px-6 py-8 border-2 transition
-            ${cardColors.caixas}
-            ${selectedCard === "caixas"
-              ? "border-white bg-opacity-100"
-              : "border-transparent hover:border-white hover:bg-opacity-90"
-            }`}
+          className={`
+            relative flex-none w-[34%] md:w-full md:min-w-0 aspect-[1.2/1] md:aspect-[1.2/1] rounded-xl p-4 text-center border transition snap-start
+            flex flex-col items-center justify-center bg-white text-gray-700 border-gray-300 shadow-sm hover:shadow-md
+            focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 focus:ring-offset-white
+            ${selectedCard === "caixas" ? "ring-2 ring-blue-300 ring-offset-2 ring-offset-white" : ""}
+          `}
         >
-          <div className="font-bold text-3xl">
-            {caixasLoading ? "..." : totalCaixas}
-          </div>
-          <div className="mt-2">Minhas Caixas</div>
+          <span className={`absolute left-0 top-1 bottom-1 w-1 ${stripeColors.caixas} rounded-l-xl`} aria-hidden="true" />
+          <div className="text-2xl font-bold text-gray-700 leading-none mb-1">{caixasLoading ? "..." : totalCaixas}</div>
+          <div className="text-sm text-gray-600">Minhas Caixas</div>
         </button>
 
         {[
@@ -148,18 +158,23 @@ export default function DashboardAluno() {
           <button
             key={card.key}
             onClick={() => toggleCard(card.key)}
-            className={
-              `min-w-[150px] flex-1 rounded-2xl px-6 py-8 text-white border-2 transition
-              ${cardColors[card.key]}
-              ${selectedCard === card.key
-                ? "border-white bg-opacity-100"
-                : "border-transparent hover:border-white hover:bg-opacity-90"
-              }`
-            }
+            className={`
+              relative flex-none w-[34%] md:w-full md:min-w-0 aspect-[1.2/1] md:aspect-[1.2/1] rounded-xl p-4 text-center border transition snap-start
+              flex flex-col items-center justify-center bg-white text-gray-700 border-gray-300 shadow-sm hover:shadow-md
+              focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 focus:ring-offset-white
+              ${selectedCard === card.key ? "ring-2 ring-blue-300 ring-offset-2 ring-offset-white" : ""}
+            `}
           >
-            <div className="font-bold text-3xl">{card.count}</div>
-            <div className="mt-2">{card.label}</div>
+            <span className={`absolute left-0 top-1 bottom-1 w-1 ${stripeColors[card.key]} rounded-l-xl`} aria-hidden="true" />
+            <div className="text-2xl font-bold text-gray-700 leading-none mb-1">{card.count}</div>
+            <div className="text-sm text-gray-600">{card.label}</div>
           </button>
+        ))}
+      </div>
+      {/* Dots apenas no mobile */}
+      <div className="flex md:hidden justify-center gap-2 mb-6">
+        {Array.from({ length: carousel.total }).map((_, i) => (
+          <span key={i} className={`w-2 h-2 rounded-full ${i === carousel.current ? 'bg-blue-600' : 'bg-gray-300'}`}></span>
         ))}
       </div>
 
