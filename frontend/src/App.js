@@ -54,6 +54,7 @@ function LayoutInterno() {
   const { user } = useAuth()
   const [onlineUsers, setOnlineUsers] = useState([])
   const [showSidebar, setShowSidebar] = useState(window.innerWidth >= 1366)
+  const [updateReady, setUpdateReady] = useState(false)
 
   // Lida com o resize para mostrar/esconder a sidebar
   useEffect(() => {
@@ -63,6 +64,12 @@ function LayoutInterno() {
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
+
+  function reloadWithCacheBust() {
+    const url = new URL(window.location.href)
+    url.searchParams.set('v', Date.now().toString())
+    window.location.replace(url.toString())
+  }
 
   useEffect(() => {
     if (!user) return
@@ -102,6 +109,59 @@ function LayoutInterno() {
     socket.on('connect_error', err =>
       console.error('❌ socket connect error:', err)
     )
+
+    // Verificação de nova versão (sem recarregar automaticamente)
+    let currentVersionKey = null
+    function versionKey(v) {
+      if (!v) return null
+      return [v.commit || '', v.buildId || '', v.startedAt || ''].join('|')
+    }
+    async function pollVersion() {
+      try {
+        const res = await fetch(`${backendUrl}/api/version`, { cache: 'no-store' })
+        const v = await res.json()
+        const k = versionKey(v)
+        if (currentVersionKey && k && k !== currentVersionKey) {
+          if (!updateReady) {
+            setUpdateReady(true)
+            toast.info('Uma nova versão foi publicada. Clique para atualizar.', { autoClose: 8000 })
+          }
+        } else if (!currentVersionKey && k) {
+          currentVersionKey = k
+        }
+      } catch (e) {
+        // ignora erros intermitentes
+      }
+    }
+
+    socket.on('server:version', (v) => {
+      const k = versionKey(v)
+      if (!currentVersionKey) {
+        currentVersionKey = k
+      } else if (k && k !== currentVersionKey) {
+        if (!updateReady) {
+          setUpdateReady(true)
+          toast.info('Uma nova versão foi publicada. Clique para atualizar.', { autoClose: 8000 })
+        }
+      }
+    })
+
+    let pollId = null
+    function startPolling() {
+      if (pollId) clearInterval(pollId)
+      pollId = setInterval(pollVersion, 60_000)
+    }
+    // Só verifica quando a aba estiver visível
+    function handleVisibility() {
+      if (document.visibilityState === 'visible') {
+        pollVersion()
+        startPolling()
+      } else {
+        if (pollId) { clearInterval(pollId); pollId = null }
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    handleVisibility()
 
     // Notificações de backup automático
     socket.on('backup:started', (payload) => {
@@ -145,7 +205,7 @@ function LayoutInterno() {
       toast.success(`Novo agendamento de ${nome_aluno || 'aluno'}${paciente}${quando ? ' em ' + quando : ''}${disc}`)
     })
 
-    return () => socket.disconnect()
+    return () => { if (pollId) clearInterval(pollId); document.removeEventListener('visibilitychange', handleVisibility); socket.disconnect() }
   }, [user])
 
   function renderConteudo() {
@@ -173,6 +233,19 @@ function LayoutInterno() {
 
   return (
     <div className="bg-white min-h-screen">
+      {updateReady && (
+        <div className="bg-yellow-100 border-b border-yellow-300 text-yellow-900">
+          <div className="mx-auto max-w-5xl py-2 px-4 flex items-center justify-between">
+            <span>Uma nova versão está disponível.</span>
+            <button
+              className="bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-semibold rounded px-3 py-1"
+              onClick={reloadWithCacheBust}
+            >
+              Atualizar agora
+            </button>
+          </div>
+        </div>
+      )}
       <Header onlineUsers={onlineUsers} />
       <div className="flex">
         {showSidebar && (

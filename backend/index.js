@@ -15,12 +15,23 @@ const server = http.createServer(app);
 const { Server } = require('socket.io');
 const io = new Server(server, { cors: { origin: '*' } }); // ajuste CORS em prod
 
+// ── Versão/Build Info ─────────────────────────────────────
+const serverStartedAt = new Date().toISOString();
+const VERSION_INFO = {
+  commit: process.env.RAILWAY_GIT_COMMIT_SHA || process.env.VERCEL_GIT_COMMIT_SHA || process.env.COMMIT_SHA || null,
+  buildId: process.env.RAILWAY_BUILD_ID || process.env.BUILD_ID || null,
+  startedAt: serverStartedAt
+};
+
 // expõe o io para outros módulos via app.get('io')
 app.set('io', io);
 
 // ── Presence / usuários online ────────────────────────────
 const onlineUsers = new Map();
 io.on('connection', (socket) => {
+  // Informa versão atual ao cliente conectado
+  try { socket.emit('server:version', VERSION_INFO); } catch {}
+
   socket.on('identify', (user) => {
     socket.user = user;
     onlineUsers.set(user.id, user);
@@ -66,6 +77,11 @@ io.on('connection', (socket) => {
     app.use('/api/odontogramas', require('./routes/odontogramaRoutes'));
     app.use('/api/search', require('./routes/searchRoutes'));
     app.use('/api/backup', require('./routes/backupRoutes')); // <- mantém aqui
+
+    // Endpoint simples de versão para cache-busting no frontend
+    app.get('/api/version', (_req, res) => {
+      res.json(VERSION_INFO);
+    });
 
     // Healthchecks e raiz
     app.get('/health-db', async (_req, res) => {
