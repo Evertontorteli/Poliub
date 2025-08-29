@@ -53,33 +53,17 @@ export default function TelaEsterilizacao() {
       .catch(() => setAllCaixas([]))
   }, [])
 
-  // 2) busca todo o histórico do aluno e os últimos 30 dias
+  // 2) busca histórico do aluno por ID (evita homônimos)
   const fetchHistory = useCallback(() => {
-    if (!pinValidated || !alunoNome) return
-    axios.get('/api/movimentacoes')
+    if (!pinValidated || !alunoId) return
+    axios.get(`/api/movimentacoes/historico/${alunoId}`)
       .then(res => {
-        // filtra só do aluno
-        const alunoMoves = res.data.filter(m => m.alunoNome === alunoNome)
-        setFullHistory(alunoMoves)
-
-        // últimos 30 dias
-        const hoje = new Date()
-        const pad = n => String(n).padStart(2, '0')
-        const toKey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`
-        const from = toKey(subDays(hoje, 30))
-        const to = toKey(hoje)
-        const parseKey = (s) => toKey(new Date(String(s).replace(' ', 'T')))
-        const last30 = alunoMoves.filter(m => {
-          const d = parseKey(m.criado_em)
-          return d >= from && d <= to
-        })
-
+        setFullHistory(Array.isArray(res.data) ? res.data : [])
       })
       .catch(() => {
         setFullHistory([])
-
       })
-  }, [alunoNome, pinValidated])
+  }, [alunoId, pinValidated])
 
   useEffect(fetchHistory, [fetchHistory])
 
