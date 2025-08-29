@@ -45,7 +45,12 @@ exports.cancelarAgendamento = async (req, res) => {
     // Notificação opcional via socket
     try {
       const io = req.app.get('io');
-      io && io.emit('agendamento:cancelado', { id: Number(id), por: req.user.role, motivo });
+      io && io.emit('agendamento:cancelado', {
+        id: Number(id),
+        por: req.user.role,
+        por_nome: req.user && req.user.nome ? req.user.nome : undefined,
+        motivo
+      });
     } catch {}
 
     return res.json({ mensagem: 'Agendamento cancelado.' });

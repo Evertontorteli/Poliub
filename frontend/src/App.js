@@ -118,8 +118,9 @@ function LayoutInterno() {
     })
 
     // Notificação de agendamento cancelado
-    socket.on('agendamento:cancelado', ({ id, por, motivo }) => {
-      const quem = por === 'aluno' ? 'Aluno' : 'Recepção'
+    socket.on('agendamento:cancelado', ({ id, por, por_nome, motivo }) => {
+      const quemRole = por === 'aluno' ? 'Aluno' : 'Recepção'
+      const quem = por_nome ? `${quemRole} (${por_nome})` : quemRole
       const extra = motivo ? ` — Motivo: ${motivo}` : ''
       toast.info(`Agendamento #${id} cancelado por ${quem}.${extra}`)
     })
@@ -209,7 +210,7 @@ export default function App() {
       <Router>
         <ToastContainer
           position="top-right"
-          autoClose={3000}
+          autoClose={8000}
           closeOnClick
           pauseOnHover
           draggable={false}
