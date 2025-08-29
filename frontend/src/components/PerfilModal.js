@@ -50,14 +50,14 @@ export default function PerfilModal({ aluno, onClose }) {
         </div>
         <div className="space-y-2 text-sm">
           <div><b>RA:</b> {aluno.ra || '—'}</div>
-          <div><b>Período:</b> {aluno.periodo_nome || aluno.periodo || '—'}</div>
+          <div><b>Período:</b> {aluno.periodo_nome || aluno.periodo || '—'}{aluno.periodo_turno ? ` - ${aluno.periodo_turno}` : ''}</div>
           <div><b>Box:</b> {aluno.box || '—'}</div>
           <div><b>Login:</b> {aluno.usuario || '—'}</div>
           <div>
             <b>Senha:</b> <span className="text-gray-900 font-mono">{aluno.senha || '—'}</span>
           </div>
           <div><b>Cód. Esterilização:</b> <span className="text-red-600 font-bold">{aluno.cod_esterilizacao || '—'}</span></div>
-          <div><b>PIN:</b> <span className="font-semibold">{aluno.pin || '—'}</span></div>
+          <div><b>PIN:</b> <span className="text-blue-600 font-semibold">{aluno.pin || '—'}</span></div>
         </div>
       </div>
     </>

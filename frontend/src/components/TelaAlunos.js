@@ -124,9 +124,9 @@ export default function TelaAlunos() {
     ).values(),
   ].filter((p) => p.id);
 
-  // Exibir rótulo de período com no máximo 25 caracteres
+  // Exibir rótulo de período como "Nome - Turno" com no máximo 25 caracteres
   const formatPeriodoLabel = (p) => {
-    const base = `${p.nome}${p.turno ? ` (${p.turno})` : ""}`;
+    const base = `${p.nome}${p.turno ? ` - ${p.turno}` : ""}`;
     return base.length > 25 ? base.slice(0, 25) + "…" : base;
   };
 
@@ -276,10 +276,10 @@ export default function TelaAlunos() {
                     <td className="px-3 py-2 font-medium text-gray-800">{a.nome}</td>
                     <td className="px-3 py-2 text-gray-600">{a.ra}</td>
                     <td className="px-3 py-2 text-gray-600">
-                      {a.periodo_nome} {a.turno}
+                      {a.periodo_nome}{a.periodo_turno ? ` - ${a.periodo_turno}` : ''}
                     </td>
-                    <td className="px-3 py-2 text-gray-600">{a.pin || "-"}</td>
-                    <td className="px-3 py-2 text-gray-600">
+                    <td className="px-3 py-2 text-blue-600">{a.pin || "-"}</td>
+                    <td className="px-3 py-2 text-red-600">
                       {a.cod_esterilizacao || "-"}
                     </td>
                     <td className="px-3 py-2 text-gray-600">{a.usuario}</td>
@@ -364,15 +364,15 @@ export default function TelaAlunos() {
               <div>
                 <b>Período:</b>{" "}
                 <span className="text-gray-700">
-                  {a.periodo_nome} {a.turno}
+                  {a.periodo_nome}{a.periodo_turno ? ` - ${a.periodo_turno}` : ''}
                 </span>
               </div>
               <div>
-                <b>PIN:</b> <span className="text-gray-700">{a.pin || "-"}</span>
+                <b>PIN:</b> <span className="text-blue-600">{a.pin || "-"}</span>
               </div>
               <div>
                 <b>Cód. Esterilização:</b>{" "}
-                <span className="text-gray-700">
+                <span className="text-red-600">
                   {a.cod_esterilizacao || "-"}
                 </span>
               </div>

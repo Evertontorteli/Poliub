@@ -21,6 +21,7 @@ export default function TelaEsterilizacao() {
   const [pinValidated, setPinValidated] = useState(false)
   const [alunoId, setAlunoId] = useState('')           // novo: armazena o ID do aluno
   const [alunoPeriodo, setAlunoPeriodo] = useState('')
+  const [alunoTurno, setAlunoTurno] = useState('')
   const avancarButtonRef = useRef(null)
   const caixaInputRef = useRef(null)
   const [alunoCodEsterilizacao, setAlunoCodEsterilizacao] = useState('');
@@ -116,6 +117,7 @@ export default function TelaEsterilizacao() {
       // 2) usa diretamente o campo 'periodo' que já vem na resposta
       //    (antigo res.data.periodo_id estava vindo undefined)
       setAlunoPeriodo(aluno.periodo);
+      setAlunoTurno(aluno.turno || '');
 
       setPinValidated(true);
       toast.success(`PIN validado: ${aluno.nome}`, { autoClose: 5000 });
@@ -363,7 +365,7 @@ export default function TelaEsterilizacao() {
           </div>
           {pinValidated && (
             <div className="mt-4 font-ligth ext-gray-600 space-y-1">
-              <p>Aluno(a): {alunoNome}, Período: {alunoPeriodo || '—'}</p>
+              <p>Aluno(a): {alunoNome}, Período: {alunoPeriodo || '—'}{alunoTurno ? ` - ${alunoTurno}` : ''}</p>
               <p>
                 Cód. Esterilização:{" "}
                 <span className="text-red-600 font-semibold">

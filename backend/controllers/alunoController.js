@@ -24,7 +24,8 @@ exports.buscarPorPin = async (req, res) => {
          a.pin,
          a.cod_esterilizacao,
          a.periodo_id,
-         p.nome AS periodo
+         p.nome AS periodo,
+         p.turno AS turno
        FROM alunos a
        LEFT JOIN periodos p ON p.id = a.periodo_id
        WHERE a.pin = ?`,
@@ -35,7 +36,7 @@ exports.buscarPorPin = async (req, res) => {
       return res.status(404).json({ error: 'Aluno não encontrado.' });
     }
 
-    // devolve um objeto com { id, nome, ra, pin, periodo_id, periodo }
+    // devolve um objeto com { id, nome, ra, pin, periodo_id, periodo, turno }
     res.json(rows[0]);
 
   } catch (err) {
