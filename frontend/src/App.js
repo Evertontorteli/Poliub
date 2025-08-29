@@ -124,6 +124,26 @@ function LayoutInterno() {
       toast.info(`Agendamento #${id} cancelado por ${quem}.${extra}`)
     })
 
+    // Notificação de novo agendamento (criado pelo aluno)
+    socket.on('novoAgendamentoRecepcao', (payload) => {
+      const {
+        nome_aluno,
+        nome_paciente,
+        data,
+        hora,
+        disciplina_nome,
+        periodo_nome,
+        periodo_turno
+      } = payload || {}
+
+      const paciente = nome_paciente ? ` para ${nome_paciente}` : ''
+      const quando = [data, hora].filter(Boolean).join(' às ')
+      const periodo = [periodo_nome, periodo_turno].filter(Boolean).join(' - ')
+      const disc = disciplina_nome ? ` (${disciplina_nome}${periodo ? ' — ' + periodo : ''})` : ''
+
+      toast.success(`Novo agendamento de ${nome_aluno || 'aluno'}${paciente}${quando ? ' em ' + quando : ''}${disc}`)
+    })
+
     return () => socket.disconnect()
   }, [user])
 
