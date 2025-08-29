@@ -245,6 +245,32 @@ export default function TelaEsterilizacao() {
   // labels do wizard
   const steps = ['Operação', 'PIN', 'Caixas', 'Impressão']
 
+  // Reseta estado ao voltar para tela de Operação
+  function resetToOperation() {
+    setOperation(null)
+    setAlunoPin('')
+    setAlunoNome('')
+    setAlunoId('')
+    setAlunoPeriodo('')
+    setAlunoCodEsterilizacao('')
+    setPinValidated(false)
+    setFullHistory([])
+    setCaixas([])
+    setCodigo('')
+    setPrintedIds([])
+    setPrintData(null)
+  }
+
+  function handleBack() {
+    const prev = step - 1
+    if (prev <= 1) {
+      resetToOperation()
+      setStep(1)
+    } else {
+      setStep(prev)
+    }
+  }
+
   return (
     <div className="max-w-4xl mx-auto py-10 px-4">
       <h2 className="text-2xl font-medium mb-6">Controle de Esterilização</h2>
@@ -281,7 +307,7 @@ export default function TelaEsterilizacao() {
       {/* navegação */}
       <div className="flex justify-between items-center p-8 mb-6 px-2">
         {step > 1 && (
-          <button onClick={() => setStep(step - 1)} className="text-blue-600 hover:underline">
+          <button onClick={handleBack} className="text-blue-600 hover:underline">
             &larr; Voltar
           </button>
         )}

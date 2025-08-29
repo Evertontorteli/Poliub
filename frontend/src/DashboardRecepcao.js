@@ -75,18 +75,8 @@ export default function DashboardRecepcao() {
     axios
       .get(`/api/agendamentos?disciplinaId=${disciplina.id}`)
       .then((res) => {
-        const hoje = new Date();
-        const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
-        const limiteFuturo = new Date(inicioHoje);
-        limiteFuturo.setDate(inicioHoje.getDate() + 32);
-
-        const agsFiltrados = res.data.filter((ag) => {
-          if (!ag.data) return false;
-          const dataAgDate = new Date(ag.data.slice(0, 10) + 'T00:00:00');
-          return dataAgDate >= inicioHoje && dataAgDate <= limiteFuturo;
-        });
-
-        setAgendamentosFiltrados(agsFiltrados);
+        // Não restringe aqui; a janela padrão de 32 dias será aplicada na filtragem de exibição
+        setAgendamentosFiltrados(Array.isArray(res.data) ? res.data : []);
       });
   }
 
@@ -137,7 +127,20 @@ export default function DashboardRecepcao() {
     const matchTexto = campos.some((campo) => campo.includes(textoBusca));
     const matchData = filtroData ? ag.data?.startsWith(filtroData) : true;
     const matchHora = filtroHora ? ag.hora?.startsWith(filtroHora) : true;
-    return matchTexto && matchData && matchHora;
+    // Janela padrão: somente próximos 32 dias quando não há filtro de data
+    let matchJanela = true;
+    if (!filtroData) {
+      if (!ag.data) matchJanela = false;
+      else {
+        const hoje = new Date();
+        const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+        const limiteFuturo = new Date(inicioHoje);
+        limiteFuturo.setDate(inicioHoje.getDate() + 32);
+        const dataAgDate = new Date(ag.data.slice(0, 10) + 'T00:00:00');
+        matchJanela = dataAgDate >= inicioHoje && dataAgDate <= limiteFuturo;
+      }
+    }
+    return matchTexto && matchData && matchHora && matchJanela;
   });
   const totalPaginas = Math.ceil(agendamentosExibidos.length / POR_PAGINA);
   const inicio = (pagina - 1) * POR_PAGINA;
@@ -408,11 +411,13 @@ export default function DashboardRecepcao() {
               {disciplinaSelecionada.nome}
             </span>
           </h2>
-          <h2 className="text-sm text-center font-light px-4 pt-0 pb-2">
-            <span className="text-grey-800">
-              Exibindo apenas os próximos <strong>32 dias</strong> a partir de hoje.
-            </span>
-          </h2>
+          {!filtroData && (
+            <h2 className="text-sm text-center font-light px-4 pt-0 pb-2">
+              <span className="text-grey-800">
+                Exibindo apenas os próximos <strong>32 dias</strong> a partir de hoje.
+              </span>
+            </h2>
+          )}
           {/* Filtros */}
           <div className="flex flex-col md:flex-row md:items-end gap-3 pt-0 pb-2">
             <div className="flex-1 group">
