@@ -73,6 +73,17 @@ export default function PrintAgendamentos() {
         if (!apenasHora.startsWith(filtros.hora)) return false;
       }
 
+      // Janela padrão: somente próximos 32 dias quando não há filtro de data (alinha com Dashboard)
+      if (!filtros?.data) {
+        const hoje = new Date();
+        const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+        const limiteFuturo = new Date(inicioHoje);
+        limiteFuturo.setDate(inicioHoje.getDate() + 32);
+        if (!ag.data) return false;
+        const dataAgDate = new Date(ag.data.slice(0, 10) + 'T00:00:00');
+        if (!(dataAgDate >= inicioHoje && dataAgDate <= limiteFuturo)) return false;
+      }
+
       return true;
     });
   };
@@ -110,8 +121,18 @@ export default function PrintAgendamentos() {
   }
 
   const agendamentosFiltrados = filtrarAgendamentos(todosAgendamentos);
+  // Ordena por data (asc) e hora (asc) para impressão consistente
+  const agendamentosOrdenados = agendamentosFiltrados.slice().sort((a, b) => {
+    const ad = a.data ? a.data.slice(0,10) : '';
+    const bd = b.data ? b.data.slice(0,10) : '';
+    if (ad !== bd) return ad < bd ? -1 : 1;
+    const ah = a.hora || '';
+    const bh = b.hora || '';
+    if (ah !== bh) return ah < bh ? -1 : 1;
+    return (a.id || 0) - (b.id || 0);
+  });
   // Limita a impressão a no máximo 40 registros
-  const agendamentosParaImprimir = agendamentosFiltrados.slice(0, 40);
+  const agendamentosParaImprimir = agendamentosOrdenados.slice(0, 40);
 
   return (
     <div className="printable bg-white p-8">

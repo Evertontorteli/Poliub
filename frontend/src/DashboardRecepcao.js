@@ -149,29 +149,29 @@ export default function DashboardRecepcao() {
 
   useEffect(() => { setPagina(1); }, [busca, filtroData, filtroHora, agendamentosFiltrados.length]);
 
-  // Atualiza contagem de agendamentos futuros por disciplina visível
+  // Atualiza contagem de agendamentos (estável): total na janela padrão de 32 dias
   useEffect(() => {
     let cancel = false;
     async function loadCounts() {
-      const todayStr = new Date().toISOString().slice(0, 10);
       const entries = await Promise.all(
         (disciplinasVisiveis || []).map(async (d) => {
           try {
             const { data } = await axios.get(`/api/agendamentos?disciplinaId=${d.id}`);
             const lista = Array.isArray(data) ? data : [];
-            // Considera apenas não cancelados e datas futuras (>= hoje)
-            const futuros = lista.filter(ag => ag && ag.data && (ag.status !== 'Cancelado') && ag.data.slice(0,10) >= todayStr);
-            if (futuros.length === 0) return [d.id, 0];
-            // Conta por data e pega a mais próxima
-            const porData = futuros.reduce((acc, ag) => {
-              const ds = ag.data.slice(0,10);
-              acc[ds] = (acc[ds] || 0) + 1;
-              return acc;
-            }, {});
-            const proximasDatas = Object.keys(porData).sort();
-            const primeira = proximasDatas[0];
-            const count = primeira ? porData[primeira] : 0;
-            return [d.id, count];
+
+            // Janela padrão de 32 dias a partir de hoje (inclui cancelados)
+            const hoje = new Date();
+            const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+            const limiteFuturo = new Date(inicioHoje);
+            limiteFuturo.setDate(inicioHoje.getDate() + 32);
+
+            const totalJanela = lista.filter((ag) => {
+              if (!ag || !ag.data) return false;
+              const dataAgDate = new Date(ag.data.slice(0, 10) + 'T00:00:00');
+              return dataAgDate >= inicioHoje && dataAgDate <= limiteFuturo;
+            }).length;
+
+            return [d.id, totalJanela];
           } catch {
             return [d.id, 0];
           }
