@@ -1,7 +1,7 @@
 // src/App.js
 
 import './index.css'
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   HashRouter as Router,
   Routes,
@@ -55,6 +55,9 @@ function LayoutInterno() {
   const [onlineUsers, setOnlineUsers] = useState([])
   const [showSidebar, setShowSidebar] = useState(window.innerWidth >= 1366)
   const [updateReady, setUpdateReady] = useState(false)
+  const versionKeyRef = useRef(null)
+  const updateNotifiedRef = useRef(false)
+  const pollIdRef = useRef(null)
 
   // Lida com o resize para mostrar/esconder a sidebar
   useEffect(() => {
@@ -121,7 +124,6 @@ function LayoutInterno() {
     )
 
     // Verificação de nova versão (sem recarregar automaticamente)
-    let currentVersionKey = null
     function versionKey(v) {
       if (!v) return null
       return [v.commit || '', v.buildId || '', v.startedAt || ''].join('|')
@@ -131,13 +133,13 @@ function LayoutInterno() {
         const res = await fetch(`${backendUrl}/api/version`, { cache: 'no-store' })
         const v = await res.json()
         const k = versionKey(v)
-        if (currentVersionKey && k && k !== currentVersionKey) {
-          if (!updateReady) {
+        if (versionKeyRef.current && k && k !== versionKeyRef.current) {
+          if (!updateNotifiedRef.current) {
             setUpdateReady(true)
-            toast.info('Uma nova versão foi publicada. Clique para atualizar.', { autoClose: 8000 })
+            updateNotifiedRef.current = true
           }
-        } else if (!currentVersionKey && k) {
-          currentVersionKey = k
+        } else if (!versionKeyRef.current && k) {
+          versionKeyRef.current = k
         }
       } catch (e) {
         // ignora erros intermitentes
@@ -146,20 +148,19 @@ function LayoutInterno() {
 
     socket.on('server:version', (v) => {
       const k = versionKey(v)
-      if (!currentVersionKey) {
-        currentVersionKey = k
-      } else if (k && k !== currentVersionKey) {
-        if (!updateReady) {
+      if (!versionKeyRef.current) {
+        versionKeyRef.current = k
+      } else if (k && k !== versionKeyRef.current) {
+        if (!updateNotifiedRef.current) {
           setUpdateReady(true)
-          toast.info('Uma nova versão foi publicada. Clique para atualizar.', { autoClose: 8000 })
+          updateNotifiedRef.current = true
         }
       }
     })
 
-    let pollId = null
     function startPolling() {
-      if (pollId) clearInterval(pollId)
-      pollId = setInterval(pollVersion, 60_000)
+      if (pollIdRef.current) clearInterval(pollIdRef.current)
+      pollIdRef.current = setInterval(pollVersion, 60_000)
     }
     // Só verifica quando a aba estiver visível
     function handleVisibility() {
@@ -167,7 +168,7 @@ function LayoutInterno() {
         pollVersion()
         startPolling()
       } else {
-        if (pollId) { clearInterval(pollId); pollId = null }
+        if (pollIdRef.current) { clearInterval(pollIdRef.current); pollIdRef.current = null }
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)
@@ -215,7 +216,7 @@ function LayoutInterno() {
       toast.success(`Novo agendamento de ${nome_aluno || 'aluno'}${paciente}${quando ? ' em ' + quando : ''}${disc}`)
     })
 
-    return () => { if (pollId) clearInterval(pollId); document.removeEventListener('visibilitychange', handleVisibility); socket.disconnect() }
+    return () => { if (pollIdRef.current) clearInterval(pollIdRef.current); document.removeEventListener('visibilitychange', handleVisibility); socket.disconnect() }
   }, [user])
 
   function renderConteudo() {
