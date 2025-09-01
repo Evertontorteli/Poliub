@@ -1,5 +1,5 @@
 // src/context/AuthContext.js
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { toast } from 'react-toastify';
 
@@ -23,12 +23,51 @@ export function AuthProvider({ children }) {
     return role && token ? { role, token } : null;
   });
 
-  // Sempre que o "user" muda, ajeita o header do axios
+  // Timer para expiração do token (logout automático)
+  const tokenExpiryTimerRef = useRef(null);
+
+  function clearTokenExpiryTimer() {
+    if (tokenExpiryTimerRef.current) {
+      clearTimeout(tokenExpiryTimerRef.current);
+      tokenExpiryTimerRef.current = null;
+    }
+  }
+
+  function decodeJwtExp(token) {
+    try {
+      const parts = String(token).split(".");
+      if (parts.length !== 3) return null;
+      const payload = JSON.parse(atob(parts[1]));
+      return typeof payload.exp === "number" ? payload.exp : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function scheduleLogoutOnExpiry(token) {
+    clearTokenExpiryTimer();
+    const expSec = decodeJwtExp(token);
+    if (!expSec) return; // sem exp legível
+    const msLeft = expSec * 1000 - Date.now();
+    if (msLeft <= 0) {
+      toast.error("Sua sessão expirou. Faça login novamente.");
+      logout();
+      return;
+    }
+    tokenExpiryTimerRef.current = setTimeout(() => {
+      toast.error("Sua sessão expirou. Faça login novamente.");
+      logout();
+    }, msLeft);
+  }
+
+  // Sempre que o "user" muda, ajeita o header do axios e programa expiração do token
   useEffect(() => {
     if (user?.token) {
       axios.defaults.headers.common["Authorization"] = `Bearer ${user.token}`;
+      scheduleLogoutOnExpiry(user.token);
     } else {
       delete axios.defaults.headers.common["Authorization"];
+      clearTokenExpiryTimer();
     }
   }, [user]);
 
@@ -49,12 +88,14 @@ export function AuthProvider({ children }) {
       localStorage.removeItem("token");
     }
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    scheduleLogoutOnExpiry(token);
   }
 
   /**
    * Faz logout: limpa state e localStorage
    */
   function logout() {
+    clearTokenExpiryTimer();
     setUser(null);
     localStorage.removeItem("user");
     localStorage.removeItem("role");

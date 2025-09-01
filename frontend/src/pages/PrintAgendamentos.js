@@ -115,30 +115,31 @@ export default function PrintAgendamentos() {
 
   return (
     <div className="printable bg-white p-8">
-      <h2 className="text-2xl font-bold mb-4">Lista de Agendamentos</h2>
-
-      <div className="text-gray-700 mb-3 space-y-1">
-        {disciplinaNome && (
-          <p><span className="font-semibold">Disciplina:</span> {disciplinaNome}</p>
-        )}
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-1">
-          {filtros?.data && (
-            <span className="whitespace-nowrap">
-              <span className="font-semibold">Data selecionada:</span>{' '}
-              {formatarData(filtros.data)}{filtros?.hora ? ` ${filtros.hora}` : ''}
-            </span>
-          )}
-          <span className="whitespace-nowrap">
-            <span className="font-semibold">Data da impressão:</span>{' '}
-            {printStamp.toLocaleDateString('pt-BR')} - {printStamp.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-          </span>
+      {/* Cabeçalho: Disciplina | Lista de Agendamentos */}
+      <div className="header-line mb-2">
+        <div className="w-full flex flex-nowrap items-baseline gap-2 whitespace-nowrap overflow-hidden">
+          <h2 className="text-2xl font-bold m-0">Lista de Agendamentos</h2>
+          <span className="opacity-40">|</span>
+          <span className="text-sm truncate"><span className="font-semibold">Disciplina:</span> {disciplinaNome || 'Todas'}</span>
         </div>
-        {filtros?.busca && String(filtros.busca).trim() !== '' && (
-          <p><span className="font-semibold">Busca:</span> “{filtros.busca}”</p>
-        )}
       </div>
-
+      {/* Linha compacta com Datas (mantidas no topo) */}
       <div className="overflow-x-auto">
+        <div className="info-line text-gray-700 mb-2">
+          <div className="w-full flex flex-nowrap items-center gap-4 whitespace-nowrap overflow-hidden text-[11px] leading-snug">
+            <span className="truncate">
+              <span className="font-semibold">Data selecionada:</span>{' '}
+              {filtros?.data ? `${formatarData(filtros.data)}${filtros?.hora ? ` ${filtros.hora}` : ''}` : '—'}
+            </span>
+            <span className="opacity-40">|</span>
+            <span className="truncate">
+              <span className="font-semibold">Data da impressão:</span>{' '}
+              {printStamp.toLocaleDateString('pt-BR')} - {printStamp.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+        </div>
+
+        {/* Tabela */}
         <table className="min-w-full table-fixed bg-white divide-y divide-gray-200 rounded-lg shadow-sm">
           {/* Larguras ajustadas para caber na página */}
           <colgroup>
@@ -206,6 +207,9 @@ export default function PrintAgendamentos() {
             line-height: 1.3;
           }
 
+          .printable .info-line { font-size: 11px; margin-bottom: 6px; }
+          .printable .header-line { margin-bottom: 6px; }
+
           @media print {
             body * { visibility: hidden; }
             .printable, .printable * { visibility: visible !important; }
@@ -224,6 +228,9 @@ export default function PrintAgendamentos() {
               border-collapse: collapse !important;
               font-size: 11px !important;
             }
+            .printable h2 { font-size: 14px !important; margin-bottom: 6px !important; }
+            .printable .info-line { font-size: 11px !important; margin-bottom: 4px !important; }
+            .printable .header-line { margin-bottom: 6px !important; }
             .printable th, .printable td {
               vertical-align: middle;
               padding-top: 5px !important;
@@ -231,7 +238,6 @@ export default function PrintAgendamentos() {
               line-height: 1.15 !important;
               font-size: 11px !important;
             }
-            .printable h2 { font-size: 16px !important; margin-bottom: 8px !important; }
           }
         `}
       </style>
