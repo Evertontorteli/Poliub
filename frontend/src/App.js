@@ -66,9 +66,19 @@ function LayoutInterno() {
   }, [])
 
   function reloadWithCacheBust() {
-    const url = new URL(window.location.href)
-    url.searchParams.set('v', Date.now().toString())
-    window.location.replace(url.toString())
+    try {
+      setUpdateReady(false)
+      const url = new URL(window.location.href)
+      url.searchParams.set('v', Date.now().toString())
+      // Tenta via assign (alguns ambientes ignoram replace)
+      window.location.assign(url.toString())
+      // Fallback extra após 1.5s
+      setTimeout(() => {
+        try { window.location.reload() } catch {}
+      }, 1500)
+    } catch {
+      try { window.location.reload() } catch {}
+    }
   }
 
   useEffect(() => {
@@ -235,15 +245,18 @@ function LayoutInterno() {
     <div className="bg-white min-h-screen">
       {updateReady && (
         <div className="bg-yellow-100 border-b border-yellow-300 text-yellow-900">
-          <div className="mx-auto max-w-5xl py-2 px-4 flex items-center justify-between">
-            <span>Uma nova versão está disponível.</span>
-            <button
-              className="bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-semibold rounded px-3 py-1"
-              onClick={reloadWithCacheBust}
-            >
+          <button
+            className="mx-auto max-w-5xl w-full text-left py-2 px-4 flex items-center justify-between hover:bg-yellow-200"
+            onClick={reloadWithCacheBust}
+            title="Clique para recarregar a página e atualizar"
+          >
+            <span className="truncate pr-4">
+              Existe uma nova atualização. Clique aqui para recarregar a página e atualizar.
+            </span>
+            <span className="shrink-0 bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-semibold rounded px-3 py-1">
               Atualizar agora
-            </button>
-          </div>
+            </span>
+          </button>
         </div>
       )}
       <Header onlineUsers={onlineUsers} />
