@@ -209,7 +209,7 @@ function LayoutInterno() {
       toast.success(`Novo agendamento de ${nome_aluno || 'aluno'}${paciente}${quando ? ' em ' + quando : ''}${disc}`)
     })
 
-    return () => { if (pollIdRef.current) clearInterval(pollIdRef.current); document.removeEventListener('visibilitychange', handleVisibility); socket.disconnect() }
+    return () => { if (pollIdRef.current) clearInterval(pollIdRef.current); socket.disconnect() }
   }, [user])
 
   function renderConteudo() {
