@@ -130,7 +130,7 @@ function LayoutInterno() {
     }
     async function pollVersion() {
       try {
-        const res = await fetch(`${backendUrl}/api/version`, { cache: 'no-store' })
+        const res = await fetch(`/api/version`, { cache: 'no-store' })
         const v = await res.json()
         const k = versionKey(v)
         if (versionKeyRef.current && k && k !== versionKeyRef.current) {
