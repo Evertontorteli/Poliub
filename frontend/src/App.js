@@ -109,7 +109,7 @@ function LayoutInterno() {
   }, [user])
 
   useEffect(() => {
-    if (user?.role !== 'recepcao') return
+    if (!user) return
     const backendUrl = process.env.REACT_APP_API_URL ||
       'https://poliub-novo-ambiente-para-o-backend.up.railway.app'
     const socket = io(backendUrl, {
@@ -163,16 +163,9 @@ function LayoutInterno() {
       pollIdRef.current = setInterval(pollVersion, 60_000)
     }
     // Só verifica quando a aba estiver visível
-    function handleVisibility() {
-      if (document.visibilityState === 'visible') {
-        pollVersion()
-        startPolling()
-      } else {
-        if (pollIdRef.current) { clearInterval(pollIdRef.current); pollIdRef.current = null }
-      }
-    }
-    document.addEventListener('visibilitychange', handleVisibility)
-    handleVisibility()
+    // Faz um poll inicial e inicia polling contínuo (independente de visibilidade)
+    pollVersion()
+    startPolling()
 
     // Notificações de backup automático
     socket.on('backup:started', (payload) => {
