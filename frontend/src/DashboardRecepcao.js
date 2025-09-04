@@ -30,7 +30,7 @@ export default function DashboardRecepcao() {
 
   // Paginação
   const [pagina, setPagina] = useState(1);
-  const POR_PAGINA = 30;
+  const POR_PAGINA = 100;
 
   const touchStartX = useRef(0);
   const dataInputRef = useRef();
@@ -133,11 +133,20 @@ export default function DashboardRecepcao() {
       if (!ag.data) matchJanela = false;
       else {
         const hoje = new Date();
-        const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
-        const limiteFuturo = new Date(inicioHoje);
-        limiteFuturo.setDate(inicioHoje.getDate() + 32);
-        const dataAgDate = new Date(ag.data.slice(0, 10) + 'T00:00:00');
-        matchJanela = dataAgDate >= inicioHoje && dataAgDate <= limiteFuturo;
+        const yyyy = hoje.getFullYear();
+        const mm = String(hoje.getMonth() + 1).padStart(2, '0');
+        const dd = String(hoje.getDate()).padStart(2, '0');
+        const hojeStr = `${yyyy}-${mm}-${dd}`;
+
+        const limite = new Date(yyyy, Number(mm) - 1, Number(dd));
+        limite.setDate(limite.getDate() + 32);
+        const lyyyy = limite.getFullYear();
+        const lmm = String(limite.getMonth() + 1).padStart(2, '0');
+        const ldd = String(limite.getDate()).padStart(2, '0');
+        const limiteStr = `${lyyyy}-${lmm}-${ldd}`;
+
+        const agStr = ag.data.slice(0, 10);
+        matchJanela = agStr >= hojeStr && agStr <= limiteStr;
       }
     }
     return matchTexto && matchData && matchHora && matchJanela;
@@ -412,11 +421,10 @@ export default function DashboardRecepcao() {
             </span>
           </h2>
           {!filtroData && (
-            <h2 className="text-sm text-center font-light px-4 pt-0 pb-2">
-              <span className="text-grey-800">
-                Exibindo apenas os próximos <strong>32 dias</strong> a partir de hoje.
-              </span>
-            </h2>
+            <div className="px-4 pt-0 pb-2 text-xs text-gray-600 text-center">
+              <div>Exibindo apenas os próximos <strong>32 dias</strong> a partir de hoje.</div>
+              <div className="mt-1 opacity-70">Ordenação: mais antigos primeiro (ordem de chegada)</div>
+            </div>
           )}
           {/* Filtros */}
           <div className="flex flex-col md:flex-row md:items-end gap-3 pt-0 pb-2">

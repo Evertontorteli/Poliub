@@ -34,7 +34,7 @@ const Agendamento = {
         LEFT JOIN alunos aux2 ON a.auxiliar2_id = aux2.id
         LEFT JOIN disciplinas d ON a.disciplina_id = d.id
         LEFT JOIN pacientes  p ON a.paciente_id   = p.id
-        ORDER BY a.data DESC, a.hora DESC
+        ORDER BY a.id ASC
       `);
       return rows;
     } finally {
