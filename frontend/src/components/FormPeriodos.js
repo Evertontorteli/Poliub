@@ -42,7 +42,7 @@ export default function FormPeriodo({ periodoEditando, onSalvar, onCancel }) {
 
   return (
     <form onSubmit={handleSubmit} className="mb-4">
-      <h2 className="text-2xl font-bold mb-2">
+      <h2 className="text-2xl font-bold mb-6 text-[#0095DA]">
         {periodoEditando ? "Editar Período" : "Cadastrar Novo Período"}
       </h2>
       <div className="mb-2 group">

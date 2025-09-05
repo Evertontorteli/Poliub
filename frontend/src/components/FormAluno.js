@@ -187,7 +187,7 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
 
   return (
     <form onSubmit={handleSubmit} className="bg-white p-6 rounded-2xl  space-y-6">
-      <h2 className="text-2xl font-bold">{alunoEditando ? 'Editar Aluno' : 'Cadastrar Aluno'}</h2>
+      <h2 className="text-2xl font-bold mb-6 text-[#0095DA]">{alunoEditando ? 'Editar Aluno' : 'Cadastrar Aluno'}</h2>
 
       {/* Nome Completo */}
       <div className="group">

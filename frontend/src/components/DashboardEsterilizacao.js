@@ -141,30 +141,30 @@ export default function DashboardEsterilizacao() {
         <h1 className="text-2xl font-medium">Painel de Esterilização</h1>
       </div>
       {/* Abas (padrão minimalista, pode personalizar com Tailwind) */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-6 mb-6 border-b border-gray-200">
         <button
-          className={`px-6 py-3 rounded-2xl font-semibold transition border-2
+          className={`relative pb-2 text-sm md:text-base transition-colors after:content-[''] after:absolute after:left-0 after:-bottom-[1px] after:h-[2px] after:rounded after:transition-all after:duration-200 after:ease-out after:w-0
             ${aba === 'dashboard'
-              ? 'bg-[#3172C0] text-white border-transparent'
-              : 'bg-white text-gray-700 border-gray-300 hover:bg-[#3172C0] hover:text-white'}`}
+              ? 'text-gray-900 after:w-full after:bg-blue-300'
+              : 'text-gray-600 hover:text-gray-800 hover:after:w-full hover:after:bg-gray-300'}`}
           onClick={() => setAba('dashboard')}
         >
           Dashboard
         </button>
         <button
-          className={`px-6 py-3 rounded-2xl font-semibold transition border-2
+          className={`relative pb-2 text-sm md:text-base transition-colors after:content-[''] after:absolute after:left-0 after:-bottom-[1px] after:h-[2px] after:rounded after:transition-all after:duration-200 after:ease-out after:w-0
             ${aba === 'movimentacao'
-              ? 'bg-[#3172C0] text-white border-transparent'
-              : 'bg-white text-gray-700 border-gray-300 hover:bg-[#3172C0] hover:text-white'}`}
+              ? 'text-gray-900 after:w-full after:bg-blue-300'
+              : 'text-gray-600 hover:text-gray-800 hover:after:w-full hover:after:bg-gray-300'}`}
           onClick={() => setAba('movimentacao')}
         >
           Histórico de Movimentações
         </button>
         <button
-          className={`px-6 py-3 rounded-2xl font-semibold transition border-2
+          className={`relative pb-2 text-sm md:text-base transition-colors after:content-[''] after:absolute after:left-0 after:-bottom-[1px] after:h-[2px] after:rounded after:transition-all after:duration-200 after:ease-out after:w-0
             ${aba === 'relatorio'
-              ? 'bg-[#3172C0] text-white border-transparent'
-              : 'bg-white text-gray-700 border-gray-300 hover:bg-[#3172C0] hover:text-white'}`}
+              ? 'text-gray-900 after:w-full after:bg-blue-300'
+              : 'text-gray-600 hover:text-gray-800 hover:after:w-full hover:after:bg-gray-300'}`}
           onClick={() => setAba('relatorio')}
         >
           Movimentações por Aluno

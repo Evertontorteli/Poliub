@@ -488,7 +488,7 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
       </div>
       {showCancelModal && (
         <Modal isOpen={showCancelModal} onRequestClose={() => setShowCancelModal(false)}>
-          <h3 className="text-lg font-semibold mb-2">Cancelar agendamento</h3>
+          <h2 className="text-2xl font-bold mb-6 text-[#0095DA]">Cancelar agendamento</h2>
           <p className="text-sm text-gray-600 mb-3">Informe um motivo (opcional) para o cancelamento.</p>
           <textarea
             value={cancelMotivo}

@@ -331,8 +331,8 @@ export default function DashboardRecepcao() {
                 className={`
       px-4 py-2 rounded-full border transition
       ${selectedPeriodo === p.id
-                    ? "bg-[#3172C0] text-white border-transparent"
-                    : "bg-white text-gray-700 border-gray-300 hover:bg-[#3172C0] hover:text-white"
+                    ? "bg-[#D3E4FE] text-[#23263A] border-transparent"
+                    : "bg-white text-[#23263A] border-gray-300 hover:bg-[#D3E4FE]"
                   }
     `}
               >
@@ -769,7 +769,7 @@ export default function DashboardRecepcao() {
           {/* Modal de cancelamento */}
           {showCancelModal && (
             <Modal isOpen={showCancelModal} onRequestClose={() => setShowCancelModal(false)}>
-              <h3 className="text-lg font-semibold mb-2">Cancelar agendamento</h3>
+              <h2 className="text-2xl font-bold mb-6 text-[#0095DA]">Cancelar agendamento</h2>
               <p className="text-sm text-gray-600 mb-3">Informe um motivo (opcional) para o cancelamento.</p>
               <textarea
                 value={cancelMotivo}

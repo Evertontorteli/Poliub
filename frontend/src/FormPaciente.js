@@ -236,21 +236,17 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
     <div className="bg-white mx-auto max-w-auto rounded-2xl p-6">
 
       {/* Abas no topo */}
-      <div className="flex border-b mb-6">
+      <div className="flex border-b mb-6 gap-6">
         <button
-          className={`py-2 px-4 focus:outline-none ${abaAtiva === 'dados'
-            ? 'border-b-2 border-[#1A1C2C] font-bold text-[#1A1C2C]'
-            : 'text-gray-500'
-            }`}
+          className={`relative pb-2 text-sm md:text-base transition-colors after:content-[''] after:absolute after:left-0 after:-bottom-[1px] after:h-[2px] after:rounded after:transition-all after:duration-200 after:ease-out after:w-0 focus:outline-none
+            ${abaAtiva === 'dados' ? 'text-gray-900 after:w-full after:bg-blue-300' : 'text-gray-600 hover:text-gray-800 hover:after:w-full hover:after:bg-gray-300'}`}
           onClick={() => setAbaAtiva('dados')}
         >
           Dados
         </button>
         <button
-          className={`py-2 px-4 focus:outline-none ${abaAtiva === 'tratamento'
-            ? 'border-b-2 border-[#1A1C2C] font-bold text-[#1A1C2C]'
-            : 'text-gray-500'
-            }`}
+          className={`relative pb-2 text-sm md:text-base transition-colors after:content-[''] after:absolute after:left-0 after:-bottom-[1px] after:h-[2px] after:rounded after:transition-all after:duration-200 after:ease-out after:w-0 focus:outline-none
+            ${abaAtiva === 'tratamento' ? 'text-gray-900 after:w-full after:bg-blue-300' : 'text-gray-600 hover:text-gray-800 hover:after:w-full hover:after:bg-gray-300'}`}
           onClick={() => setAbaAtiva('tratamento')}
           disabled={!pacienteEditando}
         >
@@ -261,7 +257,7 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
       {/* Conteúdo das abas */}
       {abaAtiva === 'dados' && (
         <form onSubmit={handleSubmit} autoComplete="off">
-          <h2 className="text-2xl font-bold mb-6 text-gray-800">
+          <h2 className="text-2xl font-bold mb-6 text-[#0095DA]">
             {pacienteEditando ? 'Editar Paciente' : 'Novo Paciente'}
           </h2>
 

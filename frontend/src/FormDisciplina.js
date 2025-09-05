@@ -58,7 +58,7 @@ function FormDisciplina({ onNovaDisciplina, disciplinaEditando, onFimEdicao }) {
   return (
     <div className="bg-white mx-auto max-w-lg rounded-2xl p-6">
       <form onSubmit={handleSubmit} autoComplete="off">
-        <h2 className="text-2xl font-bold mb-6 text-gray-800">
+        <h2 className="text-2xl font-bold mb-6 text-[#0095DA]">
           {disciplinaEditando ? 'Editar Disciplina' : 'Cadastrar Nova Disciplina'}
         </h2>
         <div className="mb-6 group">
