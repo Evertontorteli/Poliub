@@ -38,11 +38,11 @@ export default function TelaPacientes() {
 
   return (
     <div>
-      <div className="flex justify-between px-4 items-center mb-4">
-        <h1 className="text-2xl font-medium">Lista de Pacientes</h1>
+      <div className="flex justify-between px-4 items-center mb-4 gap-2 flex-nowrap">
+        <h1 className="text-lg md:text-2xl font-medium">Lista de Pacientes</h1>
         <button
           onClick={handleNovo}
-          className="bg-[#1A1C2C] text-white px-4 py-2 rounded-full hover:bg-[#3B4854] transition"
+          className="bg-[#1A1C2C] text-white px-3 py-1.5 md:px-4 md:py-2 rounded-full hover:bg-[#3B4854] transition text-sm md:text-base whitespace-nowrap"
         >
           Novo Paciente
         </button>

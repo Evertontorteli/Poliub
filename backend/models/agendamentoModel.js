@@ -20,6 +20,7 @@ const Agendamento = {
           d.nome AS disciplinaNome,
           a.paciente_id,
           p.nome AS pacienteNome,
+          p.cidade AS pacienteCidade,
           p.numero_prontuario AS numero_prontuario,
           p.numero_gaveta     AS numero_gaveta,
           a.nome_paciente,
