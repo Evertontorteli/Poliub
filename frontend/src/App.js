@@ -58,6 +58,7 @@ function LayoutInterno() {
   const versionKeyRef = useRef(null)
   const updateNotifiedRef = useRef(false)
   const pollIdRef = useRef(null)
+  const assetHashRef = useRef(null)
 
   // Lida com o resize para mostrar/esconder a sidebar
   useEffect(() => {
@@ -128,6 +129,28 @@ function LayoutInterno() {
       if (!v) return null
       return [v.commit || '', v.buildId || '', v.startedAt || ''].join('|')
     }
+    async function pollIndexHtml() {
+      try {
+        // Busca o index.html sem cache e extrai o hash do main.*.js
+        const res = await fetch(`/index.html?v=${Date.now()}`, { cache: 'no-store' })
+        const html = await res.text()
+        const m = html.match(/static\/js\/main\.[a-f0-9]+\.js/)
+        const k = m ? `asset:${m[0]}` : null
+        if (!k) return
+        if (!versionKeyRef.current) {
+          versionKeyRef.current = k
+          assetHashRef.current = k
+        } else if (k !== (assetHashRef.current || versionKeyRef.current)) {
+          if (!updateNotifiedRef.current) {
+            setUpdateReady(true)
+            updateNotifiedRef.current = true
+          }
+          assetHashRef.current = k
+        }
+      } catch (e) {
+        // silencioso
+      }
+    }
     async function pollVersion() {
       try {
         const res = await fetch(`/api/version`, { cache: 'no-store' })
@@ -144,6 +167,8 @@ function LayoutInterno() {
       } catch (e) {
         // ignora erros intermitentes
       }
+      // Sempre roda o fallback por HTML também
+      await pollIndexHtml()
     }
 
     socket.on('server:version', (v) => {
@@ -162,10 +187,18 @@ function LayoutInterno() {
       if (pollIdRef.current) clearInterval(pollIdRef.current)
       pollIdRef.current = setInterval(pollVersion, 60_000)
     }
-    // Só verifica quando a aba estiver visível
+
     // Faz um poll inicial e inicia polling contínuo (independente de visibilidade)
     pollVersion()
     startPolling()
+
+    // Dispara checagem quando a aba/ janela ganhar foco
+    const onFocus = () => { pollVersion() }
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') pollVersion()
+    }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onVisibility)
 
     // Notificações de backup automático
     socket.on('backup:started', (payload) => {
@@ -209,7 +242,12 @@ function LayoutInterno() {
       toast.success(`Novo agendamento de ${nome_aluno || 'aluno'}${paciente}${quando ? ' em ' + quando : ''}${disc}`)
     })
 
-    return () => { if (pollIdRef.current) clearInterval(pollIdRef.current); socket.disconnect() }
+    return () => {
+      if (pollIdRef.current) clearInterval(pollIdRef.current)
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onVisibility)
+      socket.disconnect()
+    }
   }, [user])
 
   function renderConteudo() {
