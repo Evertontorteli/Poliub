@@ -80,15 +80,13 @@ export default function Header({ onlineUsers = [] }) {
       {/* Título responsivo */}
       <h1
         className={`font-bold text-[#0095DA] transition-all duration-200
-        ${isMobile ? "text-lg" : "text-2xl"}`}
+        ${isMobile ? "text-lg" : "text-2xl"} flex items-center gap-2`}
         style={{
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
           maxWidth: isMobile ? 185 : 420
         }}
       >
-        PoliUB Atendimentos
+        <img src="/logo192.png" alt="PoliUB" width="32" height="32" className="w-8 h-8 shrink-0" />
+        <span className="truncate">PoliUB Atendimentos</span>
       </h1>
 
       {/* Direita: lupa, avatares e menu perfil */}
