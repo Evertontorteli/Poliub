@@ -153,7 +153,7 @@ export default function DashboardAluno() {
         {[
           { key: "solicitacoes", label: "Minhas Solicitações", count: solicitacoes.length },
           { key: "proximos", label: "Próximos Agendamentos", count: proximos.length },
-          { key: "atendidos", label: "Agendamentos Realizados", count: atendidos.length },
+          { key: "atendidos", label: "Atendimentos Realizados", count: atendidos.length },
         ].map(card => (
           <button
             key={card.key}
@@ -331,7 +331,7 @@ export default function DashboardAluno() {
 
       {selectedCard === "atendidos" && (
         <div className="bg-white rounded-2xl shadow p-6 mb-6">
-          <h2 className="text-lg font-bold mb-4">Agendamentos Realizados</h2>
+          <h2 className="text-lg font-bold mb-4">Atendimentos Realizados</h2>
           <ul className="space-y-3">
 
 
