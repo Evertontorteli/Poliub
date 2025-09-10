@@ -307,6 +307,46 @@ async function relatorioPorAluno(req, res) {
           ), 0
         ) AS cntSaida
 
+      , EXISTS (
+          SELECT 1 FROM (
+            SELECT 
+              m2.caixa_id,
+              SUM(CASE WHEN m2.tipo = 'entrada' THEN 1 ELSE -1 END) AS saldo,
+              TIMESTAMPDIFF(DAY,
+                (
+                  SELECT MIN(m4.criado_em)
+                  FROM movimentacoes_esterilizacao m4
+                  WHERE m4.aluno_id = m2.aluno_id
+                    AND m4.caixa_id = m2.caixa_id
+                    AND m4.tipo = 'entrada'
+                    AND (
+                      m4.criado_em > (
+                        SELECT MAX(m5.criado_em)
+                        FROM movimentacoes_esterilizacao m5
+                        WHERE m5.aluno_id = m2.aluno_id
+                          AND m5.caixa_id = m2.caixa_id
+                          AND m5.tipo = 'saida'
+                      )
+                      OR (
+                        (
+                          SELECT MAX(m5.criado_em)
+                          FROM movimentacoes_esterilizacao m5
+                          WHERE m5.aluno_id = m2.aluno_id
+                            AND m5.caixa_id = m2.caixa_id
+                            AND m5.tipo = 'saida'
+                        ) IS NULL
+                      )
+                    )
+                ),
+                UTC_TIMESTAMP()
+              ) AS dias_open
+            FROM movimentacoes_esterilizacao m2
+            WHERE m2.aluno_id = a.id
+            GROUP BY m2.caixa_id, m2.aluno_id
+            HAVING saldo > 0 AND dias_open > 30
+          ) t
+        ) AS temVencido
+
       FROM alunos a
       LEFT JOIN movimentacoes_esterilizacao m
            ON m.aluno_id = a.id
@@ -334,6 +374,7 @@ async function relatorioPorAluno(req, res) {
       saldoTotal: Number(r.saldoTotal) || 0,
       teveEntrada: Number(r.cntEntrada) > 0,
       teveSaida: Number(r.cntSaida) > 0,
+      temVencido: Number(r.temVencido) === 1,
       // Validação de caixa vencida (30 dias)
       caixaVencida: Number(r.cntEntrada) === 0 && Number(r.cntSaida) === 0,
       // Status baseado no período

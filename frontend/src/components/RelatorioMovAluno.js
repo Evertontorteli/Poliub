@@ -163,6 +163,14 @@ export default function RelatorioMovAluno() {
         ...prev,
         [alunoId]: { loading: false, data: resMov.data || [], estoque: resEstoque.data || [], limit: 30 }
       }));
+
+      // Atualiza status da linha para refletir vencido no cabeçalho (fallback caso backend não traga temVencido)
+      try {
+        const hasVencido = Array.isArray(resEstoque.data) && resEstoque.data.some(e => Number(e.vencido) === 1);
+        if (hasVencido) {
+          setLinhas(prev => prev.map(l => l.alunoId === alunoId ? { ...l, temVencido: true } : l));
+        }
+      } catch {}
     } catch (e) {
       console.error('[Relatório] erro ao buscar detalhe:', e);
       setDetalhes(prev => ({
@@ -233,33 +241,18 @@ export default function RelatorioMovAluno() {
       <div className="bg-white rounded-2xl shadow p-6">
         <h2 className="text-lg font-medium mb-6 text-[#1d3557]">Movimentações por Aluno</h2>
 
-        {/* Explicação da regra dos 30 dias */}
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="flex items-start">
-            <div className="flex-shrink-0">
-              <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-bold">ℹ</span>
-              </div>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-blue-700 mt-1">
-                <strong>Caixas vencidas:</strong> Alunos que não tiveram entrada nem saída nos últimos 30 dias.
-                O sistema sempre verifica os últimos 30 dias para determinar o status.
-              </p>
-            </div>
-          </div>
-        </div>
+        {/* (removido) bloco informativo detalhado */}
 
         {/* Legenda das bolinhas de status */}
         <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
             <div className="flex items-center space-x-2">
               <div className="w-4 h-4 bg-green-500 rounded-full"></div>
-              <span className="text-sm text-gray-700">Aluno ativo (teve movimentação nos últimos 30 dias)</span>
+              <span className="text-sm text-gray-700">Aluno ativo (teve movimentação)</span>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-4 h-4 bg-red-500 rounded-full"></div>
-              <span className="text-sm text-gray-700">Caixa vencida (sem movimentação nos últimos 30 dias)</span>
+              <span className="text-sm text-gray-700">Material vencido em estoque (&gt; 30 dias)</span>
             </div>
             <div className="flex items-center space-x-2">
               <div className="w-4 h-4 bg-gray-500 rounded-full"></div>
@@ -377,18 +370,34 @@ export default function RelatorioMovAluno() {
                           </button>
                         </td>
                         <td className="px-3 py-3 text-center">
-                          {/* Bolinha de status */}
-                          <div className={`w-4 h-4 rounded-full mx-auto ${l.saldoTotal !== 0
-                              ? (l.teveEntrada || l.teveSaida ? 'bg-green-500' : 'bg-red-500')
-                              : 'bg-gray-500'
-                            }`}
-                            title={
-                              l.saldoTotal === 0
-                                ? 'Sem registro'
-                                : (l.teveEntrada || l.teveSaida
-                                  ? 'Ativo (teve movimentação)'
-                                  : 'Vencido (sem movimentação > 30 dias)')
-                            }></div>
+                          {/* Mostrar dois círculos se houver movimentação e também material vencido */}
+                          {(l.teveEntrada || l.teveSaida) && l.temVencido ? (
+                            <div className="flex items-center justify-center gap-1">
+                              <div
+                                className="w-4 h-4 rounded-full bg-green-500"
+                                title="Ativo (teve movimentação)"
+                              ></div>
+                              <div
+                                className="w-4 h-4 rounded-full bg-red-500"
+                                title="Possui material vencido em estoque (>30 dias)"
+                              ></div>
+                            </div>
+                          ) : l.temVencido ? (
+                            <div
+                              className="w-4 h-4 rounded-full mx-auto bg-red-500"
+                              title="Possui material vencido em estoque (>30 dias)"
+                            ></div>
+                          ) : (l.teveEntrada || l.teveSaida) ? (
+                            <div
+                              className="w-4 h-4 rounded-full mx-auto bg-green-500"
+                              title="Ativo (teve movimentação)"
+                            ></div>
+                          ) : (
+                            <div
+                              className="w-4 h-4 rounded-full mx-auto bg-gray-500"
+                              title="Sem registro"
+                            ></div>
+                          )}
                         </td>
                         <td className="px-3 py-3 text-gray-900">
                           {l.alunoNome}
