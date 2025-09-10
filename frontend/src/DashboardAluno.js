@@ -110,7 +110,8 @@ export default function DashboardAluno() {
           ? res.data.map(c => ({
             caixa: c.caixa_nome,
             saldo: c.saldo,
-            vencido: Number(c.vencido) === 1
+            vencido: Number(c.vencido) === 1,
+            vencidas: Number(c.vencidas) || 0
           }))
           : [];
         setCaixas(prev => ({ ...prev, saldos: caixasArray }));
@@ -261,8 +262,8 @@ export default function DashboardAluno() {
                 <li key={caixa.caixa} className="flex justify-between items-center border-b pb-2">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{caixa.caixa}</span>
-                    {caixa.vencido && (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] bg-red-100 text-red-700 border border-red-200">Vencido</span>
+                    {caixa.vencidas > 0 && (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] bg-red-100 text-red-700 border border-red-200">Vencido: {caixa.vencidas}</span>
                     )}
                   </div>
                   <span className="text-lg font-bold text-blue-700">{caixa.saldo}</span>

@@ -319,12 +319,17 @@ export default function TelaEsterilizacao() {
   // calcula estoque atual a partir da API de estoque (com flag vencido)
   const stockByBox = {}
   const vencidoByBoxName = {}
+  const vencidasByBoxName = {}
   estoqueRows.forEach(r => {
     const nome = r.caixa_nome
     const saldo = Number(r.saldo) || 0
     if (saldo > 0) {
       stockByBox[nome] = (stockByBox[nome] || 0) + saldo
       if (Number(r.vencido) === 1) vencidoByBoxName[nome] = true
+      if (r.vencidas != null) {
+        const q = Number(r.vencidas) || 0
+        if (q > 0) vencidasByBoxName[nome] = q
+      }
     }
   })
   const totalEstoqueAtual = Object.values(stockByBox).reduce((sum, qty) => sum + (Number(qty) || 0), 0)
@@ -602,8 +607,12 @@ export default function TelaEsterilizacao() {
                     className={`px-3 py-1 rounded-full font-semibold ${BADGE_STYLES[i % BADGE_STYLES.length]} flex items-center gap-2`}
                   >
                     <span>{nome}: {qty}</span>
-                    {vencidoByBoxName[nome] && (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] bg-red-100 text-red-700 border border-red-200">Vencido</span>
+                    {vencidasByBoxName[nome] > 0 ? (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] bg-red-100 text-red-700 border border-red-200">Vencido: {vencidasByBoxName[nome]}</span>
+                    ) : (
+                      vencidoByBoxName[nome] && (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] bg-red-100 text-red-700 border border-red-200">Vencido</span>
+                      )
                     )}
                   </div>
                 ))}

@@ -159,98 +159,35 @@ class Movimentacao {
     try {
       const [rows] = await conn.execute(
         `SELECT
-           c.nome AS caixa_nome,
-           m.caixa_id AS caixa_id,
-           SUM(CASE WHEN m.tipo = 'entrada' THEN 1 ELSE -1 END) AS saldo,
-           /* oldest open entrada após a última saída (ou primeira entrada se nunca houve saída) */
-           (
-             SELECT MIN(m2.criado_em)
-             FROM movimentacoes_esterilizacao m2
-             WHERE m2.aluno_id = m.aluno_id
-               AND m2.caixa_id = m.caixa_id
-               AND m2.tipo = 'entrada'
-               AND (
-                 m2.criado_em > (
-                   SELECT MAX(m3.criado_em)
-                   FROM movimentacoes_esterilizacao m3
-                   WHERE m3.aluno_id = m.aluno_id
-                     AND m3.caixa_id = m.caixa_id
-                     AND m3.tipo = 'saida'
-                 )
-                 OR (
-                   (
-                     SELECT MAX(m3.criado_em)
-                     FROM movimentacoes_esterilizacao m3
-                     WHERE m3.aluno_id = m.aluno_id
-                       AND m3.caixa_id = m.caixa_id
-                       AND m3.tipo = 'saida'
-                   ) IS NULL
-                 )
-               )
-           ) AS oldest_open_entrada,
-           /* dias desde a oldest_open_entrada */
-           TIMESTAMPDIFF(DAY,
-             (
-               SELECT MIN(m2.criado_em)
-               FROM movimentacoes_esterilizacao m2
-               WHERE m2.aluno_id = m.aluno_id
-                 AND m2.caixa_id = m.caixa_id
-                 AND m2.tipo = 'entrada'
-                 AND (
-                   m2.criado_em > (
-                     SELECT MAX(m3.criado_em)
-                     FROM movimentacoes_esterilizacao m3
-                     WHERE m3.aluno_id = m.aluno_id
-                       AND m3.caixa_id = m.caixa_id
-                       AND m3.tipo = 'saida'
-                   )
-                   OR (
-                     (
-                       SELECT MAX(m3.criado_em)
-                       FROM movimentacoes_esterilizacao m3
-                       WHERE m3.aluno_id = m.aluno_id
-                         AND m3.caixa_id = m.caixa_id
-                         AND m3.tipo = 'saida'
-                     ) IS NULL
-                   )
-                 )
-             ),
-             UTC_TIMESTAMP()
-           ) AS dias_desde,
-           CASE WHEN TIMESTAMPDIFF(DAY,
-             (
-               SELECT MIN(m2.criado_em)
-               FROM movimentacoes_esterilizacao m2
-               WHERE m2.aluno_id = m.aluno_id
-                 AND m2.caixa_id = m.caixa_id
-                 AND m2.tipo = 'entrada'
-                 AND (
-                   m2.criado_em > (
-                     SELECT MAX(m3.criado_em)
-                     FROM movimentacoes_esterilizacao m3
-                     WHERE m3.aluno_id = m.aluno_id
-                       AND m3.caixa_id = m.caixa_id
-                       AND m3.tipo = 'saida'
-                   )
-                   OR (
-                     (
-                       SELECT MAX(m3.criado_em)
-                       FROM movimentacoes_esterilizacao m3
-                       WHERE m3.aluno_id = m.aluno_id
-                         AND m3.caixa_id = m.caixa_id
-                         AND m3.tipo = 'saida'
-                     ) IS NULL
-                   )
-                 )
-             ),
-             UTC_TIMESTAMP()
-           ) > 30 THEN 1 ELSE 0 END AS vencido
-         FROM movimentacoes_esterilizacao m
-         JOIN caixas c ON m.caixa_id = c.id
-         WHERE m.aluno_id = ?
-         GROUP BY c.nome, m.aluno_id, m.caixa_id
-         HAVING saldo > 0
-         ORDER BY c.nome`,
+           t.caixa_nome,
+           t.caixa_id,
+           t.saldo,
+           t.vencidas,
+           CASE WHEN t.vencidas > 0 THEN 1 ELSE 0 END AS vencido
+         FROM (
+           SELECT
+             c.nome AS caixa_nome,
+             m.caixa_id AS caixa_id,
+             SUM(CASE WHEN m.tipo = 'entrada' THEN 1 ELSE -1 END) AS saldo,
+             SUM(
+               CASE WHEN m.tipo = 'entrada'
+                  AND NOT EXISTS (
+                    SELECT 1 FROM movimentacoes_esterilizacao s
+                    WHERE s.aluno_id = m.aluno_id
+                      AND s.caixa_id = m.caixa_id
+                      AND s.tipo = 'saida'
+                      AND s.criado_em > m.criado_em
+                  )
+                  AND TIMESTAMPDIFF(DAY, m.criado_em, UTC_TIMESTAMP()) > 30
+               THEN 1 ELSE 0 END
+             ) AS vencidas
+           FROM movimentacoes_esterilizacao m
+           JOIN caixas c ON m.caixa_id = c.id
+           WHERE m.aluno_id = ?
+           GROUP BY m.caixa_id, c.nome, m.aluno_id
+         ) t
+         WHERE t.saldo > 0
+         ORDER BY t.caixa_nome`,
         [aluno_id]
       );
       return rows;
