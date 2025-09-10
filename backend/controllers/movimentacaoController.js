@@ -361,7 +361,8 @@ async function movimentacoesPorAluno(req, res) {
 
   const conn = await getConnection();
   try {
-    // Sempre mostrar todas as movimentações, com flag para últimos 30 dias (UTC)
+    // Sempre mostrar todas as movimentações.
+    // Marca 'vencida' SOMENTE para entradas sem saída posterior e com >30 dias.
     const [rows] = await conn.query(
       `
       SELECT
@@ -371,7 +372,12 @@ async function movimentacoesPorAluno(req, res) {
         m.tipo,          /* 'entrada' | 'saida' */
         DATE_FORMAT(CONVERT_TZ(m.criado_em, '+00:00', 'America/Sao_Paulo'), '%d/%m/%Y %H:%i:%s') AS criado_em,
         TIMESTAMPDIFF(DAY, m.criado_em, UTC_TIMESTAMP()) AS diasDesde,
-        CASE WHEN m.tipo = 'entrada' AND TIMESTAMPDIFF(DAY, m.criado_em, UTC_TIMESTAMP()) > 30 THEN 1 ELSE 0 END AS vencida,
+        CASE 
+          WHEN m.tipo = 'entrada' 
+           AND m.criado_em > COALESCE((SELECT MAX(ms.criado_em) FROM movimentacoes_esterilizacao ms WHERE ms.aluno_id = m.aluno_id AND ms.caixa_id = m.caixa_id AND ms.tipo = 'saida'), '1970-01-01')
+           AND TIMESTAMPDIFF(DAY, m.criado_em, UTC_TIMESTAMP()) > 30 
+          THEN 1 ELSE 0 
+        END AS vencida,
         c.nome AS caixaNome,
         o.nome AS operadorNome
       FROM movimentacoes_esterilizacao m

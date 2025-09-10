@@ -440,6 +440,11 @@ export default function RelatorioMovAluno() {
                                         {detalhes[l.alunoId].estoque.map((e, idx) => (
                                           <span key={`${e.caixa_nome}-${idx}`} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-50 text-blue-700 border border-blue-200">
                                             {e.caixa_nome}: {e.saldo}
+                                            {Number(e.vencido) === 1 && (
+                                              <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] bg-red-100 text-red-700 border border-red-200">
+                                                Vencido
+                                              </span>
+                                            )}
                                           </span>
                                         ))}
                                       </div>

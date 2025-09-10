@@ -160,11 +160,95 @@ class Movimentacao {
       const [rows] = await conn.execute(
         `SELECT
            c.nome AS caixa_nome,
-           SUM(CASE WHEN m.tipo = 'entrada' THEN 1 ELSE -1 END) AS saldo
+           m.caixa_id AS caixa_id,
+           SUM(CASE WHEN m.tipo = 'entrada' THEN 1 ELSE -1 END) AS saldo,
+           /* oldest open entrada após a última saída (ou primeira entrada se nunca houve saída) */
+           (
+             SELECT MIN(m2.criado_em)
+             FROM movimentacoes_esterilizacao m2
+             WHERE m2.aluno_id = m.aluno_id
+               AND m2.caixa_id = m.caixa_id
+               AND m2.tipo = 'entrada'
+               AND (
+                 m2.criado_em > (
+                   SELECT MAX(m3.criado_em)
+                   FROM movimentacoes_esterilizacao m3
+                   WHERE m3.aluno_id = m.aluno_id
+                     AND m3.caixa_id = m.caixa_id
+                     AND m3.tipo = 'saida'
+                 )
+                 OR (
+                   (
+                     SELECT MAX(m3.criado_em)
+                     FROM movimentacoes_esterilizacao m3
+                     WHERE m3.aluno_id = m.aluno_id
+                       AND m3.caixa_id = m.caixa_id
+                       AND m3.tipo = 'saida'
+                   ) IS NULL
+                 )
+               )
+           ) AS oldest_open_entrada,
+           /* dias desde a oldest_open_entrada */
+           TIMESTAMPDIFF(DAY,
+             (
+               SELECT MIN(m2.criado_em)
+               FROM movimentacoes_esterilizacao m2
+               WHERE m2.aluno_id = m.aluno_id
+                 AND m2.caixa_id = m.caixa_id
+                 AND m2.tipo = 'entrada'
+                 AND (
+                   m2.criado_em > (
+                     SELECT MAX(m3.criado_em)
+                     FROM movimentacoes_esterilizacao m3
+                     WHERE m3.aluno_id = m.aluno_id
+                       AND m3.caixa_id = m.caixa_id
+                       AND m3.tipo = 'saida'
+                   )
+                   OR (
+                     (
+                       SELECT MAX(m3.criado_em)
+                       FROM movimentacoes_esterilizacao m3
+                       WHERE m3.aluno_id = m.aluno_id
+                         AND m3.caixa_id = m.caixa_id
+                         AND m3.tipo = 'saida'
+                     ) IS NULL
+                   )
+                 )
+             ),
+             UTC_TIMESTAMP()
+           ) AS dias_desde,
+           CASE WHEN TIMESTAMPDIFF(DAY,
+             (
+               SELECT MIN(m2.criado_em)
+               FROM movimentacoes_esterilizacao m2
+               WHERE m2.aluno_id = m.aluno_id
+                 AND m2.caixa_id = m.caixa_id
+                 AND m2.tipo = 'entrada'
+                 AND (
+                   m2.criado_em > (
+                     SELECT MAX(m3.criado_em)
+                     FROM movimentacoes_esterilizacao m3
+                     WHERE m3.aluno_id = m.aluno_id
+                       AND m3.caixa_id = m.caixa_id
+                       AND m3.tipo = 'saida'
+                   )
+                   OR (
+                     (
+                       SELECT MAX(m3.criado_em)
+                       FROM movimentacoes_esterilizacao m3
+                       WHERE m3.aluno_id = m.aluno_id
+                         AND m3.caixa_id = m.caixa_id
+                         AND m3.tipo = 'saida'
+                     ) IS NULL
+                   )
+                 )
+             ),
+             UTC_TIMESTAMP()
+           ) > 30 THEN 1 ELSE 0 END AS vencido
          FROM movimentacoes_esterilizacao m
          JOIN caixas c ON m.caixa_id = c.id
          WHERE m.aluno_id = ?
-         GROUP BY c.nome
+         GROUP BY c.nome, m.aluno_id, m.caixa_id
          HAVING saldo > 0
          ORDER BY c.nome`,
         [aluno_id]

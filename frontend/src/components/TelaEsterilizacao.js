@@ -34,6 +34,7 @@ export default function TelaEsterilizacao() {
 
   // Histórico completo do aluno (para cálculo de estoque)
   const [fullHistory, setFullHistory] = useState([])
+  const [estoqueRows, setEstoqueRows] = useState([])
 
   const [printData, setPrintData] = useState(null)
   const [printedIds, setPrintedIds] = useState([])
@@ -60,12 +61,17 @@ export default function TelaEsterilizacao() {
   // 2) busca histórico do aluno por ID (evita homônimos)
   const fetchHistory = useCallback(() => {
     if (!pinValidated || !alunoId) return
-    axios.get(`/api/movimentacoes/historico/${alunoId}`)
-      .then(res => {
-        setFullHistory(Array.isArray(res.data) ? res.data : [])
+    Promise.all([
+      axios.get(`/api/movimentacoes/historico/${alunoId}`),
+      axios.get(`/api/movimentacoes/estoque/${alunoId}`)
+    ])
+      .then(([hist, est]) => {
+        setFullHistory(Array.isArray(hist.data) ? hist.data : [])
+        setEstoqueRows(Array.isArray(est.data) ? est.data : [])
       })
       .catch(() => {
         setFullHistory([])
+        setEstoqueRows([])
       })
   }, [alunoId, pinValidated])
 
@@ -310,11 +316,16 @@ export default function TelaEsterilizacao() {
   }, {})
   const uniqueCaixas = Object.values(caixaCounts)
 
-  // calcula estoque atual a partir do fullHistory
+  // calcula estoque atual a partir da API de estoque (com flag vencido)
   const stockByBox = {}
-  fullHistory.forEach(m => {
-    stockByBox[m.caixaNome] = (stockByBox[m.caixaNome] || 0)
-      + (m.tipo === 'entrada' ? 1 : -1)
+  const vencidoByBoxName = {}
+  estoqueRows.forEach(r => {
+    const nome = r.caixa_nome
+    const saldo = Number(r.saldo) || 0
+    if (saldo > 0) {
+      stockByBox[nome] = (stockByBox[nome] || 0) + saldo
+      if (Number(r.vencido) === 1) vencidoByBoxName[nome] = true
+    }
   })
   const totalEstoqueAtual = Object.values(stockByBox).reduce((sum, qty) => sum + (Number(qty) || 0), 0)
 
@@ -588,9 +599,12 @@ export default function TelaEsterilizacao() {
                 {Object.entries(stockByBox).map(([nome, qty], i) => (
                   <div
                     key={nome}
-                    className={`px-3 py-1 rounded-full font-semibold ${BADGE_STYLES[i % BADGE_STYLES.length]}`}
+                    className={`px-3 py-1 rounded-full font-semibold ${BADGE_STYLES[i % BADGE_STYLES.length]} flex items-center gap-2`}
                   >
-                    {nome}: {qty}
+                    <span>{nome}: {qty}</span>
+                    {vencidoByBoxName[nome] && (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] bg-red-100 text-red-700 border border-red-200">Vencido</span>
+                    )}
                   </div>
                 ))}
               </div>
