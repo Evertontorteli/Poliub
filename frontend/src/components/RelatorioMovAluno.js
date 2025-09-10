@@ -151,7 +151,7 @@ export default function RelatorioMovAluno() {
     }
 
     // abre em modo loading e busca
-    setDetalhes(prev => ({ ...prev, [alunoId]: { loading: true, data: [], estoque: [] } }));
+    setDetalhes(prev => ({ ...prev, [alunoId]: { loading: true, data: [], estoque: [], limit: 30 } }));
 
     try {
       const [resMov, resEstoque] = await Promise.all([
@@ -161,15 +161,32 @@ export default function RelatorioMovAluno() {
 
       setDetalhes(prev => ({
         ...prev,
-        [alunoId]: { loading: false, data: resMov.data || [], estoque: resEstoque.data || [] }
+        [alunoId]: { loading: false, data: resMov.data || [], estoque: resEstoque.data || [], limit: 30 }
       }));
     } catch (e) {
       console.error('[Relatório] erro ao buscar detalhe:', e);
       setDetalhes(prev => ({
         ...prev,
-        [alunoId]: { loading: false, data: [], estoque: [] }
+        [alunoId]: { loading: false, data: [], estoque: [], limit: 30 }
       }));
     }
+  };
+
+  const handleVerMais = (alunoId) => {
+    setDetalhes(prev => {
+      const atual = prev[alunoId] || {};
+      const dataLen = Array.isArray(atual.data) ? atual.data.length : 0;
+      const novoLimite = Math.min((atual.limit || 30) + 30, dataLen);
+      return { ...prev, [alunoId]: { ...atual, limit: novoLimite } };
+    });
+  };
+
+  const handleVerMenos = (alunoId) => {
+    setDetalhes(prev => {
+      const atual = prev[alunoId] || {};
+      const novoLimite = Math.max(30, (atual.limit || 30) - 30);
+      return { ...prev, [alunoId]: { ...atual, limit: novoLimite } };
+    });
   };
 
   // Exporta CSV do resumo atual
@@ -428,6 +445,10 @@ export default function RelatorioMovAluno() {
                                       </div>
                                     </div>
                                   )}
+                                  {/* Contador de itens mostrados */}
+                                  <div className="text-xs text-gray-600 mb-2 text-right">
+                                    {`Mostrando ${Math.min(detalhes[l.alunoId]?.limit || 30, (detalhes[l.alunoId]?.data || []).length)} de ${(detalhes[l.alunoId]?.data || []).length} movimentações`}
+                                  </div>
                                   <table className="min-w-full text-sm">
                                     <thead>
                                       <tr className="text-gray-600">
@@ -439,7 +460,7 @@ export default function RelatorioMovAluno() {
                                       </tr>
                                     </thead>
                                     <tbody>
-                                      {detalhes[l.alunoId].data.map(m => (
+                                      {detalhes[l.alunoId].data.slice(0, detalhes[l.alunoId]?.limit || 30).map(m => (
                                         <tr key={m.id} className={`border-t odd:bg-white even:bg-gray-50 ${m.tipo === 'entrada' && m.vencida ? 'bg-red-50' : ''}`}>
                                           <td className="px-3 py-2">
                                             {m.criado_em ? m.criado_em : '-'}
@@ -467,6 +488,28 @@ export default function RelatorioMovAluno() {
                                       ))}
                                     </tbody>
                                   </table>
+                                  {(detalhes[l.alunoId]) && (
+                                    <div className="flex justify-center mt-3 gap-6">
+                                      {(detalhes[l.alunoId].limit || 30) > 30 && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleVerMenos(l.alunoId)}
+                                          className="text-blue-600 hover:underline text-sm"
+                                        >
+                                          Ver menos
+                                        </button>
+                                      )}
+                                      {(detalhes[l.alunoId].data || []).length > (detalhes[l.alunoId].limit || 30) && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleVerMais(l.alunoId)}
+                                          className="text-blue-600 hover:underline text-sm"
+                                        >
+                                          Ver mais
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
