@@ -62,6 +62,7 @@ function LayoutInterno() {
   const versionToastIdRef = useRef(null)
   const suppressFirstMismatchRef = useRef(false)
   const isProdRef = useRef(process.env.NODE_ENV === 'production')
+  const lastNotifiedHashRef = useRef(null)
 
   // Lida com o resize para mostrar/esconder a sidebar
   useEffect(() => {
@@ -87,7 +88,7 @@ function LayoutInterno() {
     }
   }
 
-  function showUpdateToast() {
+  function showUpdateToast(pendingHash = null) {
     if (versionToastIdRef.current) return
     if (suppressFirstMismatchRef.current) return
     if (!isProdRef.current) return
@@ -98,7 +99,7 @@ function LayoutInterno() {
         </div>
         <div>
           <button
-            onClick={() => { try { sessionStorage.setItem('updateAck', '1') } catch {} ; reloadWithCacheBust() }}
+            onClick={() => { try { sessionStorage.setItem('updateAck', '1'); if (pendingHash) localStorage.setItem('pendingAssetHash', pendingHash) } catch {} ; reloadWithCacheBust() }}
             className="bg-yellow-600 hover:bg-yellow-700 text-white text-sm font-semibold rounded px-3 py-1"
           >
             Atualizar agora
@@ -123,6 +124,11 @@ function LayoutInterno() {
       if (sessionStorage.getItem('updateAck') === '1') {
         suppressFirstMismatchRef.current = true
         sessionStorage.removeItem('updateAck')
+        const pending = localStorage.getItem('pendingAssetHash')
+        if (pending) {
+          localStorage.setItem('knownAssetHash', pending)
+          localStorage.removeItem('pendingAssetHash')
+        }
       }
     } catch {}
     const backendUrl = process.env.REACT_APP_API_URL ||
@@ -178,17 +184,23 @@ function LayoutInterno() {
         const m = html.match(/static\/js\/main\.[a-f0-9]+\.js/)
         const k = m ? `asset:${m[0]}` : null
         if (!k) return
-        if (!assetHashRef.current) {
-          assetHashRef.current = k
-          // Primeiro hash conhecido após boot → libera supressão
+        // conhecido persistido
+        let known = null
+        try { known = localStorage.getItem('knownAssetHash') } catch {}
+        if (!assetHashRef.current) assetHashRef.current = k
+        if (!known) {
+          try { localStorage.setItem('knownAssetHash', k) } catch {}
           suppressFirstMismatchRef.current = false
-        } else if (k !== assetHashRef.current) {
-          if (!updateNotifiedRef.current) {
-            showUpdateToast()
-            updateNotifiedRef.current = true
-          }
-          assetHashRef.current = k
+          return
         }
+        if (k !== known) {
+          if (lastNotifiedHashRef.current !== k && !updateNotifiedRef.current) {
+            lastNotifiedHashRef.current = k
+            updateNotifiedRef.current = true
+            showUpdateToast(k)
+          }
+        }
+        assetHashRef.current = k
       } catch (e) {
         // silencioso
       }
@@ -236,10 +248,14 @@ function LayoutInterno() {
       pollIdRef.current = setInterval(pollVersion, 60_000)
     }
 
-    // Restaura versão conhecida (evita toast no primeiro load em dev)
+    // Restaura versão/hash conhecidos (evita toast repetido)
     try {
       const known = localStorage.getItem('knownVersionKey')
       if (known) versionKeyRef.current = known
+    } catch {}
+    try {
+      const knownAsset = localStorage.getItem('knownAssetHash')
+      if (knownAsset) assetHashRef.current = knownAsset
     } catch {}
 
     // Faz um poll inicial e inicia polling contínuo (independente de visibilidade)
