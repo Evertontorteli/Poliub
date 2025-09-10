@@ -102,15 +102,13 @@ export default function DashboardRecepcao() {
     carregarResumo();
   }, [disciplinaSelecionada?.periodo_id]);
 
-  function getSterilizationDot(alunoId) {
+  function getSterilizationStatus(alunoId) {
     const r = steriResumo[Number(alunoId)] || null;
-    if (!r) return { cls: 'bg-gray-300', tip: 'Sem dados' };
+    if (!r) return { hasData: false, saldo: 0, teveMov: false, temVencido: false };
     const saldo = Number(r.saldoTotal) || 0;
     const teveMov = !!(r.teveEntrada || r.teveSaida);
-    if (saldo === 0) return { cls: 'bg-gray-500', tip: 'Sem registro' };
-    return teveMov
-      ? { cls: 'bg-green-500', tip: 'Ativo (teve movimentação nos últimos 30 dias)' }
-      : { cls: 'bg-red-500', tip: 'Vencido (sem movimentação > 30 dias)' };
+    const temVencido = !!r.temVencido;
+    return { hasData: true, saldo, teveMov, temVencido };
   }
 
 
@@ -519,13 +517,28 @@ export default function DashboardRecepcao() {
                       <td className="px-3 py-2 text-gray-500">{ag.operadorBox ?? '-'}</td>
                       <td className="px-3 py-2">
                         {(() => {
-                          const st = getSterilizationDot(ag.aluno_id);
-                          return (
-                            <div
-                              className={`w-4 h-4 rounded-full mx-auto ${st.cls}`}
-                              title={st.tip}
-                            />
-                          );
+                          const st = getSterilizationStatus(ag.aluno_id);
+                          if (!st.hasData) {
+                            return <div className="w-4 h-4 rounded-full mx-auto bg-gray-300" title="Sem dados" />
+                          }
+                          if (st.saldo === 0) {
+                            return <div className="w-4 h-4 rounded-full mx-auto bg-gray-500" title="Sem registro" />
+                          }
+                          if (st.teveMov && st.temVencido) {
+                            return (
+                              <div className="flex items-center justify-center gap-1" title="Ativo e com vencidos">
+                                <div className="w-4 h-4 rounded-full bg-green-500" />
+                                <div className="w-4 h-4 rounded-full bg-red-500" />
+                              </div>
+                            )
+                          }
+                          if (st.temVencido) {
+                            return <div className="w-4 h-4 rounded-full mx-auto bg-red-500" title="Material vencido em estoque (>30 dias)" />
+                          }
+                          if (st.teveMov) {
+                            return <div className="w-4 h-4 rounded-full mx-auto bg-green-500" title="Ativo (teve movimentação)" />
+                          }
+                          return <div className="w-4 h-4 rounded-full mx-auto bg-gray-500" title="Sem registro" />
                         })()}
                       </td>
                       <td className="px-3 py-2 font-medium text-gray-500">{ag.operadorNome || '-'}</td>
@@ -533,20 +546,22 @@ export default function DashboardRecepcao() {
                         {(() => {
                           const auxId = ag.auxiliar1_id || ag.auxiliar2_id || null;
                           if (!auxId) {
-                            return (
-                              <div
-                                className={`w-4 h-4 rounded-full mx-auto bg-gray-300`}
-                                title="Sem auxiliar"
-                              />
-                            );
+                            return <div className="w-4 h-4 rounded-full mx-auto bg-gray-300" title="Sem auxiliar" />
                           }
-                          const st = getSterilizationDot(auxId);
-                          return (
-                            <div
-                              className={`w-4 h-4 rounded-full mx-auto ${st.cls}`}
-                              title={st.tip}
-                            />
-                          );
+                          const st = getSterilizationStatus(auxId);
+                          if (!st.hasData) return <div className="w-4 h-4 rounded-full mx-auto bg-gray-300" title="Sem dados" />
+                          if (st.saldo === 0) return <div className="w-4 h-4 rounded-full mx-auto bg-gray-500" title="Sem registro" />
+                          if (st.teveMov && st.temVencido) {
+                            return (
+                              <div className="flex items-center justify-center gap-1" title="Ativo e com vencidos">
+                                <div className="w-4 h-4 rounded-full bg-green-500" />
+                                <div className="w-4 h-4 rounded-full bg-red-500" />
+                              </div>
+                            )
+                          }
+                          if (st.temVencido) return <div className="w-4 h-4 rounded-full mx-auto bg-red-500" title="Material vencido em estoque (>30 dias)" />
+                          if (st.teveMov) return <div className="w-4 h-4 rounded-full mx-auto bg-green-500" title="Ativo (teve movimentação)" />
+                          return <div className="w-4 h-4 rounded-full mx-auto bg-gray-500" title="Sem registro" />
                         })()}
                       </td>
                       <td className="px-3 py-2 text-gray-500">{ag.auxiliarNome || '-'}</td>
