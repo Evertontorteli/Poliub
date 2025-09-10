@@ -3,8 +3,11 @@ import ListaPacientes from "../ListaPacientes"; // ajuste o caminho se precisar
 import FormPaciente from "../FormPaciente";
 import Modal from "./Modal";
 import PaginaTratamento from "../pages/PaginaTratamento"; // ajuste o caminho se precisar
+import { useAuth } from "../context/AuthContext";
 
 export default function TelaPacientes() {
+  const { user } = useAuth();
+  const isAluno = user?.role === 'aluno';
   const [mostrarModal, setMostrarModal] = useState(false);
   const [editando, setEditando] = useState(null); // Paciente em edição
   const [reloadKey, setReloadKey] = useState(0);
@@ -48,7 +51,7 @@ export default function TelaPacientes() {
         </button>
       </div>
       <ListaPacientes reloadKey={reloadKey} onEditar={handleEditar} />
-      <Modal isOpen={mostrarModal} onRequestClose={handleCancelar}>
+      <Modal isOpen={mostrarModal} onRequestClose={handleCancelar} size={isAluno ? 'lg' : 'md'}>
         <FormPaciente
           onNovoPaciente={handleSalvar}
           pacienteEditando={editando}

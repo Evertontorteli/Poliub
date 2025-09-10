@@ -3,19 +3,21 @@ import Modal from 'react-modal';
 
 Modal.setAppElement('#root'); // Para acessibilidade
 
-export default function ModalCustom({ isOpen, onRequestClose, children }) {
+export default function ModalCustom({ isOpen, onRequestClose, children, size = 'md' }) {
+  const contentSizeClasses = size === 'lg'
+    ? 'min-w-[340px] sm:min-w-[480px] md:min-w-[560px]'
+    : 'min-w-[340px]';
   return (
     <Modal
       isOpen={isOpen}
       onRequestClose={onRequestClose}
       overlayClassName="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50"
-      className="
+      className={`
         bg-white rounded-xl shadow-lg p-0
-        
         w-auto
-        min-w-[340px]
+        ${contentSizeClasses}
         flex flex-col outline-none relative
-      "
+      `}
       // w-auto: a largura acompanha o conteúdo!
       // max-w-3xl: limita o tamanho máximo (ajuste para o que você quiser)
       // min-w-[240px]: evita que fique muito pequeno

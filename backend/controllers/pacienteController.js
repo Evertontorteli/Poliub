@@ -7,28 +7,55 @@ exports.criarOuBuscarPaciente = async (req, res) => {
   const {
     nome, telefone, numero_prontuario,
     numero_gaveta, rg, cpf, data_nascimento,
-    idade, cidade, endereco, numero, observacao
+    idade, cidade, endereco, numero, observacao,
+    tipo_paciente, responsavel_nome, responsavel_telefone
   } = req.body;
   try {
     const conn = await getConnection();
-    // Tenta buscar pelo telefone
-    const [results] = await conn.query(
-      'SELECT * FROM pacientes WHERE telefone = ?',
-      [telefone]
-    );
-    if (results.length > 0) {
-      conn.release();
-      return res.json(results[0]);
+    const tipo = (tipo_paciente || 'NORMAL').toUpperCase();
+
+    // Normaliza telefones (podem ser opcionais para tipos não-NORMAL)
+    const telDigits = (telefone || '').replace(/\D/g, '');
+    const telRespDigits = (responsavel_telefone || '').replace(/\D/g, '');
+
+    // Validação: para NORMAL, telefone obrigatório com 10 ou 11 dígitos
+    if (tipo === 'NORMAL') {
+      if (!telDigits || (telDigits.length !== 10 && telDigits.length !== 11)) {
+        conn.release();
+        return res.status(400).json({ error: 'Telefone obrigatório para pacientes do tipo NORMAL (10 ou 11 dígitos).' });
+      }
+    } else {
+      // Para tipos não-NORMAL, se informado, validar formato
+      if (telDigits && telDigits.length !== 10 && telDigits.length !== 11) {
+        conn.release();
+        return res.status(400).json({ error: 'Telefone inválido. Use 10 ou 11 dígitos.' });
+      }
+      if (telRespDigits && telRespDigits.length !== 10 && telRespDigits.length !== 11) {
+        conn.release();
+        return res.status(400).json({ error: 'Telefone do responsável inválido. Use 10 ou 11 dígitos.' });
+      }
+    }
+
+    // Tenta buscar pelo telefone se houver telefone informado
+    if (telDigits) {
+      const [results] = await conn.query(
+        'SELECT * FROM pacientes WHERE telefone = ?',
+        [telDigits]
+      );
+      if (results.length > 0) {
+        conn.release();
+        return res.json(results[0]);
+      }
     }
     // Não existe, cria novo (incluindo numero_prontuario opcional)
     const [insertResult] = await conn.query(
       `INSERT INTO pacientes
         (nome, telefone, numero_prontuario, numero_gaveta, rg, cpf, data_nascimento,
-         idade, cidade, endereco, numero, observacao)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+         idade, cidade, endereco, numero, observacao, tipo_paciente, responsavel_nome, responsavel_telefone)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [
         nome,
-        telefone,
+        telDigits || null,
         numero_prontuario || null,
         numero_gaveta || null,
         rg || null,
@@ -38,7 +65,10 @@ exports.criarOuBuscarPaciente = async (req, res) => {
         cidade || null,
         endereco || null,
         numero || null,
-        observacao || null
+        observacao || null,
+        tipo,
+        responsavel_nome || null,
+        (telRespDigits || null)
       ]
     );
         // ==== CRIE O LOG AQUI ====
@@ -49,8 +79,13 @@ exports.criarOuBuscarPaciente = async (req, res) => {
       entidade: 'paciente',
       entidade_id: insertResult.insertId,
       detalhes: {
-        nome, telefone, numero_prontuario, numero_gaveta, rg, cpf,
-        data_nascimento, idade, cidade, endereco, numero, observacao
+        nome,
+        telefone: telDigits || null,
+        numero_prontuario, numero_gaveta, rg, cpf,
+        data_nascimento, idade, cidade, endereco, numero, observacao,
+        tipo_paciente: tipo,
+        responsavel_nome: responsavel_nome || null,
+        responsavel_telefone: telRespDigits || null
       }
     });
     
@@ -58,7 +93,7 @@ exports.criarOuBuscarPaciente = async (req, res) => {
     res.status(201).json({
       id: insertResult.insertId,
       nome,
-      telefone,
+      telefone: telDigits || null,
       numero_prontuario: numero_prontuario || null,
       numero_gaveta: numero_gaveta || null,
       rg: rg || null,
@@ -68,7 +103,10 @@ exports.criarOuBuscarPaciente = async (req, res) => {
       cidade: cidade || null,
       endereco: endereco || null,
       numero: numero || null,
-      observacao: observacao || null
+      observacao: observacao || null,
+      tipo_paciente: tipo,
+      responsavel_nome: responsavel_nome || null,
+      responsavel_telefone: telRespDigits || null
     });
   } catch (err) {
     res.status(500).json({ error: 'Erro ao criar ou buscar paciente', details: err });
@@ -129,7 +167,8 @@ exports.atualizarPaciente = async (req, res) => {
   const {
     nome, telefone, numero_prontuario,
     numero_gaveta, rg, cpf, data_nascimento,
-    idade, cidade, endereco, numero, observacao
+    idade, cidade, endereco, numero, observacao,
+    tipo_paciente, responsavel_nome, responsavel_telefone
   } = req.body;
 
   // Agora você pode usar as variáveis aqui:
@@ -138,25 +177,49 @@ exports.atualizarPaciente = async (req, res) => {
   try {
     const conn = await getConnection();
 
-    // Busca outro paciente com o mesmo telefone e id diferente
-    const [duplicados] = await conn.query(
-      'SELECT id FROM pacientes WHERE telefone = ? AND id != ?',
-      [telefone, id]
-    );
-    if (duplicados.length > 0) {
-      conn.release();
-      return res.status(400).json({ error: 'Já existe outro paciente com este telefone.' });
+    const tipo = (tipo_paciente || 'NORMAL').toUpperCase();
+    const telDigits = (telefone || '').replace(/\D/g, '');
+    const telRespDigits = (responsavel_telefone || '').replace(/\D/g, '');
+
+    // Validação
+    if (tipo === 'NORMAL') {
+      if (!telDigits || (telDigits.length !== 10 && telDigits.length !== 11)) {
+        conn.release();
+        return res.status(400).json({ error: 'Telefone obrigatório para pacientes do tipo NORMAL (10 ou 11 dígitos).' });
+      }
+    } else {
+      if (telDigits && telDigits.length !== 10 && telDigits.length !== 11) {
+        conn.release();
+        return res.status(400).json({ error: 'Telefone inválido. Use 10 ou 11 dígitos.' });
+      }
+      if (telRespDigits && telRespDigits.length !== 10 && telRespDigits.length !== 11) {
+        conn.release();
+        return res.status(400).json({ error: 'Telefone do responsável inválido. Use 10 ou 11 dígitos.' });
+      }
+    }
+
+    // Busca outro paciente com o mesmo telefone e id diferente (só se houver telefone)
+    if (telDigits) {
+      const [duplicados] = await conn.query(
+        'SELECT id FROM pacientes WHERE telefone = ? AND id != ?',
+        [telDigits, id]
+      );
+      if (duplicados.length > 0) {
+        conn.release();
+        return res.status(400).json({ error: 'Já existe outro paciente com este telefone.' });
+      }
     }
 
     // Faz o update normalmente
     await conn.query(
       `UPDATE pacientes SET
          nome = ?, telefone = ?, numero_prontuario = ?, numero_gaveta = ?, rg = ?, cpf = ?,
-         data_nascimento = ?, idade = ?, cidade = ?, endereco = ?, numero = ?, observacao = ?
+         data_nascimento = ?, idade = ?, cidade = ?, endereco = ?, numero = ?, observacao = ?,
+         tipo_paciente = ?, responsavel_nome = ?, responsavel_telefone = ?
        WHERE id = ?`,
       [
         nome,
-        telefone,
+        telDigits || null,
         numero_prontuario || null,
         numero_gaveta || null,
         rg || null,
@@ -167,6 +230,9 @@ exports.atualizarPaciente = async (req, res) => {
         endereco || null,
         numero || null,
         observacao || null,
+        (tipo || 'NORMAL'),
+        responsavel_nome || null,
+        (telRespDigits || null),
         id
       ]
     );
@@ -188,7 +254,7 @@ exports.atualizarPaciente = async (req, res) => {
     res.json({
       id,
       nome,
-      telefone,
+      telefone: telDigits || null,
       numero_prontuario: numero_prontuario || null,
       numero_gaveta: numero_gaveta || null,
       rg: rg || null,
@@ -198,7 +264,10 @@ exports.atualizarPaciente = async (req, res) => {
       cidade: cidade || null,
       endereco: endereco || null,
       numero: numero || null,
-      observacao: observacao || null
+      observacao: observacao || null,
+      tipo_paciente: (tipo || 'NORMAL'),
+      responsavel_nome: responsavel_nome || null,
+      responsavel_telefone: telRespDigits || null
     });
   } catch (err) {
     res.status(500).json({ error: 'Erro ao atualizar paciente', details: err });

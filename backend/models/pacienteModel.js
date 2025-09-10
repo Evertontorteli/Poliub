@@ -1,6 +1,48 @@
 // backend/models/pacienteModel.js
 const { getConnection } = require('../database');
 
+async function ensureSchema() {
+  const conn = await getConnection();
+  try {
+    const [[dbRow]] = await conn.query('SELECT DATABASE() AS db');
+    const db = dbRow.db;
+    const [cols] = await conn.query(
+      `SELECT COLUMN_NAME, IS_NULLABLE, DATA_TYPE, COLUMN_TYPE
+         FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'pacientes'`,
+      [db]
+    );
+
+    const hasTipo = cols.some(c => c.COLUMN_NAME === 'tipo_paciente');
+    const hasRespNome = cols.some(c => c.COLUMN_NAME === 'responsavel_nome');
+    const hasRespTelefone = cols.some(c => c.COLUMN_NAME === 'responsavel_telefone');
+    const telefoneCol = cols.find(c => c.COLUMN_NAME === 'telefone');
+
+    if (!hasTipo) {
+      await conn.query(
+        "ALTER TABLE pacientes ADD COLUMN tipo_paciente ENUM('NORMAL','PEDIATRICO','GERIATRICO') NOT NULL DEFAULT 'NORMAL'"
+      );
+    }
+    if (!hasRespNome) {
+      await conn.query(
+        'ALTER TABLE pacientes ADD COLUMN responsavel_nome VARCHAR(255) NULL'
+      );
+    }
+    if (!hasRespTelefone) {
+      await conn.query(
+        'ALTER TABLE pacientes ADD COLUMN responsavel_telefone VARCHAR(20) NULL'
+      );
+    }
+    if (telefoneCol && telefoneCol.IS_NULLABLE === 'NO') {
+      await conn.query(
+        'ALTER TABLE pacientes MODIFY COLUMN telefone VARCHAR(20) NULL'
+      );
+    }
+  } finally {
+    conn.release();
+  }
+}
+
 const Paciente = {
   // Buscar paciente por telefone
   buscarPorTelefone: async (telefone) => {
@@ -47,11 +89,11 @@ const Paciente = {
     try {
       const [result] = await conn.query(
         `INSERT INTO pacientes 
-        (nome, telefone, numero_prontuario, numero_gaveta, rg, cpf, data_nascimento, idade, cidade, endereco, numero, observacao)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+        (nome, telefone, numero_prontuario, numero_gaveta, rg, cpf, data_nascimento, idade, cidade, endereco, numero, observacao, tipo_paciente, responsavel_nome, responsavel_telefone)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
         [
           dados.nome,
-          dados.telefone,
+          dados.telefone || null,
           dados.numero_prontuario || null,
           dados.numero_gaveta || null,
           dados.rg || null,
@@ -61,7 +103,10 @@ const Paciente = {
           dados.cidade || null,
           dados.endereco || null,
           dados.numero || null,
-          dados.observacao || null
+          dados.observacao || null,
+          dados.tipo_paciente || 'NORMAL',
+          dados.responsavel_nome || null,
+          dados.responsavel_telefone || null
         ]
       );
       return result;
@@ -77,11 +122,12 @@ const Paciente = {
       const [result] = await conn.query(
         `UPDATE pacientes SET
          nome = ?, telefone = ?, numero_prontuario = ?, numero_gaveta = ?, rg = ?, cpf = ?,
-         data_nascimento = ?, idade = ?, cidade = ?, endereco = ?, numero = ?, observacao = ?
+         data_nascimento = ?, idade = ?, cidade = ?, endereco = ?, numero = ?, observacao = ?,
+         tipo_paciente = ?, responsavel_nome = ?, responsavel_telefone = ?
        WHERE id = ?`,
         [
           dados.nome,
-          dados.telefone,
+          dados.telefone || null,
           dados.numero_prontuario || null,
           dados.numero_gaveta || null,
           dados.rg || null,
@@ -92,6 +138,9 @@ const Paciente = {
           dados.endereco || null,
           dados.numero || null,
           dados.observacao || null,
+          dados.tipo_paciente || 'NORMAL',
+          dados.responsavel_nome || null,
+          dados.responsavel_telefone || null,
           id
         ]
       );
@@ -116,4 +165,4 @@ const Paciente = {
   }
 };
 
-module.exports = Paciente;
+module.exports = { ...Paciente, ensureSchema };

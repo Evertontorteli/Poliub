@@ -16,6 +16,7 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
   const [mensagemErro, setMensagemErro] = useState('');
   const [abaAtiva, setAbaAtiva] = useState('dados'); // <-- State das abas
   const [formData, setFormData] = useState({
+    tipo_paciente: 'NORMAL',
     numero_gaveta: '',
     rg: '',
     cpf: '',
@@ -25,7 +26,9 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
     endereco: '',
     numero: '',
     cidade: '',
-    observacao: ''
+    observacao: '',
+    responsavel_nome: '',
+    responsavel_telefone: ''
   });
 
   useEffect(() => {
@@ -34,6 +37,7 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
       setNome(pacienteEditando.nome || '');
       setTelefone(formatarTelefone(pacienteEditando.telefone || ''));
       setFormData({
+        tipo_paciente: pacienteEditando.tipo_paciente || 'NORMAL',
         numero_gaveta: pacienteEditando.numero_gaveta || '',
         rg: pacienteEditando.rg || '',
         cpf: pacienteEditando.cpf || '',
@@ -45,7 +49,9 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
         endereco: pacienteEditando.endereco || '',
         numero: pacienteEditando.numero || '',
         cidade: pacienteEditando.cidade || '',
-        observacao: pacienteEditando.observacao || ''
+        observacao: pacienteEditando.observacao || '',
+        responsavel_nome: pacienteEditando.responsavel_nome || '',
+        responsavel_telefone: formatarTelefone(pacienteEditando.responsavel_telefone || '')
       });
       setAbaAtiva('dados'); // sempre inicia na aba Dados
     } else {
@@ -60,6 +66,7 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
     setNome('');
     setTelefone('');
     setFormData({
+      tipo_paciente: 'NORMAL',
       numero_gaveta: '',
       rg: '',
       cpf: '',
@@ -69,7 +76,9 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
       endereco: '',
       numero: '',
       cidade: '',
-      observacao: ''
+      observacao: '',
+      responsavel_nome: '',
+      responsavel_telefone: ''
     });
   }
 
@@ -160,21 +169,37 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
       return;
     }
 
+    const tipo = (formData.tipo_paciente || 'NORMAL').toUpperCase();
     const somenteDigitos = telefone.replace(/\D/g, '');
-    if (somenteDigitos.length !== 10 && somenteDigitos.length !== 11) {
-      setMensagemErro('Telefone inválido. Use 10 ou 11 dígitos.');
-      return;
+    const respDigitos = (formData.responsavel_telefone || '').replace(/\D/g, '');
+
+    if (tipo === 'NORMAL') {
+      if (somenteDigitos.length !== 10 && somenteDigitos.length !== 11) {
+        setMensagemErro('Telefone obrigatório (10 ou 11 dígitos) para paciente NORMAL.');
+        return;
+      }
+    } else {
+      if (somenteDigitos && (somenteDigitos.length !== 10 && somenteDigitos.length !== 11)) {
+        setMensagemErro('Telefone inválido. Use 10 ou 11 dígitos.');
+        return;
+      }
+      if (respDigitos && (respDigitos.length !== 10 && respDigitos.length !== 11)) {
+        setMensagemErro('Telefone do responsável inválido. Use 10 ou 11 dígitos.');
+        return;
+      }
     }
 
     // Validação telefone duplicado
     try {
-      const { data } = await axios.get(`/api/pacientes?telefone=${somenteDigitos}`);
-      const existeOutro = Array.isArray(data) && data.some(p =>
-        String(p.id) !== String(pacienteEditando?.id)
-      );
-      if (existeOutro) {
-        setMensagemErro('Já existe um paciente cadastrado com este telefone.');
-        return;
+      if (somenteDigitos) {
+        const { data } = await axios.get(`/api/pacientes?telefone=${somenteDigitos}`);
+        const existeOutro = Array.isArray(data) && data.some(p =>
+          String(p.id) !== String(pacienteEditando?.id)
+        );
+        if (existeOutro) {
+          setMensagemErro('Já existe um paciente cadastrado com este telefone.');
+          return;
+        }
       }
     } catch (err) {
       // ignora erro do endpoint
@@ -188,7 +213,7 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
     const dados = {
       numero_prontuario: isAluno ? null : (numeroProntuario.trim() || null),
       nome: nome.trim(),
-      telefone: somenteDigitos,
+      telefone: somenteDigitos || null,
       numero_gaveta: isAluno ? null : (formData.numero_gaveta || null),
       rg: isAluno ? null : (formData.rg || null),
       cpf: isAluno ? null : (formData.cpf || null),
@@ -199,6 +224,9 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
       numero: isAluno ? null : (formData.numero || null),
       cidade: formData.cidade || null,
       observacao: isAluno ? null : (formData.observacao || null),
+      tipo_paciente: formData.tipo_paciente || 'NORMAL',
+      responsavel_nome: formData.responsavel_nome || null,
+      responsavel_telefone: respDigitos || null,
     };
 
     try {
@@ -261,6 +289,28 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
             {pacienteEditando ? 'Editar Paciente' : 'Novo Paciente'}
           </h2>
 
+          {/* Tipo de paciente */}
+          <div className="mb-2 group">
+            <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
+              Tipo de paciente
+            </label>
+            <select
+              name="tipo_paciente"
+              value={formData.tipo_paciente}
+              onChange={handleChange}
+              className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            >
+              <option value="NORMAL">Normal</option>
+              <option value="PEDIATRICO">Pediátrico</option>
+              <option value="GERIATRICO">Geriátrico</option>
+            </select>
+            {formData.tipo_paciente !== 'NORMAL' && (
+              <p className="text-yellow-700 bg-yellow-50 border border-yellow-200 rounded mt-2 px-3 py-2 text-sm">
+                Para pacientes pediátricos e geriátricos o telefone é opcional.
+              </p>
+            )}
+          </div>
+
           {/* Campos visíveis só para outros perfis */}
           {!isAluno && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -307,17 +357,48 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
           {/* Telefone */}
           <div className="mb-6 group">
             <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
-              Telefone
+              {formData.tipo_paciente === 'NORMAL' ? 'Telefone' : 'Telefone (opcional)'}
             </label>
             <input
               type="tel"
-              required
+              required={formData.tipo_paciente === 'NORMAL'}
               value={telefone}
               onChange={e => setTelefone(formatarTelefone(e.target.value))}
               placeholder="(XX) XXXXX-XXXX"
               className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
             />
           </div>
+
+          {/* Campos do responsável (opcionais; exibidos quando não NORMAL) */}
+          {formData.tipo_paciente !== 'NORMAL' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className="group">
+                <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
+                  Nome do responsável <small>(opcional)</small>
+                </label>
+                <input
+                  type="text"
+                  name="responsavel_nome"
+                  value={formData.responsavel_nome}
+                  onChange={handleChange}
+                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                />
+              </div>
+              <div className="group">
+                <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
+                  Telefone do responsável <small>(opcional)</small>
+                </label>
+                <input
+                  type="tel"
+                  name="responsavel_telefone"
+                  value={formData.responsavel_telefone}
+                  onChange={e => setFormData(fd => ({ ...fd, responsavel_telefone: formatarTelefone(e.target.value) }))}
+                  placeholder="(XX) XXXXX-XXXX"
+                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Cidade (opcional) visível também para Aluno) */}
           {isAluno && (

@@ -118,6 +118,7 @@ function ListaPacientes({ reloadKey, onEditar, onSelcionar }) {
             <thead>
               <tr className="bg-gray-100 text-gray-700 text-sm">
                 <th className="px-3 py-2 text-left font-semibold border-b">#</th>
+                <th className="px-3 py-2 text-left font-semibold border-b">Tipo</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">Prontuário</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">Nº Gaveta</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">Nome</th>
@@ -137,6 +138,7 @@ function ListaPacientes({ reloadKey, onEditar, onSelcionar }) {
                     className="border-none hover:bg-gray-50 transition"
                   >
                     <td className="px-3 py-2 text-gray-500">{inicio + idx + 1}</td>
+                    <td className="px-3 py-2 text-gray-500">{(p.tipo_paciente || 'NORMAL') === 'NORMAL' ? 'Normal' : ((p.tipo_paciente || '').toUpperCase() === 'PEDIATRICO' ? 'Pediátrico' : 'Geriátrico')}</td>
                     <td className="px-3 py-2 text-gray-500">{p.numero_prontuario || '-'}</td>
                     <td className="px-3 py-2 text-gray-500">{p.numero_gaveta || '-'}</td>
                     <td className="px-3 py-2 font-medium text-gray-800">{p.nome}</td>
@@ -187,7 +189,7 @@ function ListaPacientes({ reloadKey, onEditar, onSelcionar }) {
                   {/* Separador apenas entre linhas, exceto a última */}
                   {idx !== pacientesPagina.length - 1 && (
                     <tr>
-                      <td colSpan={isAluno ? 7 : 8}>
+                      <td colSpan={isAluno ? 8 : 9}>
                         <hr className="border-t border-gray-200 my-0" />
                       </td>
                     </tr>
@@ -228,6 +230,7 @@ function ListaPacientes({ reloadKey, onEditar, onSelcionar }) {
                   )}
                 </div>
               </div>
+              <div><b>Tipo:</b> <span className="text-gray-800">{(p.tipo_paciente || 'NORMAL') === 'NORMAL' ? 'Normal' : ((p.tipo_paciente || '').toUpperCase() === 'PEDIATRICO' ? 'Pediátrico' : 'Geriátrico')}</span></div>
               <div><b>Prontuário:</b> <span className="text-gray-800">{p.numero_prontuario || '-'}</span></div>
               <div><b>Nº Gaveta:</b> <span className="text-gray-700">{p.numero_gaveta || '-'}</span></div>
               <div><b>Nome:</b> <span className="text-gray-800">{p.nome}</span></div>

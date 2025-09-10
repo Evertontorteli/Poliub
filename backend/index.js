@@ -61,7 +61,17 @@ io.on('connection', (socket) => {
     // Middleware para configurar timezone UTC
     app.use(timezoneMiddleware);
 
-    // 3) Rotas
+    // 3) Ajustes de schema leves (não bloqueantes)
+    try {
+      const { ensureSchema: ensurePacienteSchema } = require('./models/pacienteModel');
+      if (typeof ensurePacienteSchema === 'function') {
+        ensurePacienteSchema().catch((e) => console.warn('[schema pacientes] aviso:', e.message));
+      }
+    } catch (e) {
+      console.warn('[schema bootstrap] pacienteModel indisponível:', e.message);
+    }
+
+    // 4) Rotas
     app.use('/api', require('./routes/auth'));
     app.use('/api/pacientes', require('./routes/pacienteRoutes'));
     app.use('/api/alunos', require('./routes/alunoRoutes'));
@@ -97,7 +107,7 @@ io.on('connection', (socket) => {
 
     app.get('/', (_req, res) => res.send('API Poliub rodando 🚀'));
 
-    // 4) Sobe o servidor HTTP (única escuta)
+    // 5) Sobe o servidor HTTP (única escuta)
     server.listen(PORT, () => {
       console.log(`🔌 Servidor HTTP + Socket.IO rodando na porta ${PORT}`);
 
