@@ -115,6 +115,7 @@ function LayoutInterno() {
       toastId: 'update-available',
       className: 'border-l-2 border-yellow-600'
     })
+    try { if (pendingHash) localStorage.setItem('notifiedAssetHash', pendingHash) } catch {}
   }
 
   useEffect(() => {
@@ -195,8 +196,9 @@ function LayoutInterno() {
           suppressFirstMismatchRef.current = false
           return
         }
+        const alreadyNotified = (() => { try { return localStorage.getItem('notifiedAssetHash') === k } catch { return false } })()
         if (k !== known) {
-          if (lastNotifiedHashRef.current !== k && !updateNotifiedRef.current) {
+          if (lastNotifiedHashRef.current !== k && !updateNotifiedRef.current && !alreadyNotified) {
             lastNotifiedHashRef.current = k
             updateNotifiedRef.current = true
             showUpdateToast(k)
