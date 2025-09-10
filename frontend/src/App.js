@@ -59,7 +59,7 @@ function LayoutInterno() {
   const updateNotifiedRef = useRef(false)
   const pollIdRef = useRef(null)
   const assetHashRef = useRef(null)
-  const versionToastIdRef = useRef(null)
+  // removido: toast visual para update
   const suppressFirstMismatchRef = useRef(false)
   const isProdRef = useRef(process.env.NODE_ENV === 'production')
   const lastNotifiedHashRef = useRef(null)
@@ -89,33 +89,11 @@ function LayoutInterno() {
   }
 
   function showUpdateToast(pendingHash = null) {
-    if (versionToastIdRef.current) return
-    if (suppressFirstMismatchRef.current) return
-    if (!isProdRef.current) return
-    const content = (
-      <div className="flex flex-col gap-3 pr-2">
-        <div className="text-sm">
-          Existe uma nova atualização. Clique no botão abaixo para recarregar a página e aplicar.
-        </div>
-        <div>
-          <button
-            onClick={() => { try { sessionStorage.setItem('updateAck', '1'); if (pendingHash) localStorage.setItem('pendingAssetHash', pendingHash) } catch {} ; reloadWithCacheBust() }}
-            className="bg-yellow-600 hover:bg-yellow-700 text-white text-sm font-semibold rounded px-3 py-1"
-          >
-            Atualizar agora
-          </button>
-        </div>
-      </div>
-    )
-    versionToastIdRef.current = toast.info(content, {
-      autoClose: false,
-      closeOnClick: false,
-      closeButton: false,
-      draggable: false,
-      toastId: 'update-available',
-      className: 'border-l-2 border-yellow-600'
-    })
-    try { if (pendingHash) localStorage.setItem('notifiedAssetHash', pendingHash) } catch {}
+    // Desabilitado visualmente: apenas registra internamente para evitar repetição
+    try {
+      if (pendingHash) localStorage.setItem('notifiedAssetHash', pendingHash)
+    } catch {}
+    updateNotifiedRef.current = true
   }
 
   useEffect(() => {
@@ -201,7 +179,8 @@ function LayoutInterno() {
           if (lastNotifiedHashRef.current !== k && !updateNotifiedRef.current && !alreadyNotified) {
             lastNotifiedHashRef.current = k
             updateNotifiedRef.current = true
-            showUpdateToast(k)
+            // Silencioso: registra e agenda recarregamento leve quando usuário focar a aba
+            try { localStorage.setItem('pendingAssetHash', k) } catch {}
           }
         }
         assetHashRef.current = k
@@ -275,6 +254,16 @@ function LayoutInterno() {
     const onFocus = () => { pollVersion() }
     const onVisibility = () => {
       if (document.visibilityState === 'visible') pollVersion()
+      try {
+        const pending = localStorage.getItem('pendingAssetHash')
+        const known = localStorage.getItem('knownAssetHash')
+        if (pending && known && pending !== known) {
+          // recarrega discretamente com cache-bust ao voltar o foco
+          localStorage.setItem('knownAssetHash', pending)
+          localStorage.removeItem('pendingAssetHash')
+          reloadWithCacheBust()
+        }
+      } catch {}
     }
     window.addEventListener('focus', onFocus)
     document.addEventListener('visibilitychange', onVisibility)
