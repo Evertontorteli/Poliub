@@ -161,9 +161,11 @@ function LayoutInterno() {
       path: '/socket.io',
       transports: ['websocket']
     })
-    socket.on('connect', () =>
+    socket.on('connect', () => {
       console.log('🔌 socket conectado:', socket.id)
-    )
+      // Checa imediatamente ao conectar/reconectar (quase instantâneo pós-deploy)
+      try { pollVersion() } catch {}
+    })
     socket.on('connect_error', err =>
       console.error('❌ socket connect error:', err)
     )
@@ -245,7 +247,9 @@ function LayoutInterno() {
 
     function startPolling() {
       if (pollIdRef.current) clearInterval(pollIdRef.current)
-      pollIdRef.current = setInterval(pollVersion, 60_000)
+      // Poll mais responsivo em produção
+      const intervalMs = isProdRef.current ? 15_000 : 60_000
+      pollIdRef.current = setInterval(pollVersion, intervalMs)
     }
 
     // Restaura versão/hash conhecidos (evita toast repetido)
@@ -260,6 +264,9 @@ function LayoutInterno() {
 
     // Faz um poll inicial e inicia polling contínuo (independente de visibilidade)
     pollVersion()
+    // Tentativas extras logo após o boot (acelera percepção de deploy)
+    setTimeout(() => { try { pollVersion() } catch {} }, 5_000)
+    setTimeout(() => { try { pollVersion() } catch {} }, 15_000)
     startPolling()
 
     // Dispara checagem quando a aba/ janela ganhar foco
