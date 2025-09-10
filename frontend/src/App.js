@@ -54,11 +54,14 @@ function LayoutInterno() {
   const { user } = useAuth()
   const [onlineUsers, setOnlineUsers] = useState([])
   const [showSidebar, setShowSidebar] = useState(window.innerWidth >= 1366)
-  const [updateReady, setUpdateReady] = useState(false)
+  // Notificação de atualização via toast (persistente até clicar)
   const versionKeyRef = useRef(null)
   const updateNotifiedRef = useRef(false)
   const pollIdRef = useRef(null)
   const assetHashRef = useRef(null)
+  const versionToastIdRef = useRef(null)
+  const suppressFirstMismatchRef = useRef(false)
+  const isProdRef = useRef(process.env.NODE_ENV === 'production')
 
   // Lida com o resize para mostrar/esconder a sidebar
   useEffect(() => {
@@ -71,7 +74,6 @@ function LayoutInterno() {
 
   function reloadWithCacheBust() {
     try {
-      setUpdateReady(false)
       const url = new URL(window.location.href)
       url.searchParams.set('v', Date.now().toString())
       // Tenta via assign (alguns ambientes ignoram replace)
@@ -85,8 +87,44 @@ function LayoutInterno() {
     }
   }
 
+  function showUpdateToast() {
+    if (versionToastIdRef.current) return
+    if (suppressFirstMismatchRef.current) return
+    if (!isProdRef.current) return
+    const content = (
+      <div className="flex flex-col gap-3 pr-2">
+        <div className="text-sm">
+          Existe uma nova atualização. Clique no botão abaixo para recarregar a página e aplicar.
+        </div>
+        <div>
+          <button
+            onClick={() => { try { sessionStorage.setItem('updateAck', '1') } catch {} ; reloadWithCacheBust() }}
+            className="bg-yellow-600 hover:bg-yellow-700 text-white text-sm font-semibold rounded px-3 py-1"
+          >
+            Atualizar agora
+          </button>
+        </div>
+      </div>
+    )
+    versionToastIdRef.current = toast.info(content, {
+      autoClose: false,
+      closeOnClick: false,
+      closeButton: false,
+      draggable: false,
+      toastId: 'update-available',
+      className: 'border-l-2 border-yellow-600'
+    })
+  }
+
   useEffect(() => {
     if (!user) return
+    // Suprimir um possível mismatch imediato pós-reload de atualização
+    try {
+      if (sessionStorage.getItem('updateAck') === '1') {
+        suppressFirstMismatchRef.current = true
+        sessionStorage.removeItem('updateAck')
+      }
+    } catch {}
     const backendUrl = process.env.REACT_APP_API_URL ||
       'https://poliub-novo-ambiente-para-o-backend.up.railway.app'
     const presSocket = io(backendUrl, {
@@ -125,9 +163,12 @@ function LayoutInterno() {
     )
 
     // Verificação de nova versão (sem recarregar automaticamente)
+    // Usa apenas commit e buildId para estabilidade (ignora startedAt)
     function versionKey(v) {
       if (!v) return null
-      return [v.commit || '', v.buildId || '', v.startedAt || ''].join('|')
+      const parts = [v.commit || '', v.buildId || '']
+      const k = parts.join('|').replace(/\|+$/, '')
+      return k || null
     }
     async function pollIndexHtml() {
       try {
@@ -137,12 +178,13 @@ function LayoutInterno() {
         const m = html.match(/static\/js\/main\.[a-f0-9]+\.js/)
         const k = m ? `asset:${m[0]}` : null
         if (!k) return
-        if (!versionKeyRef.current) {
-          versionKeyRef.current = k
+        if (!assetHashRef.current) {
           assetHashRef.current = k
-        } else if (k !== (assetHashRef.current || versionKeyRef.current)) {
+          // Primeiro hash conhecido após boot → libera supressão
+          suppressFirstMismatchRef.current = false
+        } else if (k !== assetHashRef.current) {
           if (!updateNotifiedRef.current) {
-            setUpdateReady(true)
+            showUpdateToast()
             updateNotifiedRef.current = true
           }
           assetHashRef.current = k
@@ -158,11 +200,14 @@ function LayoutInterno() {
         const k = versionKey(v)
         if (versionKeyRef.current && k && k !== versionKeyRef.current) {
           if (!updateNotifiedRef.current) {
-            setUpdateReady(true)
+            showUpdateToast()
             updateNotifiedRef.current = true
           }
         } else if (!versionKeyRef.current && k) {
           versionKeyRef.current = k
+          // Primeira versão conhecida após boot → libera supressão
+          suppressFirstMismatchRef.current = false
+          try { localStorage.setItem('knownVersionKey', k) } catch {}
         }
       } catch (e) {
         // ignora erros intermitentes
@@ -175,9 +220,12 @@ function LayoutInterno() {
       const k = versionKey(v)
       if (!versionKeyRef.current) {
         versionKeyRef.current = k
+        // Primeira versão conhecida pelo socket → libera supressão
+        suppressFirstMismatchRef.current = false
+        try { if (k) localStorage.setItem('knownVersionKey', k) } catch {}
       } else if (k && k !== versionKeyRef.current) {
         if (!updateNotifiedRef.current) {
-          setUpdateReady(true)
+          showUpdateToast()
           updateNotifiedRef.current = true
         }
       }
@@ -187,6 +235,12 @@ function LayoutInterno() {
       if (pollIdRef.current) clearInterval(pollIdRef.current)
       pollIdRef.current = setInterval(pollVersion, 60_000)
     }
+
+    // Restaura versão conhecida (evita toast no primeiro load em dev)
+    try {
+      const known = localStorage.getItem('knownVersionKey')
+      if (known) versionKeyRef.current = known
+    } catch {}
 
     // Faz um poll inicial e inicia polling contínuo (independente de visibilidade)
     pollVersion()
@@ -275,22 +329,7 @@ function LayoutInterno() {
 
   return (
     <div className="bg-white min-h-screen">
-      {updateReady && (
-        <div className="bg-yellow-100 border-b border-yellow-300 text-yellow-900">
-          <button
-            className="mx-auto max-w-5xl w-full text-left py-2 px-4 flex items-center justify-between hover:bg-yellow-200"
-            onClick={reloadWithCacheBust}
-            title="Clique para recarregar a página e atualizar"
-          >
-            <span className="truncate pr-4">
-              Existe uma nova atualização. Clique aqui para recarregar a página e atualizar.
-            </span>
-            <span className="shrink-0 bg-yellow-500 hover:bg-yellow-600 text-white text-sm font-semibold rounded px-3 py-1">
-              Atualizar agora
-            </span>
-          </button>
-        </div>
-      )}
+      {/* Banner removido: usamos toast persistente para avisar atualização */}
       <Header onlineUsers={onlineUsers} />
       <div className="flex">
         {showSidebar && (
