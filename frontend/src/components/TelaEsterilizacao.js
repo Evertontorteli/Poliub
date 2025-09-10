@@ -27,6 +27,7 @@ export default function TelaEsterilizacao() {
   const [alunoCodEsterilizacao, setAlunoCodEsterilizacao] = useState('');
   const alunoPinInputRef = useRef(null)
   const [highlightIndex, setHighlightIndex] = useState(-1)
+  const [preferSaidaVencidas, setPreferSaidaVencidas] = useState(false)
 
 
 
@@ -224,6 +225,10 @@ export default function TelaEsterilizacao() {
       toast.warn('Adicione ao menos uma caixa', { autoClose: 5000 })
       return
     }
+    if (tipo === 'saida' && totalVencidas > 0 && preferSaidaVencidas === null) {
+      toast.warn('Escolha se deseja priorizar as caixas vencidas antes de registrar a saída.', { autoClose: 4000 })
+      return
+    }
     if (tipo === 'saida') {
       const invalidas = caixas.filter(c => {
         // precisa haver pelo menos uma entrada antes
@@ -242,7 +247,8 @@ export default function TelaEsterilizacao() {
       for (const c of caixas) {
         await axios.post(`/api/movimentacoes/${tipo}`, {
           caixa_id: c.id,
-          aluno_pin: alunoPin
+          aluno_pin: alunoPin,
+          preferir_vencidas: (tipo === 'saida') ? !!preferSaidaVencidas : undefined
         })
       }
       toast.success(
@@ -332,6 +338,17 @@ export default function TelaEsterilizacao() {
       }
     }
   })
+  const totalVencidas = (estoqueRows || []).reduce((sum, r) => {
+    const saldo = Number(r.saldo) || 0
+    const q = Number(r.vencidas) || 0
+    return sum + (saldo > 0 ? q : 0)
+  }, 0)
+  const nomesVencidas = (() => {
+    try {
+      const arr = (estoqueRows || []).filter(r => (Number(r.saldo) || 0) > 0 && (Number(r.vencidas) || 0) > 0).map(r => r.caixa_nome)
+      return arr.slice(0, 6).join(', ')
+    } catch { return '' }
+  })()
   const totalEstoqueAtual = Object.values(stockByBox).reduce((sum, qty) => sum + (Number(qty) || 0), 0)
 
   // labels do wizard
@@ -519,6 +536,27 @@ export default function TelaEsterilizacao() {
       {step === 3 && pinValidated && (
         <div className="space-y-6">
           <div className="bg-white rounded-2xl shadow p-6">
+            {operation === 'saida' && totalVencidas > 0 && (
+              <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded">
+                <div className="text-xs text-red-800">
+                  <p className="mb-2">
+                    Existem <b>{totalVencidas}</b> entrada(s) <b>vencida(s)</b> em estoque
+                    {nomesVencidas ? ` (ex.: ${nomesVencidas}${(estoqueRows || []).filter(r => (Number(r.saldo)||0)>0 && (Number(r.vencidas)||0)>0).length > 6 ? ', …' : ''})` : ''}.
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <span className="font-medium">Priorizar saída das caixas vencidas?</span>
+                    <label className="inline-flex items-center gap-1 cursor-pointer">
+                      <input type="radio" name="prefer-saida" onChange={() => setPreferSaidaVencidas(true)} checked={preferSaidaVencidas === true} />
+                      <span>Sim</span>
+                    </label>
+                    <label className="inline-flex items-center gap-1 cursor-pointer">
+                      <input type="radio" name="prefer-saida" onChange={() => setPreferSaidaVencidas(false)} checked={preferSaidaVencidas === false} />
+                      <span>Não</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
             <h3 className="text-lg font-semibold mb-4">Informar Caixas</h3>
             <div className="flex gap-4">
               <input
