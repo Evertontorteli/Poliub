@@ -109,7 +109,8 @@ export default function DashboardAluno() {
         const caixasArray = Array.isArray(res.data)
           ? res.data.map(c => ({
             caixa: c.caixa_nome,
-            saldo: c.saldo
+            saldo: c.saldo,
+            vencido: Number(c.vencido) === 1
           }))
           : [];
         setCaixas(prev => ({ ...prev, saldos: caixasArray }));
@@ -258,7 +259,12 @@ export default function DashboardAluno() {
             <ul className="space-y-2">
               {caixas.saldos.map(caixa => (
                 <li key={caixa.caixa} className="flex justify-between items-center border-b pb-2">
-                  <span className="font-medium">{caixa.caixa}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">{caixa.caixa}</span>
+                    {caixa.vencido && (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] bg-red-100 text-red-700 border border-red-200">Vencido</span>
+                    )}
+                  </div>
                   <span className="text-lg font-bold text-blue-700">{caixa.saldo}</span>
                 </li>
               ))}
@@ -299,6 +305,9 @@ export default function DashboardAluno() {
                         <span className="font-medium">{h.tipo === 'entrada' ? 'Entrada' : 'Saída'}</span>
                         <span className="mx-2 text-gray-400">•</span>
                         <span className="font-medium">{h.caixaNome}</span>
+                        {h.tipo === 'entrada' && Number(h.vencida) === 1 && (
+                          <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] bg-red-100 text-red-700 border border-red-200">Vencida</span>
+                        )}
                         <span className="mx-2 text-gray-400">•</span>
                         <span className="text-gray-600">
                           {h.criado_em ? new Date(h.criado_em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : ''}

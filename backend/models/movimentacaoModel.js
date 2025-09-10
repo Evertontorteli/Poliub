@@ -280,6 +280,20 @@ class Movimentacao {
              CONVERT_TZ(m.criado_em, '+00:00', 'America/Sao_Paulo'),
              '%Y-%m-%d %H:%i:%s'
            ) AS criado_em,
+           TIMESTAMPDIFF(DAY, m.criado_em, UTC_TIMESTAMP()) AS diasDesde,
+           CASE 
+             WHEN m.tipo = 'entrada'
+              AND NOT EXISTS (
+                SELECT 1 
+                FROM movimentacoes_esterilizacao s 
+                WHERE s.aluno_id = m.aluno_id 
+                  AND s.caixa_id = m.caixa_id 
+                  AND s.tipo = 'saida' 
+                  AND s.criado_em > m.criado_em
+              )
+              AND TIMESTAMPDIFF(DAY, m.criado_em, UTC_TIMESTAMP()) > 30
+             THEN 1 ELSE 0 
+           END AS vencida,
            c.nome      AS caixaNome,
            a.nome      AS alunoNome,
            p.nome      AS periodoNome,
