@@ -28,6 +28,7 @@ export default function TelaEsterilizacao() {
   const alunoPinInputRef = useRef(null)
   const [highlightIndex, setHighlightIndex] = useState(-1)
   const [preferSaidaVencidas, setPreferSaidaVencidas] = useState(false)
+  const [orderedBoxIds, setOrderedBoxIds] = useState([]) // mantém ordem de primeira inserção dos ids
 
 
 
@@ -157,6 +158,8 @@ export default function TelaEsterilizacao() {
     : []
 
   const addCaixa = c => {
+    // registra ordem do id se for a primeira vez
+    setOrderedBoxIds(prev => (prev.includes(c.id) ? prev : [...prev, c.id]))
     setCaixas(prev => [...prev, c])
     toast.success(`Caixa adicionada: ${c.nome}`, { autoClose: 5000 })
     setCodigo('')
@@ -303,24 +306,63 @@ export default function TelaEsterilizacao() {
 
 
 
-  // remove apenas uma instância da caixa
+  // remove TODAS as ocorrências da caixa
   const removerCaixa = id => {
-    setCaixas(prev => {
-      const idx = prev.findIndex(c => c.id === id)
-      if (idx === -1) return prev
-      const next = [...prev]
-      next.splice(idx, 1)
-      return next
-    })
+    setCaixas(prev => prev.filter(c => c.id !== id))
+    setOrderedBoxIds(prev => prev.filter(x => x !== id))
   }
 
-  // agrupa caixas para exibir nome + quantidade
-  const caixaCounts = caixas.reduce((acc, c) => {
-    if (!acc[c.id]) acc[c.id] = { ...c, qty: 0 }
-    acc[c.id].qty++
-    return acc
-  }, {})
-  const uniqueCaixas = Object.values(caixaCounts)
+  const limparTudo = () => {
+    setCaixas([])
+    setOrderedBoxIds([])
+  }
+
+  function setQtyForBox(id, qty) {
+    const parsed = Number(qty)
+    const desired = Number.isFinite(parsed) ? Math.max(1, Math.floor(parsed)) : 1
+    // Referência da caixa pelo id
+    const ref = caixas.find(c => c.id === id) || allCaixas.find(c => c.id === id)
+    if (!ref) return
+    // Limite para saída: não pode exceder estoque disponível
+    let limit = desired
+    if (operation === 'saida') {
+      const available = stockByBox[ref.nome] || 0
+      limit = Math.min(desired, Math.max(0, available))
+      if (limit === 0) return
+    }
+    // Recria a lista com a quantidade desejada para este id
+    const others = caixas.filter(c => c.id !== id)
+    const repeated = Array.from({ length: limit }, () => ref)
+    setCaixas([...others, ...repeated])
+  }
+
+  function adjustQty(id, delta) {
+    const info = uniqueCaixas.find(c => c.id === id)
+    if (!info) return
+    const current = info.qty || 1
+    let next = Math.max(1, current + delta)
+    if (operation === 'saida') {
+      const available = stockByBox[info.nome] || 0
+      next = Math.min(next, Math.max(1, available))
+    }
+    setQtyForBox(id, next)
+  }
+
+  // agrupa e monta lista única na ordem de primeira inserção
+  const idToInfo = new Map()
+  caixas.forEach((c, idx) => {
+    const cur = idToInfo.get(c.id)
+    if (cur) {
+      cur.qty += 1
+      cur.lastIndex = idx
+    } else {
+      idToInfo.set(c.id, { ...c, qty: 1, lastIndex: idx })
+    }
+  })
+  const uniqueCaixas = orderedBoxIds
+    .filter(id => idToInfo.has(id))
+    .map(id => idToInfo.get(id))
+  const totalSelecionadas = uniqueCaixas.reduce((sum, c) => sum + (Number(c.qty) || 0), 0)
 
   // calcula estoque atual a partir da API de estoque (com flag vencido)
   const stockByBox = {}
@@ -557,7 +599,14 @@ export default function TelaEsterilizacao() {
                 </div>
               </div>
             )}
-            <h3 className="text-lg font-semibold mb-4">Informar Caixas</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Informar Caixas</h3>
+              {uniqueCaixas.length > 0 && (
+                <div className="text-sm text-gray-700">
+                  Total de unidades selecionadas: <b>{totalSelecionadas}</b>
+                </div>
+              )}
+            </div>
             <div className="flex gap-4">
               <input
                 ref={caixaInputRef}
@@ -621,13 +670,65 @@ export default function TelaEsterilizacao() {
               </ul>
             )}
             {uniqueCaixas.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-4">
-                {uniqueCaixas.map(c => (
-                  <div key={c.id} className="bg-gray-100 px-3 py-1 rounded-full flex items-center">
-                    {c.nome} ({c.qty})
-                    <button onClick={() => removerCaixa(c.id)} className="ml-2 text-gray-500">×</button>
-                  </div>
-                ))}
+              <div className="flex flex-col gap-2 mt-4">
+                {uniqueCaixas.map(c => {
+                  const maxSaida = operation === 'saida' ? (stockByBox[c.nome] || 0) : 99
+                  const max = Math.max(1, maxSaida)
+                  return (
+                    <div key={c.id} className="bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg flex items-center justify-between">
+                      <div className="font-medium text-gray-800">{c.nome}</div>
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs text-gray-600">Qtd</label>
+                        <button
+                          type="button"
+                          onClick={() => adjustQty(c.id, -1)}
+                          className="w-7 h-7 flex items-center justify-center rounded border text-gray-700 hover:bg-gray-100"
+                          title="Diminuir"
+                        >−</button>
+                        <input
+                          type="number"
+                          min={1}
+                          max={max}
+                          value={c.qty}
+                          onChange={e => setQtyForBox(c.id, e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === 'ArrowUp') { e.preventDefault(); adjustQty(c.id, 1) }
+                            if (e.key === 'ArrowDown') { e.preventDefault(); adjustQty(c.id, -1) }
+                          }}
+                          className="w-16 border rounded px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-300"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => adjustQty(c.id, 1)}
+                          className="w-7 h-7 flex items-center justify-center rounded border text-gray-700 hover:bg-gray-100"
+                          title="Aumentar"
+                        >+</button>
+                        <button
+                          onClick={() => removerCaixa(c.id)}
+                          className="ml-1 w-6 h-6 flex items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600"
+                          title="Remover caixa da lista"
+                          aria-label="Remover caixa da lista"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="button"
+                    onClick={limparTudo}
+                    className="inline-flex items-center gap-2 text-sm text-gray-700 hover:text-red-700 px-2 py-1 rounded"
+                    title="Limpar todas as caixas selecionadas"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eraser-icon lucide-eraser">
+                      <path d="M21 21H8a2 2 0 0 1-1.42-.587l-3.994-3.999a2 2 0 0 1 0-2.828l10-10a2 2 0 0 1 2.829 0l5.999 6a2 2 0 0 1 0 2.828L12.834 21"/>
+                      <path d="m5.082 11.09 8.828 8.828"/>
+                    </svg>
+                    <span>Limpar tudo</span>
+                  </button>
+                </div>
               </div>
             )}
           </div>
