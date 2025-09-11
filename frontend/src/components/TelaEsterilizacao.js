@@ -245,14 +245,28 @@ export default function TelaEsterilizacao() {
         return
       }
     }
+    // valida saldo por caixa antes de enviar saída em lote
+    if (tipo === 'saida') {
+      const semSaldo = uniqueCaixas.filter(c => (stockByBox[c.nome] || 0) < (Number(c.qty) || 1))
+      if (semSaldo.length > 0) {
+        toast.error('Há caixas sem saldo suficiente para saída. Ajuste as quantidades.', { autoClose: 5000 })
+        return
+      }
+    }
     try {
-      // Executa sequencialmente para evitar corrida que poderia permitir saldo negativo
-      for (const c of caixas) {
-        await axios.post(`/api/movimentacoes/${tipo}`, {
-          caixa_id: c.id,
+      if (tipo === 'saida') {
+        // usa batch: agrupa por id e envia quantidade
+        const itens = uniqueCaixas.map(c => ({ caixa_id: c.id, quantidade: c.qty }))
+        await axios.post('/api/movimentacoes/saida-batch', {
           aluno_pin: alunoPin,
-          preferir_vencidas: (tipo === 'saida') ? !!preferSaidaVencidas : undefined
+          preferir_vencidas: !!preferSaidaVencidas,
+          itens
         })
+      } else {
+        // entrada mantém fluxo por unidade
+        for (const c of caixas) {
+          await axios.post('/api/movimentacoes/entrada', { caixa_id: c.id, aluno_pin: alunoPin })
+        }
       }
       toast.success(
         `${tipo === 'entrada' ? 'Entrada' : 'Saída'} registrada! ${alunoNome}`,
@@ -422,6 +436,24 @@ export default function TelaEsterilizacao() {
     }
   }
 
+  // Impede avançar do passo 3 (saída) quando faltar estoque
+  function canAdvanceFromStep3() {
+    if (operation !== 'saida') return true
+    const semSaldo = uniqueCaixas.filter(c => (stockByBox[c.nome] || 0) <= 0)
+    if (semSaldo.length > 0) {
+      const nomes = semSaldo.map(c => c.nome).join(', ')
+      toast.error(`Sem estoque para saída: ${nomes}. Ajuste ou remova para continuar.`, { autoClose: 5000 })
+      return false
+    }
+    const excede = uniqueCaixas.filter(c => (Number(c.qty) || 1) > (stockByBox[c.nome] || 0))
+    if (excede.length > 0) {
+      const nomes = excede.map(c => `${c.nome} (solicitado ${c.qty}, disp. ${stockByBox[c.nome] || 0})`).join('; ')
+      toast.error(`Quantidade excede o estoque: ${nomes}. Ajuste para continuar.`, { autoClose: 6000 })
+      return false
+    }
+    return true
+  }
+
   return (
     <div className="max-w-4xl mx-auto py-10 px-4">
       <h2 className="text-2xl font-medium mb-6">Controle de Esterilização</h2>
@@ -471,6 +503,10 @@ export default function TelaEsterilizacao() {
                   setTimeout(() => caixaInputRef.current?.focus(), 0)
                 } else if (step === 3) {
                   if ((caixas?.length || 0) > 0) {
+                    if (!canAdvanceFromStep3()) {
+                      setTimeout(() => caixaInputRef.current?.focus(), 0)
+                      return
+                    }
                     setStep(4)
                     setTimeout(() => registrarButtonRef.current?.focus(), 0)
                   } else {
@@ -487,6 +523,10 @@ export default function TelaEsterilizacao() {
                     setTimeout(() => caixaInputRef.current?.focus(), 0)
                   } else if (step === 3) {
                     if ((caixas?.length || 0) > 0) {
+                      if (!canAdvanceFromStep3()) {
+                        setTimeout(() => caixaInputRef.current?.focus(), 0)
+                        return
+                      }
                       setStep(prev => prev + 1) // vai para 4
                       setTimeout(() => registrarButtonRef.current?.focus(), 0)
                     } else {
@@ -672,46 +712,76 @@ export default function TelaEsterilizacao() {
             {uniqueCaixas.length > 0 && (
               <div className="flex flex-col gap-2 mt-4">
                 {uniqueCaixas.map(c => {
-                  const maxSaida = operation === 'saida' ? (stockByBox[c.nome] || 0) : 99
-                  const max = Math.max(1, maxSaida)
+                  const disponivel = operation === 'saida' ? (stockByBox[c.nome] || 0) : null
+                  const semSaldo = operation === 'saida' && (!disponivel || disponivel <= 0)
+                  const excedeSaldo = operation === 'saida' && !!disponivel && (Number(c.qty) || 1) > disponivel
+                  const maxSaida = operation === 'saida' ? (disponivel || 0) : 99
+                  const max = Math.max(semSaldo ? 0 : 1, maxSaida)
                   return (
-                    <div key={c.id} className="bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg flex items-center justify-between">
-                      <div className="font-medium text-gray-800">{c.nome}</div>
-                      <div className="flex items-center gap-2">
-                        <label className="text-xs text-gray-600">Qtd</label>
-                        <button
-                          type="button"
-                          onClick={() => adjustQty(c.id, -1)}
-                          className="w-7 h-7 flex items-center justify-center rounded border text-gray-700 hover:bg-gray-100"
-                          title="Diminuir"
-                        >−</button>
-                        <input
-                          type="number"
-                          min={1}
-                          max={max}
-                          value={c.qty}
-                          onChange={e => setQtyForBox(c.id, e.target.value)}
-                          onKeyDown={e => {
-                            if (e.key === 'ArrowUp') { e.preventDefault(); adjustQty(c.id, 1) }
-                            if (e.key === 'ArrowDown') { e.preventDefault(); adjustQty(c.id, -1) }
-                          }}
-                          className="w-16 border rounded px-2 py-1 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-300"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => adjustQty(c.id, 1)}
-                          className="w-7 h-7 flex items-center justify-center rounded border text-gray-700 hover:bg-gray-100"
-                          title="Aumentar"
-                        >+</button>
-                        <button
-                          onClick={() => removerCaixa(c.id)}
-                          className="ml-1 w-6 h-6 flex items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600"
-                          title="Remover caixa da lista"
-                          aria-label="Remover caixa da lista"
-                        >
-                          ×
-                        </button>
+                    <div key={c.id} className={`bg-gray-50 border ${semSaldo || excedeSaldo ? 'border-red-300' : 'border-gray-200'} px-3 py-2 rounded-lg`}> 
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="font-medium text-gray-800">{c.nome}</div>
+                          {operation === 'saida' && (
+                            <>
+                              {semSaldo && (
+                                <span className="hidden md:inline text-xs text-red-600">Sem estoque para saída desta caixa.</span>
+                              )}
+                              {!semSaldo && excedeSaldo && (
+                                <span className="hidden md:inline text-xs text-red-600">Quantidade solicitada excede estoque ({disponivel}).</span>
+                              )}
+                            </>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <label className="text-[11px] md:text-xs text-gray-600">Qtd</label>
+                          <button
+                            type="button"
+                            onClick={() => adjustQty(c.id, -1)}
+                            disabled={semSaldo}
+                            className={`w-6 h-6 md:w-7 md:h-7 text-xs md:text-sm flex items-center justify-center rounded border ${semSaldo ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-100'}`}
+                            title="Diminuir"
+                          >−</button>
+                          <input
+                            type="number"
+                            min={semSaldo ? 0 : 1}
+                            max={max}
+                            value={Math.min(Number(c.qty) || 0, max)}
+                            onChange={e => setQtyForBox(c.id, e.target.value)}
+                            disabled={semSaldo}
+                            onKeyDown={e => {
+                              if (e.key === 'ArrowUp') { e.preventDefault(); if (!semSaldo) adjustQty(c.id, 1) }
+                              if (e.key === 'ArrowDown') { e.preventDefault(); if (!semSaldo) adjustQty(c.id, -1) }
+                            }}
+                            className={`w-12 md:w-16 border rounded px-2 py-1 text-xs md:text-sm text-center focus:outline-none ${semSaldo ? 'bg-gray-100 text-gray-400' : 'focus:ring-2 focus:ring-blue-300'}`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => adjustQty(c.id, 1)}
+                            disabled={semSaldo}
+                            className={`w-6 h-6 md:w-7 md:h-7 text-xs md:text-sm flex items-center justify-center rounded border ${semSaldo ? 'text-gray-300 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-100'}`}
+                            title="Aumentar"
+                          >+</button>
+                          <button
+                            onClick={() => removerCaixa(c.id)}
+                            className="ml-1 w-5 h-5 md:w-6 md:h-6 flex items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600"
+                            title="Remover caixa da lista"
+                            aria-label="Remover caixa da lista"
+                          >
+                            ×
+                          </button>
+                        </div>
                       </div>
+                      {operation === 'saida' && (
+                        <div className="mt-1 text-xs md:hidden">
+                          {semSaldo && (
+                            <span className="text-red-600">Sem estoque para saída desta caixa.</span>
+                          )}
+                          {!semSaldo && excedeSaldo && (
+                            <span className="text-red-600">Quantidade solicitada excede estoque ({disponivel}).</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )
                 })}

@@ -156,6 +156,97 @@ exports.registrarSaida = async (req, res) => {
   }
 };
 
+/**
+ * Saída em lote (transação atômica)
+ * Body: { aluno_id?, aluno_pin?, preferir_vencidas?: boolean, itens: [{ caixa_id, quantidade }] }
+ */
+exports.registrarSaidaBatch = async (req, res) => {
+  try {
+    const operador_id = req.user.id;
+    const { aluno_id, aluno_pin, itens, preferir_vencidas } = req.body || {};
+    if (!Array.isArray(itens) || itens.length === 0) {
+      return res.status(400).json({ error: 'Envie itens com caixa_id e quantidade.' });
+    }
+
+    // 1) resolve o ID do aluno
+    const finalAlunoId = await resolveAlunoId(aluno_id, aluno_pin, res);
+    if (!finalAlunoId) return; // já respondeu
+
+    // 2) busca o período do aluno
+    const connPeriodo = await getConnection();
+    let periodo_id;
+    try {
+      const [periodoRows] = await connPeriodo.execute(
+        'SELECT periodo_id FROM alunos WHERE id = ?',
+        [finalAlunoId]
+      );
+      periodo_id = periodoRows[0]?.periodo_id ?? null;
+    } finally {
+      connPeriodo.release();
+    }
+
+    if (periodo_id === null) {
+      return res
+        .status(400)
+        .json({ error: 'Não foi possível determinar o período do aluno.' });
+    }
+
+    const conn = await getConnection();
+    try {
+      await conn.beginTransaction();
+
+      for (const item of itens) {
+        const caixa_id = Number(item?.caixa_id);
+        const quantidade = Math.max(1, Number(item?.quantidade || 0));
+        if (!Number.isFinite(caixa_id) || !Number.isFinite(quantidade) || quantidade <= 0) {
+          await conn.rollback();
+          return res.status(400).json({ error: 'Itens inválidos.' });
+        }
+
+        // bloqueia linhas desta caixa do aluno para calcular saldo com segurança
+        const [lockRows] = await conn.execute(
+          `SELECT id, tipo FROM movimentacoes_esterilizacao
+           WHERE aluno_id = ? AND caixa_id = ?
+           FOR UPDATE`,
+          [finalAlunoId, caixa_id]
+        );
+
+        let saldo = 0;
+        for (const r of lockRows) {
+          if (r.tipo === 'entrada') saldo += 1; else if (r.tipo === 'saida') saldo -= 1;
+        }
+        if (saldo < quantidade) {
+          await conn.rollback();
+          return res.status(400).json({ error: `Saldo insuficiente para a caixa ${caixa_id}. Disponível: ${saldo}, solicitado: ${quantidade}.` });
+        }
+
+        // insere N saídas (mantemos 1 unidade por linha para compatibilidade dos relatórios)
+        for (let i = 0; i < quantidade; i++) {
+          await conn.execute(
+            `INSERT INTO movimentacoes_esterilizacao (caixa_id, aluno_id, operador_id, tipo, periodo_id)
+             VALUES (?, ?, ?, 'saida', ?)`,
+            [caixa_id, finalAlunoId, operador_id, periodo_id]
+          );
+        }
+      }
+
+      await conn.commit();
+
+      // retorna novo saldo do aluno
+      const novos = await Movimentacao.estoquePorAluno(finalAlunoId);
+      return res.json({ sucesso: true, novos_saldos: novos });
+    } catch (err) {
+      try { if (conn) await conn.rollback(); } catch (_) {}
+      throw err;
+    } finally {
+      try { if (conn) conn.release(); } catch (_) {}
+    }
+  } catch (err) {
+    console.error('Erro ao registrar saída em lote:', err);
+    return res.status(500).json({ error: 'Erro ao registrar saída em lote' });
+  }
+};
+
 exports.listarMovimentacoes = async (_req, res) => {
   try {
     const lista = await Movimentacao.listarTodos();

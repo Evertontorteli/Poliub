@@ -25,6 +25,7 @@ router.delete('/:id', verificaTokenComSessaoUnica, movController.deletarMoviment
 
 router.get('/estoque/:aluno_id', verificaTokenComSessaoUnica, movController.estoquePorAluno);
 router.get('/historico/:aluno_id', verificaTokenComSessaoUnica, movController.historicoPorAluno);
+router.post('/saida-batch', verificaTokenComSessaoUnica, movController.registrarSaidaBatch);
 
 // Relatório (resumo por aluno)
 router.get('/relatorio', verificaTokenComSessaoUnica, movController.relatorioPorAluno);
