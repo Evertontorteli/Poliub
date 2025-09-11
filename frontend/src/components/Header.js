@@ -69,8 +69,8 @@ export default function Header({ onlineUsers = [] }) {
 
   // Remove o usuário logado da lista de online (se houver)
   const others = onlineUsers.filter(u => u.id !== user?.id);
-  const firstThree = others.slice(0, 3);
-  const moreCount = others.length > 3 ? others.length - 3 : 0;
+  const firstShown = others.slice(0, 4);
+  const moreCount = Math.max(0, others.length - 4);
 
   // Detecta mobile
   const isMobile = window.innerWidth <= 640;
@@ -106,7 +106,7 @@ export default function Header({ onlineUsers = [] }) {
         )}
 
         {/* Avatares: usuário e online */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center md:gap-2 whitespace-nowrap">
           {/* Avatar do usuário */}
           {user && (
             <img
@@ -120,31 +120,35 @@ export default function Header({ onlineUsers = [] }) {
               style={{ border: `2px solid ${BORDER_COLORS[0]}` }}
             />
           )}
-          {/* Avatares dos online */}
-          {firstThree.map((u, i) => (
-            <img
-              key={u.id}
-              src={
-                u.avatar_url ||
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(u.nome)}&background=ccc`
-              }
-              alt={u.nome}
-              title={u.nome}
-              className="w-8 h-8 rounded-full object-cover"
-              style={{
-                border: `2px solid ${BORDER_COLORS[(i + 1) % BORDER_COLORS.length]}`
-              }}
-            />
-          ))}
-          {/* Botão +N */}
-          {moreCount > 0 && (
-            <button
-              className="w-8 h-8 rounded-full bg-gray-100 border border-gray-300 text-xs font-bold flex items-center justify-center hover:bg-gray-200"
-              onClick={() => setShowAllOnline(val => !val)}
-              title="Mostrar todos online"
-              style={{ minWidth: '2rem' }}
-            >+{moreCount}</button>
-          )}
+          {/* Avatares dos online (sobrepostos em mobile) */}
+          <div className="flex items-center md:gap-2">
+            {firstShown.map((u, i) => (
+              <img
+                key={u.id}
+                src={
+                  u.avatar_url ||
+                  `https://ui-avatars.com/api/?name=${encodeURIComponent(u.nome)}&background=ccc`
+                }
+                alt={u.nome}
+                title={u.nome}
+                className="rounded-full object-cover ring-2 ring-white w-7 h-7 md:w-8 md:h-8"
+                style={{
+                  border: `2px solid ${BORDER_COLORS[(i + 1) % BORDER_COLORS.length]}`,
+                  marginLeft: isMobile && i > 0 ? -10 : 0,
+                  zIndex: 30 - i
+                }}
+              />
+            ))}
+            {/* Botão +N */}
+            {others.length > 1 && (
+              <button
+                className="rounded-full bg-gray-100 border border-gray-300 text-[10px] md:text-xs font-bold flex items-center justify-center hover:bg-gray-200 w-7 h-7 md:w-8 md:h-8"
+                onClick={() => setShowAllOnline(val => !val)}
+                title="Mostrar todos online"
+                style={{ minWidth: isMobile ? '1.75rem' : '2rem', marginLeft: isMobile && firstShown.length > 0 ? -10 : 0, zIndex: 29 }}
+              >{moreCount > 0 ? `+${moreCount}` : '+'}</button>
+            )}
+          </div>
 
           {/* Popover mostrar todos online */}
           {showAllOnline && (
