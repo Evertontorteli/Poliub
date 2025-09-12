@@ -98,11 +98,25 @@ export default function TelaLogs() {
   const [showDatePopover, setShowDatePopover] = useState(false);
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [periodos, setPeriodos] = useState([]);
+  const [periodoId, setPeriodoId] = useState("");
 
   const datePopoverRef = useRef(null);
   
   // Registrar locale pt-BR
   registerLocale('pt-BR', ptBR);
+
+  // Carregar períodos
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await axios.get('/api/periodos', { headers: { Authorization: `Bearer ${user.token}` } });
+        setPeriodos(res.data || []);
+      } catch (_) {
+        setPeriodos([]);
+      }
+    })();
+  }, [user.token]);
 
   // Buscar logs
   useEffect(() => {
@@ -116,6 +130,7 @@ export default function TelaLogs() {
         };
         if (from) params.from = from;
         if (to) params.to = to;
+        if (periodoId) params.periodo_id = periodoId;
         
         console.log('Fetching logs with params:', params);
         
@@ -132,7 +147,7 @@ export default function TelaLogs() {
       }
     };
     fetchLogs();
-  }, [user.token, from, to, pagina]);
+  }, [user.token, from, to, periodoId, pagina]);
 
   // Gerar listas únicas para filtros dropdown
   const usuarios = Array.from(new Set(logs.map(l => l.usuario_nome).filter(Boolean)));
@@ -220,6 +235,16 @@ export default function TelaLogs() {
           >
             <option value="">Todos os usuários</option>
             {usuarios.map(u => <option key={u} value={u}>{u}</option>)}
+          </select>
+          <select
+            className="border rounded px-3 py-2 w-auto focus:outline-none focus:ring-2 focus:ring-blue-300"
+            value={periodoId}
+            onChange={e => { setPeriodoId(e.target.value); setPagina(0); }}
+          >
+            <option value="">Todos os períodos</option>
+            {periodos.map(p => (
+              <option key={p.id} value={p.id}>{p.nome}{p.turno ? ` - ${p.turno}` : ''}</option>
+            ))}
           </select>
           <select
             className="border rounded px-3 py-2 w-auto focus:outline-none focus:ring-2 focus:ring-blue-300"

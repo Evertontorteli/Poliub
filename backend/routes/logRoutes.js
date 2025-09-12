@@ -6,21 +6,32 @@ const { verificaTokenComSessaoUnica, apenasRecepcao } = require('../middlewares/
 
 router.get("/", verificaTokenComSessaoUnica, apenasRecepcao, async (req, res) => {
   try {
-    const { data, from, to, limit = 100, offset = 0 } = req.query;
+    const { data, from, to, periodo_id, limit = 100, offset = 0 } = req.query;
 
     let query = `SELECT 
-                   id,
-                   usuario_id,
-                   usuario_nome,
-                   acao,
-                   entidade,
-                   entidade_id,
-                   detalhes,
+                   l.id,
+                   l.usuario_id,
+                   l.usuario_nome,
+                   l.acao,
+                   l.entidade,
+                   l.entidade_id,
+                   l.detalhes,
                    DATE_FORMAT(
-                     CONVERT_TZ(criado_em, '+00:00', 'America/Sao_Paulo'),
+                     CONVERT_TZ(l.criado_em, '+00:00', 'America/Sao_Paulo'),
                      '%Y-%m-%d %H:%i:%s'
                    ) AS criado_em
-                 FROM logs`;
+                 FROM logs l
+                 LEFT JOIN alunos a ON (
+                   (l.entidade = 'alunos' AND l.entidade_id = a.id)
+                   OR (
+                     JSON_EXTRACT(CAST(l.detalhes AS JSON), '$.aluno_id') IS NOT NULL
+                     AND JSON_EXTRACT(CAST(l.detalhes AS JSON), '$.aluno_id') = a.id
+                   )
+                   OR (
+                     JSON_EXTRACT(CAST(l.detalhes AS JSON), '$.alunoId') IS NOT NULL
+                     AND JSON_EXTRACT(CAST(l.detalhes AS JSON), '$.alunoId') = a.id
+                   )
+                 )`;
     const params = [];
     const conditions = [];
 
@@ -40,6 +51,11 @@ router.get("/", verificaTokenComSessaoUnica, apenasRecepcao, async (req, res) =>
     } else if (to) {
       conditions.push("DATE(CONVERT_TZ(criado_em, '+00:00', 'America/Sao_Paulo')) <= ?");
       params.push(to);
+    }
+
+    if (periodo_id) {
+      conditions.push("a.periodo_id = ?");
+      params.push(Number(periodo_id));
     }
 
     if (conditions.length > 0) {
