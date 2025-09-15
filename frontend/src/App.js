@@ -63,7 +63,6 @@ function LayoutInterno() {
   const suppressFirstMismatchRef = useRef(false)
   const isProdRef = useRef(process.env.NODE_ENV === 'production')
   const lastNotifiedHashRef = useRef(null)
-  const deferredToastShownRef = useRef(false)
 
   // Lida com o resize para mostrar/esconder a sidebar
   useEffect(() => {
@@ -89,47 +88,7 @@ function LayoutInterno() {
     }
   }
 
-  function isUserEditing() {
-    try {
-      const el = document.activeElement
-      if (!el) return false
-      if (el.isContentEditable) return true
-      const tag = String(el.tagName || '').toUpperCase()
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true
-      return false
-    } catch {
-      return false
-    }
-  }
-
-  function scheduleReloadNow() {
-    try { sessionStorage.setItem('updateAck', '1') } catch {}
-    if (isUserEditing()) {
-      try { sessionStorage.setItem('pendingHardReload', '1') } catch {}
-      if (!deferredToastShownRef.current) {
-        try {
-          toast.info('Nova versão disponível. A página será atualizada quando você terminar de editar.', { autoClose: 5000 })
-        } catch {}
-        deferredToastShownRef.current = true
-      }
-      const el = document.activeElement
-      const tryReloadOnce = () => {
-        setTimeout(() => {
-          if (!isUserEditing()) {
-            try { sessionStorage.removeItem('pendingHardReload') } catch {}
-            reloadWithCacheBust()
-          }
-        }, 50)
-      }
-      try {
-        el?.addEventListener('blur', tryReloadOnce, { once: true })
-        el?.addEventListener('change', tryReloadOnce, { once: true })
-      } catch {}
-      // Fallback: se usuário trocar de aba/voltar, recarrega
-    } else {
-      reloadWithCacheBust()
-    }
-  }
+  // sem recarregar imediatamente; apenas marca e recarrega ao focar quando necessário
 
   function showUpdateToast(pendingHash = null) {
     // Desabilitado visualmente: apenas registra internamente para evitar repetição
@@ -238,9 +197,8 @@ function LayoutInterno() {
         const k = versionKey(v)
         if (versionKeyRef.current && k && k !== versionKeyRef.current) {
           if (!updateNotifiedRef.current) {
-            // Atualização detectada pelo backend → recarrega silenciosamente com cache-bust
+            showUpdateToast()
             updateNotifiedRef.current = true
-            scheduleReloadNow()
           }
         } else if (!versionKeyRef.current && k) {
           versionKeyRef.current = k
@@ -264,8 +222,8 @@ function LayoutInterno() {
         try { if (k) localStorage.setItem('knownVersionKey', k) } catch {}
       } else if (k && k !== versionKeyRef.current) {
         if (!updateNotifiedRef.current) {
+          showUpdateToast()
           updateNotifiedRef.current = true
-          scheduleReloadNow()
         }
       }
     })
@@ -305,12 +263,6 @@ function LayoutInterno() {
           // recarrega discretamente com cache-bust ao voltar o foco
           localStorage.setItem('knownAssetHash', pending)
           localStorage.removeItem('pendingAssetHash')
-          reloadWithCacheBust()
-        }
-        // Se ficou pendente um reload duro por estar editando, efetiva agora
-        const pendingHard = sessionStorage.getItem('pendingHardReload') === '1'
-        if (pendingHard && !isUserEditing()) {
-          sessionStorage.removeItem('pendingHardReload')
           reloadWithCacheBust()
         }
       } catch {}
