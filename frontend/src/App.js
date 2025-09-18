@@ -23,6 +23,7 @@ import TelaEsterilizacao from './components/TelaEsterilizacao'
 import TelaCaixas from './components/TelaCaixas'
 import TelaDashboardEsterilizacao from './components/DashboardEsterilizacao'
 import TelaLogs from './components/TelaLogs'
+import TelaAjustes from './components/TelaAjustes'
 
 import DashboardAluno from './DashboardAluno'
 import DashboardRecepcao from './DashboardRecepcao'
@@ -333,6 +334,7 @@ function LayoutInterno() {
       case 'dashboard-esterilizacao': return <TelaDashboardEsterilizacao />
       case 'auditoria': return <TelaLogs />
       case 'backup': return <BackupConfig />      
+      case 'ajustes': return <TelaAjustes />
       case 'ajuda': return <Ajuda />
       default:
         return (

@@ -12,6 +12,7 @@ import {
   PieChart,
   LayoutList,
   Database,
+  Settings,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
@@ -93,21 +94,14 @@ export default function Sidebar({ active, onMenuClick }) {
 
       {/* Base: Configurações e Ajuda */}
       <div className="flex flex-col gap-2 mb-10 px-4">
-        {role !== "aluno" && (
+        {role === "recepcao" && (
           <MenuItem
-            icon={<LayoutList size={24} />}
-            label="Auditoria"
-            active={active === "auditoria"}
-            onClick={() => onMenuClick("auditoria")}
+            icon={<Settings size={24} />}
+            label="Ajustes"
+            active={active === "ajustes"}
+            onClick={() => onMenuClick("ajustes")}
           />
         )}
-        { role !== "aluno" &&(
-         <MenuItem         
-          icon={<Database size={24} />}
-          label="Backup"
-          active={active === "backup"}
-          onClick={() => onMenuClick("backup")}
-        />)}
 
         <MenuItem
           icon={<HelpCircle size={24} />}

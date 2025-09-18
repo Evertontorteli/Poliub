@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { Search } from "lucide-react";
 import SpotlightSearch from './SpotlightSearch';
 import PerfilModal from './PerfilModal'; // <=== ADICIONE ESTA LINHA
+import FeedbackModal from './FeedbackModal';
 import axios from 'axios'; // <=== NECESSÁRIO
 
 const AvatarIcon = () => (
@@ -35,6 +36,7 @@ export default function Header({ onlineUsers = [] }) {
   // NOVO: estados para o modal de perfil
   const [showPerfilModal, setShowPerfilModal] = useState(false);
   const [alunoPerfil, setAlunoPerfil] = useState(null);
+  const [showFeedback, setShowFeedback] = useState(false);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -204,6 +206,14 @@ export default function Header({ onlineUsers = [] }) {
               </li>
               <li>
                 <button
+                  onClick={() => { setDropdownOpen(false); setShowFeedback(true); }}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700"
+                >
+                  Enviar feedback
+                </button>
+              </li>
+              <li>
+                <button
                   onClick={handleMeuPerfil}
                   className="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700"
                 >
@@ -229,6 +239,9 @@ export default function Header({ onlineUsers = [] }) {
           aluno={alunoPerfil}
           onClose={() => setShowPerfilModal(false)}
         />
+      )}
+      {showFeedback && (
+        <FeedbackModal open={showFeedback} onClose={() => setShowFeedback(false)} />
       )}
     </header>
   );
