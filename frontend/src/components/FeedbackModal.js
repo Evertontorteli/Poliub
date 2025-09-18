@@ -40,6 +40,10 @@ export default function FeedbackModal({ open, onClose, page, onSent, frequencyDa
 
   return (
     <Modal isOpen={open} shouldCloseOnOverlayClick={false} onClose={() => {
+      if (deferNow) {
+        try { localStorage.setItem(`lastFeedbackPromptAt${storageSuffix}`, String(Date.now())) } catch {}
+        try { toast.info(`Voltaremos a perguntar em ${Number(frequencyDays||30)} dia${Number(frequencyDays||30)===1?'':'s'}.`, { autoClose: 3000 }) } catch {}
+      }
       try { localStorage.setItem(`feedbackCooldownUntil${storageSuffix}`, String(Date.now() + 30_000)) } catch {}
       onClose?.();
     }} size="md">
