@@ -9,12 +9,17 @@ export default function FeedbackModal({ open, onClose, page, onSent, frequencyDa
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
   const [deferNow, setDeferNow] = useState(false);
+  const needsReason = score != null && Number(score) <= 6;
 
   if (!open) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (submitting) return;
+    if (needsReason && !String(comment || '').trim()) {
+      try { toast.warn('Por favor, explique sua nota para enviar.'); } catch {}
+      return;
+    }
     setSubmitting(true);
     try {
       await axios.post('/api/feedbacks', {
@@ -69,14 +74,18 @@ export default function FeedbackModal({ open, onClose, page, onSent, frequencyDa
               ))}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Conte mais (opcional)</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Conte mais{needsReason ? '' : ' (opcional)'}{needsReason && <span className="text-red-600 ml-1">*</span>}
+              </label>
               <textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 rows={4}
                 maxLength={2000}
-                className="w-full border rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-[#0095DA]"
-                placeholder="O que podemos melhorar? O que mais te ajuda?"
+                required={needsReason}
+                className={`w-full border rounded-md p-2 focus:outline-none focus:ring-2 ${needsReason ? 'border-red-300 focus:ring-red-400' : 'focus:ring-[#0095DA]'}`}
+                placeholder={needsReason ? 'Explique sua nota para podermos melhorar' : 'O que podemos melhorar? O que mais te ajuda?'}
+                aria-invalid={needsReason && !String(comment||'').trim()}
               />
               <div className="text-xs text-gray-400 mt-1">Até 2000 caracteres</div>
             </div>
