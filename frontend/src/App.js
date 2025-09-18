@@ -38,9 +38,11 @@ import ProtectedRoute from './components/ProtectedRoute'
 import { AuthProvider, useAuth } from './context/AuthContext'
 
 import { io } from 'socket.io-client'
+import axios from 'axios'
 import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import BackupConfig from './backup/BackupConfig'
+import FeedbackModal from './components/FeedbackModal'
 
 
 function Dashboards() {
@@ -55,6 +57,10 @@ function LayoutInterno() {
   const { user } = useAuth()
   const [onlineUsers, setOnlineUsers] = useState([])
   const [showSidebar, setShowSidebar] = useState(window.innerWidth >= 1366)
+  const [showFeedbackPrompt, setShowFeedbackPrompt] = useState(false)
+  const [feedbackFreqDays, setFeedbackFreqDays] = useState(null)
+  const [feedbackEnabled, setFeedbackEnabled] = useState(false)
+  const storageSuffix = user?.id ? `:${user.id}` : ':anon'
   // Notificação de atualização via toast (persistente até clicar)
   const versionKeyRef = useRef(null)
   const updateNotifiedRef = useRef(false)
@@ -135,6 +141,52 @@ function LayoutInterno() {
     return () => presSocket.disconnect()
   }, [user])
 
+  useEffect(() => {
+    if (!user) return
+    // Carrega configuração de prompt e decide exibir
+    let alive = true
+    ;(async () => {
+      try {
+        const { data: cfg } = await axios.get('/api/settings/feedback-prompt')
+        const enabled = !!cfg?.enabled
+        const freqDays = Number(cfg?.frequencyDays || 30)
+        setFeedbackEnabled(enabled)
+        setFeedbackFreqDays(freqDays)
+        if (!enabled) return
+        const key = `lastFeedbackPromptAt${storageSuffix}`
+        let last = null
+        try { last = localStorage.getItem(key) } catch {}
+        const now = Date.now()
+        const ms = freqDays * 24 * 60 * 60 * 1000
+        const cooldownUntil = (() => { try { return Number(localStorage.getItem(`feedbackCooldownUntil${storageSuffix}`) || 0) } catch { return 0 } })()
+        const underCooldown = cooldownUntil && now < cooldownUntil
+        const shouldShow = (!last || (now - Number(last)) >= ms) && !underCooldown
+        if (alive && shouldShow) setShowFeedbackPrompt(true)
+      } catch {}
+    })()
+
+    // Checagem ao ganhar foco/visibilidade
+    const checkOnVisibility = () => {
+      if (!feedbackEnabled || !feedbackFreqDays || showFeedbackPrompt) return
+      try {
+        const last = Number(localStorage.getItem(`lastFeedbackPromptAt${storageSuffix}`) || 0)
+        const ms = Number(feedbackFreqDays) * 24 * 60 * 60 * 1000
+        const cooldownUntil = Number(localStorage.getItem(`feedbackCooldownUntil${storageSuffix}`) || 0)
+        if ((!last || Date.now() - last >= ms) && (!cooldownUntil || Date.now() >= cooldownUntil)) {
+          setShowFeedbackPrompt(true)
+        }
+      } catch {}
+    }
+    window.addEventListener('focus', checkOnVisibility)
+    const onVisibility = () => { if (document.visibilityState === 'visible') checkOnVisibility() }
+    document.addEventListener('visibilitychange', onVisibility)
+
+    return () => {
+      alive = false
+      window.removeEventListener('focus', checkOnVisibility)
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [user, storageSuffix, feedbackEnabled, feedbackFreqDays, showFeedbackPrompt])
   useEffect(() => {
     if (!user) return
     const backendUrl = process.env.REACT_APP_API_URL ||
@@ -362,6 +414,15 @@ function LayoutInterno() {
         </main>
       </div>
       <BottomNavBar active={active} onMenuClick={setActive} />
+      {showFeedbackPrompt && (
+        <FeedbackModal
+          open={showFeedbackPrompt}
+          onClose={() => setShowFeedbackPrompt(false)}
+          onSent={() => { try { localStorage.setItem(`lastFeedbackPromptAt${storageSuffix}`, String(Date.now())) } catch {} }}
+          frequencyDays={feedbackFreqDays || 30}
+          storageSuffix={storageSuffix}
+        />
+      )}
     </div>
   )
 }

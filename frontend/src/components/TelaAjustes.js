@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import TelaLogs from './TelaLogs';
 import BackupConfig from '../backup/BackupConfig';
-import { Filter } from 'lucide-react';
+import { Filter, Settings } from 'lucide-react';
+import Modal from './Modal';
 
 export default function TelaAjustes() {
   const [tab, setTab] = useState(() => {
@@ -37,28 +38,9 @@ export default function TelaAjustes() {
     return { startDate:'', endDate:'', role:'', minScore:'', q:'', orderBy:'created_at', orderDir:'desc' };
   });
   const [showFilters, setShowFilters] = useState(false);
-  const filterRef = useRef(null);
-  const btnRef = useRef(null);
+  const [showConfig, setShowConfig] = useState(false);
 
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (!showFilters) return;
-      const el = filterRef.current;
-      const btn = btnRef.current;
-      if (el && !el.contains(e.target) && btn && !btn.contains(e.target)) {
-        setShowFilters(false);
-      }
-    }
-    function onEsc(e) {
-      if (e.key === 'Escape') setShowFilters(false);
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', onEsc);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', onEsc);
-    };
-  }, [showFilters]);
+  // Filtros agora usam Modal (overlay/ESC já fecham)
 
   // Persiste aba ativa
   useEffect(() => {
@@ -122,15 +104,27 @@ export default function TelaAjustes() {
     <div className="max-w-5xl mx-auto relative">
       <div className="flex items-center justify-between mb-2">
         <h1 className="text-2xl font-bold text-gray-800">Ajustes</h1>
-        <button
-          ref={btnRef}
-          onClick={() => setShowFilters((v) => !v)}
-          className="inline-flex items-center gap-2 px-3 py-2 border rounded-md hover:bg-gray-50"
-          aria-label="Abrir filtros"
-        >
-          <Filter size={18} />
-          Filtros
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowFilters((v) => !v)}
+            className="inline-flex items-center gap-2 px-3 py-2 border rounded-md hover:bg-gray-50"
+            aria-label="Abrir filtros"
+          >
+            <Filter size={18} />
+            Filtros
+          </button>
+          {tab === 'feedbacks' && (
+            <button
+              onClick={() => setShowConfig(true)}
+              className="inline-flex items-center gap-2 px-3 py-2 border rounded-md hover:bg-gray-50"
+              aria-label="Configurações de feedback"
+              title="Configurações de feedback"
+            >
+              <Settings size={18} />
+              Configurações
+            </button>
+          )}
+        </div>
       </div>
       <div className="flex items-center gap-2 border-b mb-4">
         <button
@@ -159,12 +153,10 @@ export default function TelaAjustes() {
         </button>
       </div>
 
-      {showFilters && tab === 'feedbacks' && (
-        <div
-          ref={filterRef}
-          className="absolute right-0 z-50 mt-1 w-full sm:w-[620px] bg-white border rounded-lg shadow-lg p-4"
-          style={{ top: 52 }}
-        >
+      {tab === 'feedbacks' && (
+        <Modal isOpen={showFilters} onClose={() => setShowFilters(false)} size="md">
+          <div className="pb-2">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Filtros</h3>
           <div className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-3">
             <div>
               <label className="text-xs text-gray-600">Data inicial</label>
@@ -250,7 +242,8 @@ export default function TelaAjustes() {
               >Aplicar</button>
             </div>
           </div>
-        </div>
+          </div>
+        </Modal>
       )}
 
       {tab === 'feedbacks' && (
@@ -259,10 +252,10 @@ export default function TelaAjustes() {
           {error && <div className="text-red-600">Erro: {error}</div>}
           {resumo && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-              <CardKpi label="NPS (30d)" value={resumo.nps} suffix="" />
-              <CardKpi label="Média NPS" value={resumo.avg_nps != null ? resumo.avg_nps.toFixed(1) : '-'} />
-              <CardKpi label="Promotores" value={resumo.promoters} />
-              <CardKpi label="Detratores" value={resumo.detractors} />
+              <CardKpi label="NPS (30d)" value={resumo.nps} suffix="" color="#3172C0" />
+              <CardKpi label="Média NPS" value={resumo.avg_nps != null ? resumo.avg_nps.toFixed(1) : '-'} color="#ECAD21" />
+              <CardKpi label="Promotores" value={resumo.promoters} color="#2FA74E" />
+              <CardKpi label="Detratores" value={resumo.detractors} color="#DA3648" />
             </div>
           )}
           <div className="overflow-auto border rounded-md">
@@ -330,13 +323,18 @@ export default function TelaAjustes() {
           <TelaLogs />
         </div>
       )}
+
+      {tab === 'feedbacks' && (
+        <FeedbackPromptModal open={showConfig} onClose={() => setShowConfig(false)} />
+      )}
     </div>
   );
 }
 
-function CardKpi({ label, value, suffix }) {
+function CardKpi({ label, value, suffix, color = '#3172C0' }) {
   return (
-    <div className="border rounded-lg p-3 bg-white">
+    <div className="relative border rounded-lg p-3 bg-white overflow-hidden">
+      <span className="absolute left-0 top-0 h-full w-1" style={{ backgroundColor: color }} aria-hidden="true" />
       <div className="text-xs uppercase tracking-wide text-gray-500">{label}</div>
       <div className="text-2xl font-semibold text-gray-800">{value}{suffix || ''}</div>
     </div>
@@ -352,6 +350,69 @@ function Th({ children }) {
 function Td({ children, colSpan }) {
   return (
     <td colSpan={colSpan} className="p-2 text-gray-800">{children}</td>
+  );
+}
+
+function FeedbackPromptModal({ open, onClose }) {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [enabled, setEnabled] = useState(false);
+  const [frequencyDays, setFrequencyDays] = useState(30);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    axios.get('/api/settings/feedback-prompt')
+      .then(({ data }) => {
+        if (!alive) return;
+        setEnabled(!!data?.enabled);
+        setFrequencyDays(Number(data?.frequencyDays || 30));
+      })
+      .catch(() => {})
+      .finally(() => alive && setLoading(false));
+    return () => { alive = false; };
+  }, []);
+
+  async function salvar() {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await axios.put('/api/settings/feedback-prompt', { enabled, frequencyDays });
+    } catch (_) {
+      // noop: poderia exibir toast
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!open) return null;
+  return (
+    <Modal isOpen={open} onClose={onClose} size="md">
+      <div className="p-4">
+        <h3 className="text-lg font-semibold text-gray-800 mb-3">Configurações de Feedback</h3>
+        <div className="flex flex-col md:flex-row md:items-end gap-3">
+          <div className="flex items-center gap-2">
+            <input id="fb-enabled" type="checkbox" className="w-4 h-4" checked={enabled} onChange={e=>setEnabled(e.target.checked)} />
+            <label htmlFor="fb-enabled" className="text-sm text-gray-800">Exibir modal de feedback automaticamente</label>
+          </div>
+          <div className="md:ml-6">
+            <label className="block text-xs text-gray-600">Frequência</label>
+            <select disabled={!enabled} value={frequencyDays} onChange={e=>setFrequencyDays(Number(e.target.value))} className="border rounded p-2 min-w-[160px] disabled:bg-gray-100">
+              <option value={1}>Todos os dias</option>
+              <option value={7}>A cada 7 dias</option>
+              <option value={15}>A cada 15 dias</option>
+              <option value={30}>A cada 30 dias</option>
+            </select>
+          </div>
+        </div>
+        <div className="flex justify-end gap-2 mt-4">
+          <button onClick={onClose} className="px-3 py-2 rounded border">Fechar</button>
+          <button onClick={async () => { await salvar(); onClose?.(); }} disabled={loading || saving} className={`px-3 py-2 rounded text-white ${loading || saving ? 'bg-gray-300' : 'bg-[#0095DA] hover:brightness-110'}`}>
+            {saving ? 'Salvando...' : 'Salvar' }
+          </button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 

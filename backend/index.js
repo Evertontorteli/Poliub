@@ -76,6 +76,16 @@ io.on('connection', (socket) => {
       } catch (e2) {
         console.warn('[schema bootstrap] feedbackModel indisponível:', e2.message);
       }
+
+      // App Settings (para prompts de feedback, etc.)
+      try {
+        const { ensureSchema: ensureSettingsSchema } = require('./models/appSettingsModel');
+        if (typeof ensureSettingsSchema === 'function') {
+          ensureSettingsSchema().catch((e) => console.warn('[schema app_settings] aviso:', e.message));
+        }
+      } catch (e3) {
+        console.warn('[schema bootstrap] appSettingsModel indisponível:', e3.message);
+      }
     } catch (e) {
       console.warn('[schema bootstrap] pacienteModel indisponível:', e.message);
     }
@@ -97,6 +107,7 @@ io.on('connection', (socket) => {
     app.use('/api/search', require('./routes/searchRoutes'));
     app.use('/api/backup', require('./routes/backupRoutes')); // <- mantém aqui
     app.use('/api/feedbacks', require('./routes/feedbackRoutes'));
+    app.use('/api/settings', require('./routes/settingsRoutes'));
 
     // Endpoint simples de versão para cache-busting no frontend
     app.get('/api/version', (_req, res) => {

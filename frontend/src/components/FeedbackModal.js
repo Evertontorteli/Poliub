@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import Modal from './Modal';
+import { toast } from 'react-toastify';
 
-export default function FeedbackModal({ open, onClose, page }) {
+export default function FeedbackModal({ open, onClose, page, onSent, frequencyDays = 30, storageSuffix = '' }) {
   const [score, setScore] = useState(null);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
+  const [deferNow, setDeferNow] = useState(false);
 
   if (!open) return null;
 
@@ -20,6 +22,11 @@ export default function FeedbackModal({ open, onClose, page }) {
         comment,
         page: page || window.location.pathname
       });
+      try { onSent && onSent(); } catch {}
+      if (deferNow) {
+        try { localStorage.setItem(`lastFeedbackPromptAt${storageSuffix}`, String(Date.now())) } catch {}
+        try { toast.info(`Voltaremos a perguntar em ${Number(frequencyDays||30)} dia${Number(frequencyDays||30)===1?'':'s'}.`, { autoClose: 3000 }) } catch {}
+      }
       setSent(true);
       setTimeout(() => {
         onClose?.();
@@ -32,7 +39,10 @@ export default function FeedbackModal({ open, onClose, page }) {
   };
 
   return (
-    <Modal isOpen={open} onClose={onClose} size="md">
+    <Modal isOpen={open} shouldCloseOnOverlayClick={false} onClose={() => {
+      try { localStorage.setItem(`feedbackCooldownUntil${storageSuffix}`, String(Date.now() + 30_000)) } catch {}
+      onClose?.();
+    }} size="md">
       <div className="p-4">
         {!sent ? (
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -66,8 +76,26 @@ export default function FeedbackModal({ open, onClose, page }) {
               />
               <div className="text-xs text-gray-400 mt-1">Até 2000 caracteres</div>
             </div>
+            <div>
+              <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  className="w-4 h-4"
+                  checked={deferNow}
+                  onChange={(e) => setDeferNow(e.target.checked)}
+                />
+                <span>Dispensar por agora (lembrar em {Number(frequencyDays || 30)} dia{Number(frequencyDays || 30) === 1 ? '' : 's'})</span>
+              </label>
+            </div>
             <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={onClose} className="px-3 py-2 rounded border">Cancelar</button>
+              <button type="button" onClick={() => {
+                if (deferNow) {
+                  try { localStorage.setItem(`lastFeedbackPromptAt${storageSuffix}`, String(Date.now())) } catch {}
+                  try { toast.info(`Voltaremos a perguntar em ${Number(frequencyDays||30)} dia${Number(frequencyDays||30)===1?'':'s'}.`, { autoClose: 3000 }) } catch {}
+                }
+                try { localStorage.setItem(`feedbackCooldownUntil${storageSuffix}`, String(Date.now() + 30_000)) } catch {}
+                onClose?.();
+              }} className="px-3 py-2 rounded border">Cancelar</button>
               <button
                 type="submit"
                 disabled={submitting || score == null}
