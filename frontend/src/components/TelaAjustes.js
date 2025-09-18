@@ -105,14 +105,16 @@ export default function TelaAjustes() {
       <div className="flex items-center justify-between mb-2">
         <h1 className="text-2xl font-bold text-gray-800">Ajustes</h1>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowFilters((v) => !v)}
-            className="inline-flex items-center gap-2 px-3 py-2 border rounded-md hover:bg-gray-50"
-            aria-label="Abrir filtros"
-          >
-            <Filter size={18} />
-            Filtros
-          </button>
+          {tab === 'feedbacks' && (
+            <button
+              onClick={() => setShowFilters((v) => !v)}
+              className="inline-flex items-center gap-2 px-3 py-2 border rounded-md hover:bg-gray-50"
+              aria-label="Abrir filtros"
+            >
+              <Filter size={18} />
+              Filtros
+            </button>
+          )}
           {tab === 'feedbacks' && (
             <button
               onClick={() => setShowConfig(true)}
