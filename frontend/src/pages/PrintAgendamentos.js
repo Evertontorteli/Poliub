@@ -121,45 +121,32 @@ export default function PrintAgendamentos() {
   }
 
   const agendamentosFiltrados = filtrarAgendamentos(todosAgendamentos);
-  // Ordena por data (asc) e hora (asc) para impressão consistente
-  const agendamentosOrdenados = agendamentosFiltrados.slice().sort((a, b) => {
-    const ad = a.data ? a.data.slice(0,10) : '';
-    const bd = b.data ? b.data.slice(0,10) : '';
-    if (ad !== bd) return ad < bd ? -1 : 1;
-    const ah = a.hora || '';
-    const bh = b.hora || '';
-    if (ah !== bh) return ah < bh ? -1 : 1;
-    return (a.id || 0) - (b.id || 0);
-  });
-  // Limita a impressão a no máximo 40 registros
-  const agendamentosParaImprimir = agendamentosOrdenados.slice(0, 40);
+  // Mantém a ordem original da lista, mas empurra cancelados para o final (estável)
+  const ativos = agendamentosFiltrados.filter(a => String(a.status).toLowerCase() !== 'cancelado');
+  const cancelados = agendamentosFiltrados.filter(a => String(a.status).toLowerCase() === 'cancelado');
+  const agendamentosParaImprimir = [...ativos, ...cancelados];
 
   return (
-    <div className="printable bg-white p-8">
+    <div className="printable bg-white p-4">
       {/* Cabeçalho: Disciplina | Lista de Agendamentos */}
       <div className="header-line mb-2">
-        <div className="w-full flex flex-nowrap items-baseline gap-2 whitespace-nowrap overflow-hidden">
-          <h2 className="text-2xl font-bold m-0">Lista de Agendamentos</h2>
+        <div className="w-full flex flex-wrap items-baseline gap-2 whitespace-nowrap overflow-hidden">
+          <h2 className="text-2xl font-bold m-0">Agendamentos</h2>
           <span className="opacity-40">|</span>
           <span className="text-sm truncate"><span className="font-semibold">Disciplina:</span> {disciplinaNome || 'Todas'}</span>
+          <span className="opacity-40">|</span>
+          <span className="text-xs truncate text-gray-700">
+            <span className="font-semibold">Data selecionada:</span>{' '}
+            {filtros?.data ? `${formatarData(filtros.data)}${filtros?.hora ? ` ${filtros.hora}` : ''}` : '—'}
+          </span>
+          <span className="opacity-40">|</span>
+          <span className="text-xs truncate text-gray-700">
+            <span className="font-semibold">Impressão:</span>{' '}
+            {printStamp.toLocaleDateString('pt-BR')} {printStamp.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+          </span>
         </div>
       </div>
-      {/* Linha compacta com Datas (mantidas no topo) */}
       <div className="overflow-x-auto">
-        <div className="info-line text-gray-700 mb-2">
-          <div className="w-full flex flex-nowrap items-center gap-4 whitespace-nowrap overflow-hidden text-[11px] leading-snug">
-            <span className="truncate">
-              <span className="font-semibold">Data selecionada:</span>{' '}
-              {filtros?.data ? `${formatarData(filtros.data)}${filtros?.hora ? ` ${filtros.hora}` : ''}` : '—'}
-            </span>
-            <span className="opacity-40">|</span>
-            <span className="truncate">
-              <span className="font-semibold">Data da impressão:</span>{' '}
-              {printStamp.toLocaleDateString('pt-BR')} - {printStamp.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-            </span>
-          </div>
-        </div>
-
         {/* Tabela */}
         <table className="min-w-full table-fixed bg-white divide-y divide-gray-200 rounded-lg shadow-sm">
           {/* Larguras ajustadas para caber na página */}
@@ -188,14 +175,13 @@ export default function PrintAgendamentos() {
           </thead>
 
           <tbody className="bg-white divide-y divide-gray-200">
-            {agendamentosParaImprimir.map((ag, idx) => (
-              <tr key={ag.id || idx} className="hover:bg-gray-50">
+            {ativos.map((ag, idx) => (
+              <tr key={`a-${ag.id || idx}`} className="hover:bg-gray-50">
                 <td className="px-2 py-2 text-sm text-gray-800 text-center">{idx + 1}</td>
                 <td className="px-2 py-2 text-sm text-gray-800 text-center">{ag.operadorBox ?? '-'}</td>
                 <td className="px-2 py-2 text-sm text-gray-800">{ag.operadorNome || '-'}</td>
                 <td className="px-2 py-2 text-sm text-gray-800">{ag.auxiliarNome || '-'}</td>
 
-                {/* Paciente: não quebrar + reticências */}
                 <td
                   className="px-2 py-2 text-sm text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis"
                   style={{ maxWidth: '26ch' }}
@@ -204,7 +190,40 @@ export default function PrintAgendamentos() {
                   {ag.pacienteNome || '-'}
                 </td>
 
-                {/* Pron./Gav.: 3 dígitos, centralizados e sem quebra */}
+                <td className="px-2 py-2 text-sm text-gray-800 text-center whitespace-nowrap tabular-nums">
+                  {fmt3(ag.numero_prontuario)}
+                </td>
+                <td className="px-2 py-2 text-sm text-gray-800 text-center whitespace-nowrap tabular-nums">
+                  {fmt3(ag.numero_gaveta)}
+                </td>
+
+                <td className="px-2 py-2 text-sm text-gray-800">{ag.status || '-'}</td>
+              </tr>
+            ))}
+
+            {cancelados.length > 0 && (
+              <tr className="bg-gray-50">
+                <td colSpan={8} className="px-2 py-2 text-xs font-semibold uppercase tracking-wide text-gray-600">
+                  Cancelados
+                </td>
+              </tr>
+            )}
+
+            {cancelados.map((ag, idx) => (
+              <tr key={`c-${ag.id || idx}`} className="hover:bg-gray-50">
+                <td className="px-2 py-2 text-sm text-gray-800 text-center">{ativos.length + idx + 1}</td>
+                <td className="px-2 py-2 text-sm text-gray-800 text-center">{ag.operadorBox ?? '-'}</td>
+                <td className="px-2 py-2 text-sm text-gray-800">{ag.operadorNome || '-'}</td>
+                <td className="px-2 py-2 text-sm text-gray-800">{ag.auxiliarNome || '-'}</td>
+
+                <td
+                  className="px-2 py-2 text-sm text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis"
+                  style={{ maxWidth: '26ch' }}
+                  title={ag.pacienteNome || '-'}
+                >
+                  {ag.pacienteNome || '-'}
+                </td>
+
                 <td className="px-2 py-2 text-sm text-gray-800 text-center whitespace-nowrap tabular-nums">
                   {fmt3(ag.numero_prontuario)}
                 </td>
@@ -228,10 +247,11 @@ export default function PrintAgendamentos() {
             line-height: 1.3;
           }
 
-          .printable .info-line { font-size: 11px; margin-bottom: 6px; }
-          .printable .header-line { margin-bottom: 6px; }
+          .printable .header-line { margin-bottom: 4px; }
 
           @media print {
+            /* Evita quebra no meio de uma linha */
+            .printable tr { page-break-inside: avoid; }
             body * { visibility: hidden; }
             .printable, .printable * { visibility: visible !important; }
             .printable {
@@ -249,9 +269,8 @@ export default function PrintAgendamentos() {
               border-collapse: collapse !important;
               font-size: 11px !important;
             }
-            .printable h2 { font-size: 14px !important; margin-bottom: 6px !important; }
-            .printable .info-line { font-size: 11px !important; margin-bottom: 4px !important; }
-            .printable .header-line { margin-bottom: 6px !important; }
+            .printable h2 { font-size: 14px !important; margin-bottom: 4px !important; }
+            .printable .header-line { margin-bottom: 4px !important; }
             .printable th, .printable td {
               vertical-align: middle;
               padding-top: 5px !important;
