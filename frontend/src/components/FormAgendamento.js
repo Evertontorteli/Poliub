@@ -147,16 +147,20 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
 
   const pacientesFiltrados = pacientes.filter(p => {
     const term = buscaPaciente.toLowerCase();
+    const tipoUpper = String(p.tipo_paciente || 'NORMAL').toUpperCase();
+    const displayPhone = (p.telefone && p.telefone.trim()) ? p.telefone : (tipoUpper === 'PEDIATRICO' ? (p.responsavel_telefone || '') : '');
     return p.nome.toLowerCase().includes(term)
-        || (p.telefone && p.telefone.includes(term))
+        || (displayPhone && displayPhone.includes(term))
         || (p.cidade && p.cidade.toLowerCase().includes(term));
   });
 
   function handleSelecionarPaciente(p) {
     setPacienteId(p.id);
     setNomePaciente(p.nome);
-    setTelefone(p.telefone);
-    setBuscaPaciente(`${p.nome} - ${p.telefone}`);
+    const tipoUpper = String(p.tipo_paciente || 'NORMAL').toUpperCase();
+    const displayPhone = (p.telefone && p.telefone.trim()) ? p.telefone : (tipoUpper === 'PEDIATRICO' ? (p.responsavel_telefone || '') : '');
+    setTelefone(displayPhone || '');
+    setBuscaPaciente(displayPhone ? `${p.nome} - ${displayPhone}` : `${p.nome}`);
     setShowLista(false);
   }
 
@@ -325,7 +329,15 @@ async function handleSubmit(e) {
                     className="px-3 py-2 cursor-pointer hover:bg-blue-100"
                     onClick={() => handleSelecionarPaciente(p)}
                   >
-                    {p.nome} – {p.telefone}
+                    {(() => {
+                      const tipoUpper = String(p.tipo_paciente || 'NORMAL').toUpperCase();
+                      const displayPhone = (p.telefone && p.telefone.trim()) ? p.telefone : (tipoUpper === 'PEDIATRICO' ? (p.responsavel_telefone || '') : '');
+                      return (
+                        <>
+                          {p.nome}{displayPhone ? ` – ${displayPhone}` : ''}
+                        </>
+                      );
+                    })()}
                     {p.cidade ? (
                       <span className="text-gray-500 ml-1">— {p.cidade}</span>
                     ) : null}

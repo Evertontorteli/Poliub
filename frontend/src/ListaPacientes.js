@@ -10,6 +10,7 @@ function ListaPacientes({ reloadKey, onEditar, onSelcionar }) {
   const [isAluno, setIsAluno] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [pagina, setPagina] = useState(1);
+  const [tipoFiltro, setTipoFiltro] = useState(''); // '', 'NORMAL', 'PEDIATRICO', 'GERIATRICO'
 
   const POR_PAGINA = 100;
 
@@ -37,7 +38,7 @@ function ListaPacientes({ reloadKey, onEditar, onSelcionar }) {
       .catch(() => setCarregando(false));
   }, [reloadKey]);
 
-  useEffect(() => { setPagina(1); }, [searchTerm, pacientes.length]);
+  useEffect(() => { setPagina(1); }, [searchTerm, tipoFiltro, pacientes.length]);
 
   // Atualizado: Exibe o nome do paciente no toast ao deletar
   const handleDeletar = (id) => {
@@ -59,10 +60,18 @@ function ListaPacientes({ reloadKey, onEditar, onSelcionar }) {
     const term = searchTerm.toLowerCase();
     const pront = (p.numero_prontuario ? p.numero_prontuario.toString().toLowerCase() : '');
     const nome = (p.nome || '').toLowerCase();
-    const telefone = (p.telefone || '');
-    return pront.includes(term)
+    const tipoUpper = String(p.tipo_paciente || 'NORMAL').toUpperCase();
+    const displayPhone = (p.telefone && p.telefone.trim())
+      ? p.telefone
+      : (tipoUpper === 'PEDIATRICO' ? (p.responsavel_telefone || '') : '');
+
+    const matchBusca = (
+      pront.includes(term)
       || nome.includes(term)
-      || telefone.includes(term);
+      || String(displayPhone).includes(term)
+    );
+    const matchTipo = !tipoFiltro || tipoUpper === tipoFiltro;
+    return matchBusca && matchTipo;
   });
 
   const totalPaginas = Math.ceil(filteredPacientes.length / POR_PAGINA);
@@ -76,16 +85,33 @@ function ListaPacientes({ reloadKey, onEditar, onSelcionar }) {
   return (
     <div className="mx-auto py-2 px-2">
       <div className="bg-white rounded-2xl p-2 shadow">
-        {/* Pesquisa */}
-        <div className="mb-4 group">
-          <label className="block text-sm text-gray-600 mb-1 transition-colors group-focus-within:text-blue-600">Buscar</label>
-          <input
-            type="text"
-            placeholder="Pesquisar por prontuário, nome ou telefone"
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-          />
+        {/* Pesquisa + Filtro de Tipo */}
+        <div className="mb-4">
+          <div className="flex flex-col md:flex-row md:items-end gap-3">
+            <div className="flex-1 group">
+              <label className="block text-sm text-gray-600 mb-1 transition-colors group-focus-within:text-blue-600">Buscar</label>
+              <input
+                type="text"
+                placeholder="Pesquisar por prontuário, nome ou telefone"
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+              />
+            </div>
+            <div className="w-full md:w-60">
+              <label className="block text-sm text-gray-600 mb-1">Tipo</label>
+              <select
+                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                value={tipoFiltro}
+                onChange={e => setTipoFiltro(e.target.value)}
+              >
+                <option value="">Todos</option>
+                <option value="NORMAL">Normal</option>
+                <option value="PEDIATRICO">Pediátrico</option>
+                <option value="GERIATRICO">Geriátrico</option>
+              </select>
+            </div>
+          </div>
         </div>
         {/* Paginação topo */}
         <div className="flex justify-between items-center mb-4">
@@ -143,21 +169,23 @@ function ListaPacientes({ reloadKey, onEditar, onSelcionar }) {
                     <td className="px-3 py-2 text-gray-500">{p.numero_gaveta || '-'}</td>
                     <td className="px-3 py-2 font-medium text-gray-800">{p.nome}</td>
                     <td className="px-3 py-2 text-gray-500">
-                      {p.telefone}
-                      {p.telefone && (
-                        <a
-                          href={`https://wa.me/55${p.telefone.replace(/\D/g, '')}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          title="Falar no WhatsApp"
-                          className="inline-flex ml-1 text-green-500 hover:text-green-700"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.198.297-.767.966-.94 1.164-.173.198-.347.223-.644.075-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.521.151-.174.201-.298.301-.497.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.521.074-.792.372s-1.04 1.016-1.04 2.479 1.064 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.363.709.306 1.262.488 1.694.624.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.413-.074-.123-.272-.198-.57-.347z" />
-                            <path d="M20.52 3.484A11.802 11.802 0 0012.006.001C5.374 0 .01 5.364.01 11.997c0 2.12.556 4.177 1.611 5.991L.052 24l6.163-1.601a11.91 11.91 0 005.79 1.477h.005c6.633 0 11.998-5.364 11.998-11.997a11.931 11.931 0 00-3.488-8.395zm-8.516 19.404h-.004a10.14 10.14 0 01-5.168-1.417l-.371-.221-3.664.953.979-3.573-.241-.368a10.114 10.114 0 01-1.566-5.478c0-5.592 4.555-10.148 10.162-10.148 2.715 0 5.271 1.056 7.194 2.978a10.12 10.12 0 012.972 7.191c-.002 5.594-4.557 10.13-10.163 10.13z" />
-                          </svg>
-                        </a>
-                      )}
+                      {(() => {
+                        const tipoUpper = String(p.tipo_paciente || 'NORMAL').toUpperCase();
+                        const displayPhone = (p.telefone && p.telefone.trim()) ? p.telefone : (tipoUpper === 'PEDIATRICO' ? (p.responsavel_telefone || '') : '');
+                        if (!displayPhone) return '-';
+                        const wa = `https://wa.me/55${displayPhone.replace(/\D/g, '')}`;
+                        return (
+                          <>
+                            {displayPhone}
+                            <a href={wa} target="_blank" rel="noopener noreferrer" title="Falar no WhatsApp" className="inline-flex ml-1 text-green-500 hover:text-green-700">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.198.297-.767.966-.94 1.164-.173.198-.347.223-.644.075-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.521.151-.174.201-.298.301-.497.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.521.074-.792.372s-1.04 1.016-1.04 2.479 1.064 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.363.709.306 1.262.488 1.694.624.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.413-.074-.123-.272-.198-.57-.347z" />
+                                <path d="M20.52 3.484A11.802 11.802 0 0012.006.001C5.374 0 .01 5.364.01 11.997c0 2.12.556 4.177 1.611 5.991L.052 24l6.163-1.601a11.91 11.91 0 005.79 1.477h.005c6.633 0 11.998-5.364 11.998-11.997a11.931 11.931 0 00-3.488-8.395zm-8.516 19.404h-.004a10.14 10.14 0 01-5.168-1.417l-.371-.221-3.664.953.979-3.573-.241-.368a10.114 10.114 0 01-1.566-5.478c0-5.592 4.555-10.148 10.162-10.148 2.715 0 5.271 1.056 7.194 2.978a10.12 10.12 0 012.972 7.191c-.002 5.594-4.557 10.13-10.163 10.13z" />
+                              </svg>
+                            </a>
+                          </>
+                        );
+                      })()}
                     </td>
 
                     {/* CPF só aparece se NÃO for aluno */}
@@ -235,21 +263,25 @@ function ListaPacientes({ reloadKey, onEditar, onSelcionar }) {
               <div><b>Nº Gaveta:</b> <span className="text-gray-700">{p.numero_gaveta || '-'}</span></div>
               <div><b>Nome:</b> <span className="text-gray-800">{p.nome}</span></div>
               <div>
-                <b>Telefone:</b> <span className="text-gray-700">{p.telefone}</span>
-                {p.telefone && (
-                  <a
-                    href={`https://wa.me/55${p.telefone.replace(/\D/g, '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Falar no WhatsApp"
-                    className="inline-flex ml-1 text-green-500 hover:text-green-700"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.198.297-.767.966-.94 1.164-.173.198-.347.223-.644.075-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.521.151-.174.201-.298.301-.497.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.521.074-.792.372s-1.04 1.016-1.04 2.479 1.064 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.363.709.306 1.262.488 1.694.624.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.413-.074-.123-.272-.198-.57-.347z" />
-                      <path d="M20.52 3.484A11.802 11.802 0 0012.006.001C5.374 0 .01 5.364.01 11.997c0 2.12.556 4.177 1.611 5.991L.052 24l6.163-1.601a11.91 11.91 0 005.79 1.477h.005c6.633 0 11.998-5.364 11.998-11.997a11.931 11.931 0 00-3.488-8.395zm-8.516 19.404h-.004a10.14 10.14 0 01-5.168-1.417l-.371-.221-3.664.953.979-3.573-.241-.368a10.114 10.114 0 01-1.566-5.478c0-5.592 4.555-10.148 10.162-10.148 2.715 0 5.271 1.056 7.194 2.978a10.12 10.12 0 012.972 7.191c-.002 5.594-4.557 10.13-10.163 10.13z" />
-                    </svg>
-                  </a>
-                )}
+                <b>Telefone:</b> <span className="text-gray-700">
+                  {(() => {
+                    const tipoUpper = String(p.tipo_paciente || 'NORMAL').toUpperCase();
+                    const displayPhone = (p.telefone && p.telefone.trim()) ? p.telefone : (tipoUpper === 'PEDIATRICO' ? (p.responsavel_telefone || '') : '');
+                    if (!displayPhone) return '-';
+                    const wa = `https://wa.me/55${displayPhone.replace(/\D/g, '')}`;
+                    return (
+                      <>
+                        {displayPhone}
+                        <a href={wa} target="_blank" rel="noopener noreferrer" title="Falar no WhatsApp" className="inline-flex ml-1 text-green-500 hover:text-green-700">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.198.297-.767.966-.94 1.164-.173.198-.347.223-.644.075-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.521.151-.174.201-.298.301-.497.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.521.074-.792.372s-1.04 1.016-1.04 2.479 1.064 2.876 1.213 3.074c.149.198 2.096 3.2 5.077 4.363.709.306 1.262.488 1.694.624.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.413-.074-.123-.272-.198-.57-.347z" />
+                            <path d="M20.52 3.484A11.802 11.802 0 0012.006.001C5.374 0 .01 5.364.01 11.997c0 2.12.556 4.177 1.611 5.991L.052 24l6.163-1.601a11.91 11.91 0 005.79 1.477h.005c6.633 0 11.998-5.364 11.998-11.997a11.931 11.931 0 00-3.488-8.395zm-8.516 19.404h-.004a10.14 10.14 0 01-5.168-1.417l-.371-.221-3.664.953.979-3.573-.241-.368a10.114 10.114 0 01-1.566-5.478c0-5.592 4.555-10.148 10.162-10.148 2.715 0 5.271 1.056 7.194 2.978a10.12 10.12 0 012.972 7.191c-.002 5.594-4.557 10.13-10.163 10.13z" />
+                          </svg>
+                        </a>
+                      </>
+                    );
+                  })()}
+                </span>
               </div>
 
               {/* CPF só aparece se NÃO for aluno */}
