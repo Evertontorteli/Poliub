@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import TelaLogs from './TelaLogs';
 import BackupConfig from '../backup/BackupConfig';
-import { Filter, Settings } from 'lucide-react';
+import { Filter, Settings, Calendar } from 'lucide-react';
 import Modal from './Modal';
 
 export default function TelaAjustes() {
@@ -134,6 +134,12 @@ export default function TelaAjustes() {
           onClick={() => setTab('feedbacks')}
         >
           Feedbacks
+        </button>
+        <button
+          className={`px-3 py-2 -mb-px border-b-2 ${tab==='manutencao' ? 'border-[#0095DA] text-[#0095DA]' : 'border-transparent text-gray-600'}`}
+          onClick={() => setTab('manutencao')}
+        >
+          Manutenção do Sistema
         </button>
         <button
           className={`px-3 py-2 -mb-px border-b-2 ${tab==='backup' ? 'border-[#0095DA] text-[#0095DA]' : 'border-transparent text-gray-600'}`}
@@ -326,6 +332,10 @@ export default function TelaAjustes() {
         </div>
       )}
 
+      {tab === 'manutencao' && (
+        <ManutencaoSistema />
+      )}
+
       {tab === 'feedbacks' && (
         <FeedbackPromptModal open={showConfig} onClose={() => setShowConfig(false)} />
       )}
@@ -415,6 +425,156 @@ function FeedbackPromptModal({ open, onClose }) {
         </div>
       </div>
     </Modal>
+  );
+}
+
+function ManutencaoSistema() {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [enabled, setEnabled] = useState(false);
+  const [windowHours, setWindowHours] = useState(48);
+  const [selected, setSelected] = useState('agendamento');
+  const readyRef = useRef(false);
+  const debounceRef = useRef(null);
+  // Parâmetro fictício (somente visual)
+  const [fakeEnabled, setFakeEnabled] = useState(false);
+  const [fakeLevel, setFakeLevel] = useState('baixo');
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    axios.get('/api/settings/solicitacao-window')
+      .then(({ data }) => {
+        if (!alive) return;
+        setEnabled(!!data?.enabled);
+        setWindowHours(Number(data?.windowHours || 48));
+        readyRef.current = true;
+      })
+      .catch(() => {})
+      .finally(() => alive && setLoading(false));
+    return () => { alive = false; };
+  }, []);
+
+  async function salvar() {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await axios.put('/api/settings/solicitacao-window', { enabled, windowHours });
+    } catch (_) {
+      // noop
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // Auto-salvar ao alterar toggle/horas (debounce 500ms)
+  useEffect(() => {
+    if (!readyRef.current) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => { salvar(); }, 500);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [enabled, windowHours]);
+
+  return (
+    <div className="mt-2 border rounded-lg bg-white flex">
+      {/* Coluna esquerda: ícones */}
+      <div className="w-64 border-r border-gray-200 py-4">
+        <button
+          className={`w-full px-3 py-2 rounded-xl transition flex items-center gap-3 ${selected==='agendamento' ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' : 'text-gray-600 hover:bg-gray-50'}`}
+          onClick={() => setSelected('agendamento')}
+          aria-label="Agendamento"
+          title="Agendamento"
+        >
+          <Calendar size={20} />
+          <span className="text-sm font-medium">Solicitação de paciente</span>
+        </button>
+        <button
+          className={`w-full mt-2 px-3 py-2 rounded-xl transition flex items-center gap-3 ${selected==='ficticio' ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' : 'text-gray-600 hover:bg-gray-50'}`}
+          onClick={() => setSelected('ficticio')}
+          aria-label="Parâmetro fictício"
+          title="Parâmetro fictício"
+        >
+          <Settings size={20} />
+          <span className="text-sm font-medium">Parâmetro fictício</span>
+        </button>
+      </div>
+
+      {/* Coluna direita: painel detalhado */}
+      <div className="flex-1 p-4">
+        {selected === 'agendamento' && (
+          <div className="md:grid md:grid-cols-2 md:gap-6">
+            <div>
+              <div className="text-sm font-medium text-gray-900">Solicitação de pacientes</div>
+              <p className="text-sm text-gray-600 mt-1">
+                Controla quando alunos podem usar “Solicitar”. Fora da antecedência mínima (ex.: 48h),
+                o tipo Solicitar é bloqueado; o aluno deve usar “Novo” ou “Retorno”.
+              </p>
+            </div>
+            <div className="mt-3 md:mt-0 flex flex-col items-start md:items-end gap-3">
+              {/* Switch estilo "bola" */}
+              <label className="inline-flex items-center cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={enabled}
+                  onChange={e=>setEnabled(e.target.checked)}
+                />
+                <div className="w-11 h-6 bg-gray-300 rounded-full relative transition peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-5 after:h-5 after:bg-white after:rounded-full after:shadow after:transition peer-checked:after:translate-x-5" />
+                <span className="ml-3 text-sm text-gray-800">Habilitar restrição</span>
+              </label>
+              <div className="flex items-end gap-3 w-full md:w-auto">
+                <div>
+                  <label className="block text-xs text-gray-600">Antecedência mínima (horas)</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={336}
+                    value={windowHours}
+                    onChange={e=>setWindowHours(Number(e.target.value))}
+                    disabled={!enabled}
+                    className="border rounded p-2 w-36 disabled:bg-gray-100"
+                  />
+                  <div className="text-xs text-gray-500 mt-1">Até 14 dias (336h)</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {selected === 'ficticio' && (
+          <div className="md:grid md:grid-cols-2 md:gap-6">
+            <div>
+              <div className="text-sm font-medium text-gray-900">Parâmetro fictício (exemplo)</div>
+              <p className="text-sm text-gray-600 mt-1">
+                Este bloco é apenas para demonstrar o layout em linhas separadas. Aqui você poderá
+                adicionar novas opções futuramente.
+              </p>
+            </div>
+            <div className="mt-3 md:mt-0 flex flex-col items-start md:items-end gap-3">
+              <label className="inline-flex items-center cursor-pointer select-none">
+                <input type="checkbox" className="sr-only peer" checked={fakeEnabled} onChange={e=>setFakeEnabled(e.target.checked)} />
+                <div className="w-11 h-6 bg-gray-300 rounded-full relative transition peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-5 after:h-5 after:bg-white after:rounded-full after:shadow after:transition peer-checked:after:translate-x-5" />
+                <span className="ml-3 text-sm text-gray-800">Habilitar (fictício)</span>
+              </label>
+              <div className="flex items-end gap-3 w-full md:w-auto">
+                <div>
+                  <label className="block text-xs text-gray-600">Nível</label>
+                  <select
+                    className="border rounded p-2 w-36"
+                    value={fakeLevel}
+                    onChange={e=>setFakeLevel(e.target.value)}
+                  >
+                    <option value="baixo">Baixo</option>
+                    <option value="medio">Médio</option>
+                    <option value="alto">Alto</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

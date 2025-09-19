@@ -37,6 +37,8 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
   const [operadorId, setOperadorId] = useState('');
   const [auxiliar1Id, setAuxiliar1Id] = useState('');
   const [mensagem, setMensagem] = useState('');
+  const [solWin, setSolWin] = useState({ enabled: false, windowHours: 48 });
+  const [showSolicitarBlocked, setShowSolicitarBlocked] = useState(false);
 
   // Refs
   const inputRef = useRef(null);
@@ -109,6 +111,10 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
     axios.get('/api/pacientes', { headers })
       .then(res => setPacientes(res.data))
       .catch(err => console.error('Erro pacientes:', err));
+
+    axios.get('/api/settings/solicitacao-window', { headers })
+      .then(({ data }) => setSolWin({ enabled: !!data?.enabled, windowHours: Number(data?.windowHours || 48) }))
+      .catch(() => setSolWin({ enabled: false, windowHours: 48 }));
   }, [token, role]);
 
   useEffect(() => {
@@ -164,6 +170,23 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
     setShowLista(false);
   }
 
+  // Bloqueia “Solicitar” para aluno quando fora da janela
+  useEffect(() => {
+    if (role !== 'aluno') return;
+    if (!solWin.enabled) return;
+    if (!data || !hora) return;
+    if (tipoAtendimento !== 'Solicitar') return;
+    try {
+      const agDate = new Date(`${data}T${hora}:00`);
+      const diffMs = agDate.getTime() - Date.now();
+      const minMs = solWin.windowHours * 60 * 60 * 1000;
+      if (diffMs < minMs) {
+        setShowSolicitarBlocked(true);
+        setTipoAtendimento('Novo');
+      }
+    } catch {}
+  }, [role, solWin.enabled, solWin.windowHours, data, hora, tipoAtendimento]);
+
   // Submissão do form
 async function handleSubmit(e) {
   e.preventDefault();
@@ -218,6 +241,11 @@ async function handleSubmit(e) {
         <h2 className="text-2xl font-bold mb-6 text-[#0095DA]">
           Agendar Paciente
         </h2>
+        {showSolicitarBlocked && (
+          <div className="mb-4 p-3 rounded-lg border border-yellow-300 bg-yellow-50 text-yellow-800">
+            A opção Solicitar não está disponível para a data/hora selecionadas (antecedência mínima {solWin.windowHours}h). Selecione uma data mais distante ou use Novo/Retorno.
+          </div>
+        )}
 
         {/* Tipo de atendimento */}
         <div className="flex flex-wrap gap-2 mb-6">

@@ -25,5 +25,33 @@ async function putFeedbackPrompt(req, res) {
 }
 
 module.exports = { getFeedbackPrompt, putFeedbackPrompt };
+// ---------------- Solicitação (janela de antecedência) ----------------
+
+async function getSolicitacaoWindow(req, res) {
+  try {
+    const v = await AppSettings.get('solicitacao_window');
+    res.json(v || { enabled: false, windowHours: 48 });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+}
+
+async function putSolicitacaoWindow(req, res) {
+  try {
+    const { enabled, windowHours } = req.body || {};
+    const hours = Number(windowHours);
+    if (enabled && (!hours || hours < 1 || hours > 24 * 14)) { // até 14 dias
+      return res.status(400).json({ error: 'windowHours inválido (1 a 336 horas)' });
+    }
+    const payload = { enabled: !!enabled, windowHours: enabled ? hours : 48 };
+    await AppSettings.set('solicitacao_window', payload);
+    res.json(payload);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+}
+
+module.exports.getSolicitacaoWindow = getSolicitacaoWindow;
+module.exports.putSolicitacaoWindow = putSolicitacaoWindow;
 
 

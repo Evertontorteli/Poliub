@@ -488,15 +488,15 @@ export default function TelaEsterilizacao() {
       </div>
 
       {/* navegação */}
-      {step > 1 && (
+        {step > 1 && (
         <div className="flex justify-between items-center gap-8 px-2 pb-4 mt-14 mb-10 border-b border-gray-200">
           <button onClick={handleBack} className="text-blue-600 flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-circle-chevron-left-icon"><circle cx="12" cy="12" r="10"/><path d="m14 16-4-4 4-4"/></svg>
             <span>Voltar</span>
           </button>
           {step < 4 && (
-            <button
-              ref={avancarButtonRef}
+          <button
+            ref={avancarButtonRef}
               onClick={() => {
                 if (step === 2) {
                   setStep(3)
@@ -536,14 +536,14 @@ export default function TelaEsterilizacao() {
                   }
                 }
               }}
-              disabled={step === 2 && !pinValidated}
+            disabled={step === 2 && !pinValidated}
               className={`text-blue-600 flex items-center gap-4 ${step === 2 && !pinValidated ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
+          >
               <span>Avançar</span>
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-circle-chevron-right-icon"><circle cx="12" cy="12" r="10"/><path d="m10 8 4 4-4 4"/></svg>
-            </button>
-          )}
-        </div>
+          </button>
+        )}
+      </div>
       )}
 
       {/* TELA 1: escolha operação */}
@@ -551,18 +551,18 @@ export default function TelaEsterilizacao() {
         <>
           <div className="h-10" />
           <div className="flex justify-start items-stretch gap-2">
-            <div
-              onClick={() => { setOperation('entrada'); setStep(2) }}
+          <div
+            onClick={() => { setOperation('entrada'); setStep(2) }}
               className="relative p-12 w-56 md:w-64 bg-[#00A415] hover:bg-[#1F7E00] text-white rounded-lg text-center shadow cursor-pointer transition"
-            >
-              <h3 className="text-xl font-semibold">Entrada</h3>
+          >
+            <h3 className="text-xl font-semibold">Entrada</h3>
               <span className="absolute bottom-2 right-3 text-xs opacity-80">Atalho F4</span>
-            </div>
-            <div
-              onClick={() => { setOperation('saida'); setStep(2) }}
+          </div>
+          <div
+            onClick={() => { setOperation('saida'); setStep(2) }}
               className="relative p-12 w-56 md:w-64 bg-[#FD4D4C] hover:bg-[#AF191D] text-white rounded-lg text-center shadow cursor-pointer transition"
-            >
-              <h3 className="text-xl font-semibold">Saída</h3>
+          >
+            <h3 className="text-xl font-semibold">Saída</h3>
               <span className="absolute bottom-2 right-3 text-xs opacity-80">Atalho F5</span>
             </div>
           </div>
@@ -576,23 +576,23 @@ export default function TelaEsterilizacao() {
           <div className="flex gap-4">
             <input
                ref={alunoPinInputRef}
-               type="password"
+              type="password"
                inputMode="numeric"
                autoComplete="one-time-code"
                autoCorrect="off"
                autoCapitalize="off"
                name="pin-esterilizacao"
-               placeholder="PIN (4 dígitos)"
-               value={alunoPin}
-               onChange={e => setAlunoPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              placeholder="PIN (4 dígitos)"
+              value={alunoPin}
+              onChange={e => setAlunoPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
                onKeyDown={e => {
                  if (e.key === 'Enter') {
                    validarPin()
                    setTimeout(() => avancarButtonRef.current?.focus(), 0)
                  }
                }}
-               className="flex-1 border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-             />
+              className="flex-1 border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            />
             <button
               onClick={validarPin}
               className="bg-[#1A1C2C] hover:bg-[#3B4854] text-white px-6 rounded-full"
@@ -798,7 +798,7 @@ export default function TelaEsterilizacao() {
                     </svg>
                     <span>Limpar tudo</span>
                   </button>
-                </div>
+                  </div>
               </div>
             )}
           </div>
