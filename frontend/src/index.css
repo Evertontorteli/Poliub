@@ -37,3 +37,23 @@
     display: flex !important;
   }
 }
+
+/* NProgress: degradê na barra de atualização (paleta Modo IA) */
+#nprogress .bar {
+  background: linear-gradient(
+    90deg,
+    #34A853 0%,   /* verde */
+    #FBBC04 25%,  /* amarelo */
+    #EA4335 50%,  /* vermelho */
+    #A142F4 75%,  /* roxo */
+    #4285F4 100%  /* azul */
+  ) !important;
+}
+#nprogress .peg {
+  box-shadow:
+    0 0 10px rgba(52, 168, 83, 0.55),   /* verde */
+    0 0 10px rgba(251, 188, 4, 0.50),   /* amarelo */
+    0 0 10px rgba(234, 67, 53, 0.55),   /* vermelho */
+    0 0 10px rgba(161, 66, 244, 0.50),  /* roxo */
+    0 0 10px rgba(66, 133, 244, 0.60) !important; /* azul */
+}
