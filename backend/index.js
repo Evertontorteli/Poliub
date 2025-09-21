@@ -67,6 +67,15 @@ io.on('connection', (socket) => {
       if (typeof ensurePacienteSchema === 'function') {
         ensurePacienteSchema().catch((e) => console.warn('[schema pacientes] aviso:', e.message));
       }
+      // Encaminhamentos
+      try {
+        const { ensureSchema: ensureEncSchema } = require('./models/encaminhamentoModel');
+        if (typeof ensureEncSchema === 'function') {
+          ensureEncSchema().catch((e) => console.warn('[schema encaminhamentos] aviso:', e.message));
+        }
+      } catch (eEnc) {
+        console.warn('[schema bootstrap] encaminhamentoModel indisponível:', eEnc.message);
+      }
       // Feedbacks
       try {
         const { ensureSchema: ensureFeedbackSchema } = require('./models/feedbackModel');
@@ -108,6 +117,7 @@ io.on('connection', (socket) => {
     app.use('/api/backup', require('./routes/backupRoutes')); // <- mantém aqui
     app.use('/api/feedbacks', require('./routes/feedbackRoutes'));
     app.use('/api/settings', require('./routes/settingsRoutes'));
+    app.use('/api/encaminhamentos', require('./routes/encaminhamentoRoutes'));
 
     // Endpoint simples de versão para cache-busting no frontend
     app.get('/api/version', (_req, res) => {

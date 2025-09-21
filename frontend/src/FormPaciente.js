@@ -4,6 +4,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useAuth } from './context/AuthContext';
 import PaginaTratamento from './pages/PaginaTratamento';
+import EncaminhamentosPaciente from './components/EncaminhamentosPaciente';
 import 'react-toastify/dist/ReactToastify.css';
 
 function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
@@ -597,6 +598,11 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
             <p className="text-gray-600">Em breve: cadastro e acompanhamento de encaminhamentos entre disciplinas para este paciente.</p>
           </div>
         </div>
+      )}
+
+      {/* Aba Encaminhamentos */}
+      {abaAtiva === 'encaminhamentos' && pacienteEditando && (
+        <EncaminhamentosPaciente pacienteId={pacienteEditando.id} />
       )}
 
       {/* Aba Tratamento */}
