@@ -205,8 +205,9 @@ export default function DashboardRecepcao() {
     if (filtroHora) params.set("hora", filtroHora);
     if (busca) params.set("busca", busca);
 
+    params.set("applyWindow", "1");
     navigate(`/print-agendamentos?${params.toString()}`, {
-      state: { disciplinaId, disciplinaNome, filtros },
+      state: { disciplinaId, disciplinaNome, filtros, applyWindow: true },
     });
   };
 

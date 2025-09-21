@@ -15,6 +15,7 @@ export default function PrintAgendamentos() {
   const params = new URLSearchParams(location.search);
   const s = location.state || {};
   const fs = s.filtros || {};
+  const applyWindow = (s.applyWindow === true) || (params.get('applyWindow') === '1');
 
   const disciplinaId =
     s.disciplinaId ?? (params.get('disciplinaId') ? String(params.get('disciplinaId')) : undefined);
@@ -73,8 +74,8 @@ export default function PrintAgendamentos() {
         if (!apenasHora.startsWith(filtros.hora)) return false;
       }
 
-      // Janela padrão: somente próximos 32 dias quando não há filtro de data (alinha com Dashboard)
-      if (!filtros?.data) {
+      // Janela padrão (próximos 32 dias) somente quando solicitado pela origem
+      if (!filtros?.data && applyWindow) {
         const hoje = new Date();
         const inicioHoje = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
         const limiteFuturo = new Date(inicioHoje);

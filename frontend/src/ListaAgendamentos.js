@@ -85,14 +85,27 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
   const agsPagina = agendamentosFiltrados.slice(inicio, fim);
 
   const handleImprimir = () => {
-    const disciplinaAtual = agsPagina[0]?.disciplinaId || agsPagina[0]?.disciplina_id || null;
-    const disciplinaNome = agsPagina[0]?.disciplinaNome || "";
+    // Detecta disciplina única dentro do conjunto filtrado (não apenas da página atual)
+    const discipSet = new Set(
+      agendamentosFiltrados
+        .map(a => a?.disciplina_id ?? a?.disciplinaId)
+        .filter(v => v != null)
+        .map(v => String(v))
+    );
+    const unicaDisciplina = discipSet.size === 1 ? Array.from(discipSet)[0] : null;
 
-    const filtros = { data: filtroData, hora: filtroHora, busca: busca };
+    // Nome da disciplina (se única); tenta da primeira ocorrência
+    let disciplinaNome = '';
+    if (unicaDisciplina) {
+      const found = agendamentosFiltrados.find(a => String(a?.disciplina_id ?? a?.disciplinaId) === String(unicaDisciplina));
+      disciplinaNome = found?.disciplinaNome || '';
+    }
 
-    // Build querystring como fallback
+    const filtros = { data: filtroData, hora: filtroHora, busca };
+
+    // Querystring
     const params = new URLSearchParams();
-    if (disciplinaAtual) params.set('disciplinaId', disciplinaAtual);
+    if (unicaDisciplina) params.set('disciplinaId', unicaDisciplina);
     if (disciplinaNome) params.set('disciplinaNome', disciplinaNome);
     if (filtroData) params.set('data', filtroData);
     if (filtroHora) params.set('hora', filtroHora);
@@ -100,7 +113,7 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
 
     navigate(`/print-agendamentos?${params.toString()}`, {
       state: {
-        disciplinaId: disciplinaAtual,
+        disciplinaId: unicaDisciplina,
         disciplinaNome,
         filtros
       }
