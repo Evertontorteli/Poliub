@@ -270,16 +270,26 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
             ${abaAtiva === 'dados' ? 'text-gray-900 after:w-full after:bg-blue-300' : 'text-gray-600 hover:text-gray-800 hover:after:w-full hover:after:bg-gray-300'}`}
           onClick={() => setAbaAtiva('dados')}
         >
-          Dados
+          Dados do Paciente
         </button>
-        <button
-          className={`relative pb-2 text-sm md:text-base transition-colors after:content-[''] after:absolute after:left-0 after:-bottom-[1px] after:h-[2px] after:rounded after:transition-all after:duration-200 after:ease-out after:w-0 focus:outline-none
-            ${abaAtiva === 'tratamento' ? 'text-gray-900 after:w-full after:bg-blue-300' : 'text-gray-600 hover:text-gray-800 hover:after:w-full hover:after:bg-gray-300'}`}
-          onClick={() => setAbaAtiva('tratamento')}
-          disabled={!pacienteEditando}
-        >
-          Tratamento
-        </button>
+        {pacienteEditando && (
+          <>
+            <button
+              className={`relative pb-2 text-sm md:text-base transition-colors after:content-[''] after:absolute after:left-0 after:-bottom-[1px] after:h-[2px] after:rounded after:transition-all after:duration-200 after:ease-out after:w-0 focus:outline-none
+                ${abaAtiva === 'encaminhamentos' ? 'text-gray-900 after:w-full after:bg-blue-300' : 'text-gray-600 hover:text-gray-800 hover:after:w-full hover:after:bg-gray-300'}`}
+              onClick={() => setAbaAtiva('encaminhamentos')}
+            >
+              Encaminhamentos
+            </button>
+            <button
+              className={`relative pb-2 text-sm md:text-base transition-colors after:content-[''] after:absolute after:left-0 after:-bottom-[1px] after:h-[2px] after:rounded after:transition-all after:duration-200 after:ease-out after:w-0 focus:outline-none
+                ${abaAtiva === 'tratamento' ? 'text-gray-900 after:w-full after:bg-blue-300' : 'text-gray-600 hover:text-gray-800 hover:after:w-full hover:after:bg-gray-300'}`}
+              onClick={() => setAbaAtiva('tratamento')}
+            >
+              Tratamento
+            </button>
+          </>
+        )}
       </div>
 
       {/* Conteúdo das abas */}
@@ -357,7 +367,13 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
           {/* Telefone */}
           <div className="mb-6 group">
             <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
-              {formData.tipo_paciente === 'NORMAL' ? 'Telefone' : 'Telefone (opcional)'}
+              {formData.tipo_paciente === 'NORMAL' ? (
+                'Telefone'
+              ) : (
+                <>
+                  Telefone <small>(opcional)</small>
+                </>
+              )}
             </label>
             <input
               type="tel"
@@ -371,31 +387,33 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
 
           {/* Campos do responsável (opcionais; exibidos quando não NORMAL) */}
           {formData.tipo_paciente !== 'NORMAL' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div className="group">
-                <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
-                  Nome do responsável <small>(opcional)</small>
-                </label>
-                <input
-                  type="text"
-                  name="responsavel_nome"
-                  value={formData.responsavel_nome}
-                  onChange={handleChange}
-                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                />
-              </div>
-              <div className="group">
-                <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
-                  Telefone do responsável <small>(opcional)</small>
-                </label>
-                <input
-                  type="tel"
-                  name="responsavel_telefone"
-                  value={formData.responsavel_telefone}
-                  onChange={e => setFormData(fd => ({ ...fd, responsavel_telefone: formatarTelefone(e.target.value) }))}
-                  placeholder="(XX) XXXXX-XXXX"
-                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                />
+            <div className="mb-6 rounded-xl p-3 border-2 border-blue-300">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="group">
+                  <label className={`block mb-2 font-medium transition-colors group-focus-within:text-blue-600 text-gray-700`}>
+                    Nome do responsável <small>(opcional)</small>
+                  </label>
+                  <input
+                    type="text"
+                    name="responsavel_nome"
+                    value={formData.responsavel_nome}
+                    onChange={handleChange}
+                    className="w-full border rounded px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  />
+                </div>
+                <div className="group">
+                  <label className={`block mb-2 font-medium transition-colors group-focus-within:text-blue-600 text-gray-700`}>
+                    Telefone do responsável <small>(opcional)</small>
+                  </label>
+                  <input
+                    type="tel"
+                    name="responsavel_telefone"
+                    value={formData.responsavel_telefone}
+                    onChange={e => setFormData(fd => ({ ...fd, responsavel_telefone: formatarTelefone(e.target.value) }))}
+                    placeholder="(XX) XXXXX-XXXX"
+                    className="w-full border rounded px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -569,6 +587,16 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
             </div>
           )}
         </form>
+      )}
+
+      {/* Aba Tratamento */}
+      {abaAtiva === 'encaminhamentos' && pacienteEditando && (
+        <div className="p-2">
+          <h2 className="text-2xl font-bold mb-4 text-gray-800">Encaminhamentos</h2>
+          <div className="border rounded-lg p-4 bg-white">
+            <p className="text-gray-600">Em breve: cadastro e acompanhamento de encaminhamentos entre disciplinas para este paciente.</p>
+          </div>
+        </div>
       )}
 
       {/* Aba Tratamento */}
