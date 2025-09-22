@@ -51,6 +51,12 @@ const Encaminhamento = {
   inserir: async (dados) => {
     const conn = await getConnection();
     try {
+      // Normaliza data (YYYY-MM-DD) para DATETIME UTC no meio-dia evitando TZ -3
+      let dataSql = null;
+      if (dados.data_encaminhamento) {
+        const s = String(dados.data_encaminhamento).slice(0, 10); // YYYY-MM-DD
+        dataSql = s ? `${s} 12:00:00` : null;
+      }
       const [result] = await conn.query(
         `INSERT INTO encaminhamentos (
           paciente_id, disciplina_origem_id, disciplina_destino_id, data_encaminhamento, status, observacao, agendamento_id
@@ -59,7 +65,7 @@ const Encaminhamento = {
           Number(dados.paciente_id),
           dados.disciplina_origem_id ? Number(dados.disciplina_origem_id) : null,
           dados.disciplina_destino_id ? Number(dados.disciplina_destino_id) : null,
-          dados.data_encaminhamento || new Date(),
+          dataSql || new Date(),
           dados.status || 'pendente',
           dados.observacao || null,
           dados.agendamento_id ? Number(dados.agendamento_id) : null
@@ -88,7 +94,10 @@ const Encaminhamento = {
         if (dados[k] !== undefined) {
           sets.push(`${allow[k]} = ?`);
           if (k.endsWith('_id')) params.push(dados[k] != null ? Number(dados[k]) : null);
-          else params.push(dados[k]);
+          else if (k === 'data_encaminhamento') {
+            const s = String(dados[k] || '').slice(0,10);
+            params.push(s ? `${s} 12:00:00` : null);
+          } else params.push(dados[k]);
         }
       }
       if (sets.length === 0) return { changedRows: 0 };

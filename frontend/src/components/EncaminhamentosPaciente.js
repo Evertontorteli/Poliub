@@ -111,6 +111,23 @@ export default function EncaminhamentosPaciente({ pacienteId }) {
     return true;
   }, [passo, form]);
 
+  function formatDate(dval) {
+    if (!dval) return '-';
+    try {
+      const d = new Date(dval);
+      if (Number.isNaN(d.getTime())) {
+        const s = String(dval);
+        return s.length >= 10 ? `${s.slice(8,10)}/${s.slice(5,7)}/${s.slice(0,4)}` : s;
+      }
+      const iso = d.toISOString().slice(0, 10);
+      const [y, m, d2] = iso.split('-');
+      return `${d2}/${m}/${y}`;
+    } catch {
+      const s = String(dval);
+      return s.length >= 10 ? `${s.slice(8,10)}/${s.slice(5,7)}/${s.slice(0,4)}` : s;
+    }
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
@@ -214,7 +231,7 @@ export default function EncaminhamentosPaciente({ pacienteId }) {
             <tbody>
               {itens.map((it) => (
                 <tr key={it.id} className="border-t">
-                  <td className="p-2">{new Date(it.data_encaminhamento || it.created_at).toLocaleDateString('pt-BR')}</td>
+                  <td className="p-2">{formatDate(it.data_encaminhamento || it.created_at)}</td>
                   <td className="p-2">{it.disciplina_origem_id ? disciplinaNome(it.disciplina_origem_id) : '-'}</td>
                   <td className="p-2">{it.disciplina_destino_id ? disciplinaNome(it.disciplina_destino_id) : '-'}</td>
                   <td className="p-2">
