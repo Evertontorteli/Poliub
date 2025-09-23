@@ -44,6 +44,105 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
   const inputRef = useRef(null);
   const disciplinasRef = useRef(null);
   const [carousel, setCarousel] = useState({ current: 0, total: 1 });
+  const cardColors = [
+    "bg-[#5956D6]", "bg-[#2B8FF2]", "bg-[#ECAD21]", "bg-[#03A400]", "bg-[#DA5D5C]", "bg-[#926AFF]", "bg-[#568BEF]", "bg-[#ECAD21]", "bg-[#FF7FAF]", "bg-[#926AFF]", "bg-[#009AF3]",
+  ];
+
+  // Helpers para regra de "Solicitar"
+  const dowMap = {
+    'domingo': 0, 'domingo.': 0,
+    'segunda-feira': 1, 'segunda': 1,
+    'terca-feira': 2, 'terça-feira': 2, 'terca': 2, 'terça': 2,
+    'quarta-feira': 3, 'quarta': 3,
+    'quinta-feira': 4, 'quinta': 4,
+    'sexta-feira': 5, 'sexta': 5,
+    'sabado': 6, 'sábado': 6
+  };
+  function nextDow(fromDate, dow) {
+    const start = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
+    const cur = start.getDay();
+    let delta = (dow - cur + 7) % 7;
+    if (delta === 0) delta = 7; // sempre o próximo (futuro)
+    const n = new Date(start);
+    n.setDate(start.getDate() + delta);
+    return n;
+  }
+  function fmtYmd(ymd) {
+    if (!ymd) return '-';
+    return `${ymd.slice(8,10)}/${ymd.slice(5,7)}/${ymd.slice(0,4)}`;
+  }
+
+  // Info base da disciplina (independente de parâmetro)
+  const disciplinaInfoBase = React.useMemo(() => {
+    const disc = disciplinas.find(d => String(d.id) === String(disciplinaId));
+    if (!disc?.dia_semana) return null;
+    const dow = dowMap[String(disc.dia_semana).toLowerCase()];
+    if (dow == null) return null;
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const nextClinic = nextDow(today, dow);
+    const nextYmd = nextClinic.toISOString().slice(0,10);
+    return { diaLabel: disc.dia_semana, nextYmd, nextLabel: fmtYmd(nextYmd), dow };
+  }, [disciplinas, disciplinaId]);
+
+  // Calcula informações para exibir o prazo de solicitação ao usuário
+  const solicitacaoInfo = React.useMemo(() => {
+    if (!solWin.enabled) return null;
+    if (!disciplinaInfoBase) return null;
+    const minDays = Math.ceil(Number(solWin.windowHours || 0) / 24) || 0; // 48 -> 2
+    const { dow, diaLabel } = disciplinaInfoBase;
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const nextClinic = nextDow(today, dow);
+    const lastClinic = new Date(nextClinic); lastClinic.setDate(nextClinic.getDate() - 7);
+    const deadline = new Date(lastClinic); deadline.setDate(lastClinic.getDate() + minDays);
+    const nextYmd = nextClinic.toISOString().slice(0,10);
+    const deadlineYmd = deadline.toISOString().slice(0,10);
+    const secondClinic = new Date(nextClinic); secondClinic.setDate(nextClinic.getDate() + 7);
+    const allowedMin = (now > deadline) ? secondClinic : nextClinic;
+    const allowedMinYmd = allowedMin.toISOString().slice(0,10);
+    return {
+      nextYmd,
+      nextLabel: fmtYmd(nextYmd),
+      deadlineYmd,
+      deadlineLabel: fmtYmd(deadlineYmd),
+      diaLabel,
+      allowedMinYmd,
+      allowedMinLabel: fmtYmd(allowedMinYmd)
+    };
+  }, [solWin.enabled, solWin.windowHours, disciplinaInfoBase]);
+
+  // Prefill automático da data quando o aluno escolher tipo e selecionar disciplina
+  useEffect(() => {
+    if (role !== 'aluno') return;
+    if (!disciplinaId) return;
+    if (!disciplinaInfoBase) return;
+    const { dow, nextYmd } = disciplinaInfoBase;
+
+    // Determina a data mínima permitida (considerando o parâmetro se ativo)
+    let targetYmd = nextYmd;
+    if (tipoAtendimento === 'Solicitar' && solWin.enabled && solicitacaoInfo?.allowedMinYmd) {
+      targetYmd = solicitacaoInfo.allowedMinYmd;
+    }
+
+    // Se não há data ainda, ou se a data atual não é no dia da semana da disciplina, sugere a target
+    const currentDow = data ? new Date(`${data}T00:00:00`).getDay() : null;
+    const isSameDow = currentDow === dow;
+    if (!data || !isSameDow) {
+      setData(targetYmd);
+    }
+  }, [role, tipoAtendimento, disciplinaId, disciplinaInfoBase, solWin.enabled, solicitacaoInfo]);
+
+  function handleTipoClick(t) {
+    if (t === 'Solicitar' && solWin.enabled && solicitarBloqueado) {
+      const msg = solicitacaoInfo
+        ? `Solicitar indisponível para o próximo encontro (${solicitacaoInfo.nextLabel}). Prazo encerrou em ${solicitacaoInfo.deadlineLabel}.`
+        : `Solicitar indisponível. Antecedência mínima: ${solWin.windowHours}h.`;
+      toast.error(msg);
+      return;
+    }
+    setTipoAtendimento(t);
+  }
 
   useEffect(() => {
     function updatePages() {
@@ -170,22 +269,57 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
     setShowLista(false);
   }
 
-  // Bloqueia “Solicitar” para aluno quando fora da janela
-  useEffect(() => {
-    if (role !== 'aluno') return;
-    if (!solWin.enabled) return;
-    if (!data || !hora) return;
-    if (tipoAtendimento !== 'Solicitar') return;
-    try {
-      const agDate = new Date(`${data}T${hora}:00`);
-      const diffMs = agDate.getTime() - Date.now();
-      const minMs = solWin.windowHours * 60 * 60 * 1000;
-      if (diffMs < minMs) {
-        setShowSolicitarBlocked(true);
-        setTipoAtendimento('Novo');
+  // Cálculo derivado: solicitações bloqueadas ou não (sem efeitos colaterais)
+  const solicitarBloqueado = React.useMemo(() => {
+    if (role !== 'aluno') return false;
+    if (!solWin.enabled) return false;
+    if (!data || !hora) return false;
+    const agDate = new Date(`${data}T${hora}:00`);
+    const minDays = Math.ceil(Number(solWin.windowHours || 0) / 24) || 0; // 48 -> 2
+    const disc = disciplinas.find(d => String(d.id) === String(disciplinaId));
+    if (disc?.dia_semana) {
+      const key = String(disc.dia_semana).toLowerCase();
+      const map = {
+        'domingo': 0, 'domingo.': 0,
+        'segunda-feira': 1, 'segunda': 1,
+        'terca-feira': 2, 'terça-feira': 2, 'terca': 2, 'terça': 2,
+        'quarta-feira': 3, 'quarta': 3,
+        'quinta-feira': 4, 'quinta': 4,
+        'sexta-feira': 5, 'sexta': 5,
+        'sabado': 6, 'sábado': 6
+      };
+      const dow = map[key];
+      if (dow != null) {
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const cur = today.getDay();
+        let delta = (dow - cur + 7) % 7; if (delta === 0) delta = 7;
+        const nextClinic = new Date(today); nextClinic.setDate(today.getDate() + delta);
+        const secondClinic = new Date(nextClinic); secondClinic.setDate(nextClinic.getDate() + 7);
+        const lastClinic = new Date(nextClinic); lastClinic.setDate(nextClinic.getDate() - 7);
+        const deadline = new Date(lastClinic); deadline.setDate(lastClinic.getDate() + minDays);
+        const agYmd = data;
+        const allowedMin = (now > deadline) ? secondClinic : nextClinic;
+        const allowedMinYmd = allowedMin.toISOString().slice(0,10);
+        // 1) se o dia da semana do agendamento não for o da disciplina → bloqueia
+        const agDow = new Date(`${data}T00:00:00`).getDay();
+        if (agDow !== dow) return true;
+        // 2) se a data escolhida for anterior ao mínimo permitido → bloqueia
+        if (agYmd < allowedMinYmd) return true;
+        return false;
       }
-    } catch {}
-  }, [role, solWin.enabled, solWin.windowHours, data, hora, tipoAtendimento]);
+    }
+    // Fallback: dias corridos
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const earliest = new Date(startOfToday); earliest.setDate(startOfToday.getDate() + minDays);
+    return agDate < earliest;
+  }, [role, solWin.enabled, solWin.windowHours, data, hora, disciplinas, disciplinaId]);
+
+  // Reflete o estado visual de bloqueio quando “Solicitar” está ativo
+  useEffect(() => {
+    setShowSolicitarBlocked(tipoAtendimento === 'Solicitar' && solicitarBloqueado);
+  }, [tipoAtendimento, solicitarBloqueado]);
 
   // Submissão do form
 async function handleSubmit(e) {
@@ -196,6 +330,16 @@ async function handleSubmit(e) {
   }
   if (!disciplinaId) return setMensagem('Selecione uma disciplina.');
   if (!pacienteId && tipoAtendimento !== 'Solicitar') return setMensagem('Selecione um paciente.');
+
+  // Bloqueio final: se parâmetro estiver habilitado e a opção "Solicitar" estiver bloqueada, não deixa enviar
+  if (solWin.enabled && tipoAtendimento === 'Solicitar' && solicitarBloqueado) {
+    const msg = solicitacaoInfo
+      ? `Solicitar indisponível para o próximo encontro (${solicitacaoInfo.nextLabel}). Prazo encerrou em ${solicitacaoInfo.deadlineLabel}.`
+      : `Solicitar indisponível. Antecedência mínima: ${solWin.windowHours}h.`;
+    setMensagem(msg);
+    toast.error(msg);
+    return;
+  }
 
   const payload = {
     disciplina_id: disciplinaId,
@@ -241,9 +385,16 @@ async function handleSubmit(e) {
         <h2 className="text-2xl font-bold mb-6 text-[#0095DA]">
           Agendar Paciente
         </h2>
-        {showSolicitarBlocked && (
-          <div className="mb-4 p-3 rounded-lg border border-yellow-300 bg-yellow-50 text-yellow-800">
-            A opção Solicitar não está disponível para a data/hora selecionadas (antecedência mínima {solWin.windowHours}h). Selecione uma data mais distante ou use Novo/Retorno.
+        {((tipoAtendimento === 'Solicitar' && solWin.enabled) || (['Novo','Retorno'].includes(tipoAtendimento) && disciplinaInfoBase)) && (
+          <div className={`mb-3 p-2 rounded-lg border text-sm ${showSolicitarBlocked ? 'bg-yellow-50 border-yellow-300 text-yellow-800' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
+            {tipoAtendimento === 'Solicitar' && solWin.enabled && solicitacaoInfo ? (
+              <>
+                Dia: <b>{solicitacaoInfo.diaLabel}</b> · Próximo agendamento: <b>{solicitacaoInfo.nextLabel}</b> · Prazo: <b>{solicitacaoInfo.deadlineLabel}</b>
+                {showSolicitarBlocked && <> · Mínimo: <b>{solicitacaoInfo.allowedMinLabel}</b></>}
+              </>
+            ) : disciplinaInfoBase ? (
+              <>Dia: <b>{disciplinaInfoBase.diaLabel}</b> · Próximo agendamento: <b>{disciplinaInfoBase.nextLabel}</b></>
+            ) : null}
           </div>
         )}
 
@@ -253,7 +404,7 @@ async function handleSubmit(e) {
             <button
               key={t}
               type="button"
-              onClick={() => setTipoAtendimento(t)}
+              onClick={() => handleTipoClick(t)}
               className={`px-4 py-1 rounded-full font-semibold transition
                 ${tipoAtendimento === t
                   ? 'bg-[#D9E0FF] text-gray-800'
@@ -281,21 +432,27 @@ async function handleSubmit(e) {
                 const current = Math.round(el.scrollLeft / el.clientWidth);
                 setCarousel({ current, total });
               }}
-              className="flex gap-2 overflow-x-auto overscroll-x-contain snap-x snap-mandatory scroll-smooth pb-2"
+              className="flex gap-3 overflow-x-auto overscroll-x-contain snap-x snap-mandatory scroll-smooth pb-2"
             >
-              {disciplinas.map(d => (
+              {disciplinas.map((d, idx) => (
                 <button
                   key={d.id}
                   type="button"
                   onClick={() => setDisciplinaId(String(d.id))}
-                  className={`min-w-[220px] h-28 snap-start snap-always px-4 py-2 rounded-2xl border transition text-left flex flex-col justify-center ${
-                    disciplinaId === String(d.id)
-                      ? 'bg-[#D9E0FF] text-gray-800 font-semibold border-blue-300'
-                      : 'bg-gray-100 hover:bg-gray-200 text-gray-800'
-                  }`}
+                  className={`
+                    relative w-auto min-w-[10.5rem] md:min-w-[12rem] max-w-full md:max-w-[18rem] min-h-[6rem]
+                    rounded-xl px-4 py-4 text-center border transition overflow-hidden
+                    flex flex-col items-center justify-center snap-start snap-always
+                    bg-white text-gray-700 border-gray-300 shadow-sm hover:shadow-md
+                    ${disciplinaId === String(d.id) ? 'ring-2 ring-blue-300' : ''}
+                  `}
                 >
-                  <div className="font-medium text-xs md:text-sm leading-snug">{d.nome}</div>
-                  <div className="text-[10px] md:text-xs text-gray-600 mt-1 flex items-center gap-2">
+                  <span
+                    className={`absolute left-0 top-0 h-full w-1 ${cardColors[idx % cardColors.length]} rounded-l-xl`}
+                    aria-hidden="true"
+                  />
+                  <div className="font-bold text-sm text-gray-600 mb-1 text-left line-clamp-2" title={d.nome}>{d.nome}</div>
+                  <div className="text-xs text-gray-600 whitespace-normal break-words flex items-center gap-2" title={`${d.periodo_nome} ${d.turno}${d.dia_semana ? ` • ${d.dia_semana}` : ''}`}>
                     <span>{d.periodo_nome} {d.turno}</span>
                     {d.dia_semana ? (
                       <span className="inline-block px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] md:text-xs">
