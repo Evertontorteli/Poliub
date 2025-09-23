@@ -553,11 +553,11 @@ async function handleSubmit(e) {
         )}
 
         {/* Data / Hora */}
-        <label className="block mb-4 font-medium">
+        <label className="block mb-2 font-medium text-base md:text-lg">
           Data e Hora do Agendamento
         </label>
-        <div className="mb-6 flex gap-4">
-          <div className="flex-1 group">
+        <div className="mb-6 flex items-center gap-3">
+          <div className="group flex-1 min-w-0">
             <input
               type="date"
               className="w-full border rounded-full px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
@@ -566,10 +566,10 @@ async function handleSubmit(e) {
               required
             />
           </div>
-          <div className="flex-1 group">
+          <div className="group w-28 sm:w-32 md:w-40">
             <input
               type="time"
-              className="w-full border rounded-full px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+              className="w-full border rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
               value={hora}
               onChange={e => setHora(e.target.value)}
               required
