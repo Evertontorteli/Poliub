@@ -143,6 +143,12 @@ export default function DashboardAluno() {
       const [Y, M, D] = a.data.slice(0, 10).split("-");
       const dt = new Date(Y, M - 1, D);
       return dt >= hoje;
+    }).sort((a,b)=>{
+      const ab = new Date(a.data.slice(0,10));
+      const bb = new Date(b.data.slice(0,10));
+      if (bb - ab !== 0) return bb - ab; // mais novo primeiro
+      const ah = (a.hora||'00:00'); const bh = (b.hora||'00:00');
+      return bh.localeCompare(ah);
     })
     : [];
 
@@ -152,6 +158,12 @@ export default function DashboardAluno() {
       const [Y, M, D] = a.data.slice(0, 10).split("-");
       const dt = new Date(Y, M - 1, D);
       return dt >= hoje && a.status !== "Solicitado";
+    }).sort((a,b)=>{
+      const ad = new Date(a.data.slice(0,10));
+      const bd = new Date(b.data.slice(0,10));
+      if (bd - ad !== 0) return bd - ad;
+      const ah = (a.hora||'00:00'); const bh = (b.hora||'00:00');
+      return bh.localeCompare(ah);
     })
     : [];
 
@@ -161,6 +173,12 @@ export default function DashboardAluno() {
       const [Y, M, D] = a.data.slice(0, 10).split("-");
       const dt = new Date(Y, M - 1, D);
       return dt < hoje && a.status !== "Solicitado";
+    }).sort((a,b)=>{
+      const ad = new Date(a.data.slice(0,10));
+      const bd = new Date(b.data.slice(0,10));
+      if (bd - ad !== 0) return bd - ad;
+      const ah = (a.hora||'00:00'); const bh = (b.hora||'00:00');
+      return bh.localeCompare(ah);
     })
     : [];
 
