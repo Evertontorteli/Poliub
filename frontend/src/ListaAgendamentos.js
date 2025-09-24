@@ -78,14 +78,17 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
   };
 
   // Paginação
-  const agendamentosFiltrados = filtrarAgendamentos(agendamentos).sort((a,b)=>{
-    const ad = a?.data ? new Date(a.data.slice(0,10)) : new Date(0);
-    const bd = b?.data ? new Date(b.data.slice(0,10)) : new Date(0);
-    if (bd - ad !== 0) return bd - ad; // mais novo primeiro
-    const ah = (a?.hora || '00:00');
-    const bh = (b?.hora || '00:00');
-    return bh.localeCompare(ah);
-  });
+  const baseFiltrada = filtrarAgendamentos(agendamentos);
+  const agendamentosFiltrados = role === 'recepcao'
+    ? baseFiltrada
+    : baseFiltrada.slice().sort((a,b) => {
+        const ad = a?.data ? new Date(a.data.slice(0,10)) : new Date(0);
+        const bd = b?.data ? new Date(b.data.slice(0,10)) : new Date(0);
+        if (bd - ad !== 0) return bd - ad; // mais novo primeiro
+        const ah = (a?.hora || '00:00');
+        const bh = (b?.hora || '00:00');
+        return bh.localeCompare(ah);
+      });
   const totalPaginas = Math.ceil(agendamentosFiltrados.length / POR_PAGINA);
   const inicio = (pagina - 1) * POR_PAGINA;
   const fim = inicio + POR_PAGINA;
