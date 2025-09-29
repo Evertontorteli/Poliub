@@ -245,7 +245,9 @@ function LayoutInterno() {
     }
     async function pollVersion() {
       try {
-        const res = await fetch(`/api/version`, { cache: 'no-store' })
+        // Usa explicitamente o backend para evitar 404 no host do frontend
+        const base = (backendUrl || '').replace(/\/$/, '')
+        const res = await fetch(`${base}/api/version`, { cache: 'no-store' })
         const v = await res.json()
         const k = versionKey(v)
         if (versionKeyRef.current && k && k !== versionKeyRef.current) {
