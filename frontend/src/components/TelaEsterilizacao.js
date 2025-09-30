@@ -45,6 +45,7 @@ export default function TelaEsterilizacao() {
   const storedUser = JSON.parse(localStorage.getItem('user') || '{}')
   const usuarioLogadoNome = storedUser.nome || ''
   const registrarButtonRef = useRef(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const BADGE_STYLES = [
     'bg-blue-100 text-blue-800',
@@ -220,6 +221,7 @@ export default function TelaEsterilizacao() {
 
   // registra entrada ou saída
   const operar = async tipo => {
+    if (isSubmitting) return
     if (!pinValidated) {
       toast.warn('Valide o PIN', { autoClose: 5000 })
       return
@@ -253,6 +255,7 @@ export default function TelaEsterilizacao() {
         return
       }
     }
+    setIsSubmitting(true)
     try {
       if (tipo === 'saida') {
         // usa batch: agrupa por id e envia quantidade
@@ -284,6 +287,8 @@ export default function TelaEsterilizacao() {
       setStep(1)
     } catch {
       toast.error(`Erro ao registrar ${tipo}`, { autoClose: 5000 })
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -858,12 +863,14 @@ export default function TelaEsterilizacao() {
             <button
               onClick={() => operar(operation)}
               ref={registrarButtonRef}
+              disabled={isSubmitting}
+              aria-busy={isSubmitting}
               className={`px-6 py-2 rounded-full text-white ${operation === 'entrada'
                 ? 'bg-green-600 hover:bg-green-700'
                 : 'bg-red-600 hover:bg-red-700'
-                }`}
+                } ${isSubmitting ? 'opacity-60 cursor-not-allowed' : ''}`}
             >
-              Registrar {operation === 'entrada' ? 'Entrada' : 'Saída'}
+              {isSubmitting ? 'Aguardando…' : `Registrar ${operation === 'entrada' ? 'Entrada' : 'Saída'}`}
             </button>
           </div>
         </div>
