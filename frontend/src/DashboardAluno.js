@@ -22,6 +22,9 @@ export default function DashboardAluno() {
   const [caixasLoading, setCaixasLoading] = useState(true);
   const [caixasExpandido, setCaixasExpandido] = useState(false);
   const [historicoPage, setHistoricoPage] = useState(0);
+  const [atendidosPage, setAtendidosPage] = useState(1);
+  const [solicitacoesPage, setSolicitacoesPage] = useState(1);
+  const [proximosPage, setProximosPage] = useState(1);
 
   // Cores para status (já existia)
   const STATUS_STYLES = {
@@ -190,6 +193,13 @@ export default function DashboardAluno() {
   };
 
   const toggleCard = key => setSelectedCard(prev => (prev === key ? null : key));
+
+  // Resetar página ao abrir o card de atendidos ou quando a quantidade mudar
+  useEffect(() => {
+    if (selectedCard === 'atendidos') setAtendidosPage(1);
+    if (selectedCard === 'solicitacoes') setSolicitacoesPage(1);
+    if (selectedCard === 'proximos') setProximosPage(1);
+  }, [selectedCard, atendidos.length, solicitacoes.length, proximos.length]);
 
   // Total geral de caixas em estoque
   const totalCaixas = caixas?.saldos?.reduce((acc, c) => acc + Number(c.saldo), 0) || 0;
@@ -382,7 +392,14 @@ export default function DashboardAluno() {
         <div className="bg-white rounded-2xl shadow p-4 mb-6">
           <h2 className="text-lg font-bold mb-4">Minhas Solicitações</h2>
           <ul className="space-y-3">
-            {solicitacoes.slice(0, 5).map(a => (
+            {(() => {
+              const pageSize = 10;
+              const total = solicitacoes.length;
+              const totalPages = Math.max(1, Math.ceil(total / pageSize));
+              const currentPage = Math.min(Math.max(1, solicitacoesPage), totalPages);
+              const start = (currentPage - 1) * pageSize;
+              const pageItems = solicitacoes.slice(start, start + pageSize);
+              return pageItems.map(a => (
               <li key={a.id} className="bg-gray-50 rounded-xl px-5 py-3 shadow-sm text-sm md:text-base">
                 <div className="flex items-center justify-between">
                   <div className="font-medium">{a.disciplinaNome}</div>
@@ -427,11 +444,43 @@ export default function DashboardAluno() {
                   </span>
                 </div>
               </li>
-            ))}
+              ));
+            })()}
             {solicitacoes.length === 0 && (
               <li className="text-gray-500">Nenhuma solicitação pendente.</li>
             )}
           </ul>
+          {(() => {
+            const pageSize = 10;
+            const total = solicitacoes.length;
+            const totalPages = Math.max(1, Math.ceil(total / pageSize));
+            if (totalPages <= 1) return null;
+            const canPrev = solicitacoesPage > 1;
+            const canNext = solicitacoesPage < totalPages;
+            return (
+              <div className="flex items-center justify-between pt-3 text-sm text-gray-700">
+                <button
+                  className="p-0 text-blue-600 hover:underline disabled:text-gray-400 disabled:hover:no-underline disabled:cursor-not-allowed"
+                  onClick={() => setSolicitacoesPage(p => Math.max(1, p - 1))}
+                  disabled={!canPrev}
+                >
+                  Voltar
+                </button>
+                <div className="flex items-center gap-3">
+                  <span>Página {solicitacoesPage} de {totalPages}</span>
+                  <span className="text-gray-400">•</span>
+                  <span>Total: {total}</span>
+                </div>
+                <button
+                  className="p-0 text-blue-600 hover:underline disabled:text-gray-400 disabled:hover:no-underline disabled:cursor-not-allowed"
+                  onClick={() => setSolicitacoesPage(p => (p + 1 <= totalPages ? p + 1 : p))}
+                  disabled={!canNext}
+                >
+                  Avançar
+                </button>
+              </div>
+            );
+          })()}
         </div>
       )}
 
@@ -439,8 +488,14 @@ export default function DashboardAluno() {
         <div className="bg-white rounded-2xl shadow p-4 mb-6">
           <h2 className="text-lg font-bold mb-4">Próximos Agendamentos</h2>
           <ul className="space-y-3">
-
-            {proximos.slice(0, 5).map(a => (
+            {(() => {
+              const pageSize = 10;
+              const total = proximos.length;
+              const totalPages = Math.max(1, Math.ceil(total / pageSize));
+              const currentPage = Math.min(Math.max(1, proximosPage), totalPages);
+              const start = (currentPage - 1) * pageSize;
+              const pageItems = proximos.slice(start, start + pageSize);
+              return pageItems.map(a => (
               <li key={a.id} className="bg-gray-50 rounded-xl px-5 py-3 shadow-sm text-sm md:text-base">
                 <div className="flex items-center justify-between">
                   <div className="font-medium">{a.disciplinaNome}</div>
@@ -485,12 +540,44 @@ export default function DashboardAluno() {
                   </span>
                 </div>
               </li>
-            ))}
+              ));
+            })()}
 
             {proximos.length === 0 && (
               <li className="text-gray-500">Nenhum agendamento próximo.</li>
             )}
           </ul>
+          {(() => {
+            const pageSize = 10;
+            const total = proximos.length;
+            const totalPages = Math.max(1, Math.ceil(total / pageSize));
+            if (totalPages <= 1) return null;
+            const canPrev = proximosPage > 1;
+            const canNext = proximosPage < totalPages;
+            return (
+              <div className="flex items-center justify-between pt-3 text-sm text-gray-700">
+                <button
+                  className="p-0 text-blue-600 hover:underline disabled:text-gray-400 disabled:hover:no-underline disabled:cursor-not-allowed"
+                  onClick={() => setProximosPage(p => Math.max(1, p - 1))}
+                  disabled={!canPrev}
+                >
+                  Voltar
+                </button>
+                <div className="flex items-center gap-3">
+                  <span>Página {proximosPage} de {totalPages}</span>
+                  <span className="text-gray-400">•</span>
+                  <span>Total: {total}</span>
+                </div>
+                <button
+                  className="p-0 text-blue-600 hover:underline disabled:text-gray-400 disabled:hover:no-underline disabled:cursor-not-allowed"
+                  onClick={() => setProximosPage(p => (p + 1 <= totalPages ? p + 1 : p))}
+                  disabled={!canNext}
+                >
+                  Avançar
+                </button>
+              </div>
+            );
+          })()}
         </div>
       )}
 
@@ -504,7 +591,14 @@ export default function DashboardAluno() {
             {atendidos.length === 0 ? (
               <li className="text-gray-500">Nenhum agendamento anterior.</li>
             ) : (
-              atendidos.slice(0, 5).map(a => (
+              (() => {
+                const pageSize = 10;
+                const total = atendidos.length;
+                const totalPages = Math.max(1, Math.ceil(total / pageSize));
+                const currentPage = Math.min(Math.max(1, atendidosPage), totalPages);
+                const start = (currentPage - 1) * pageSize;
+                const pageItems = atendidos.slice(start, start + pageSize);
+                return pageItems.map(a => (
                 <li key={a.id} className="bg-gray-50 rounded-xl px-5 py-3 shadow-sm text-sm md:text-base">
                   <div className="flex items-center justify-between">
                     <div className="font-medium">{a.disciplinaNome}</div>
@@ -551,9 +645,41 @@ export default function DashboardAluno() {
                     </span>
                   </div>
                 </li>
-              ))
+                ));
+              })()
             )}
           </ul>
+          {(() => {
+            const pageSize = 10;
+            const total = atendidos.length;
+            const totalPages = Math.max(1, Math.ceil(total / pageSize));
+            if (totalPages <= 1) return null;
+            const canPrev = atendidosPage > 1;
+            const canNext = atendidosPage < totalPages;
+            return (
+              <div className="flex items-center justify-between pt-3 text-sm text-gray-700">
+                <button
+                  className="p-0 text-blue-600 hover:underline disabled:text-gray-400 disabled:hover:no-underline disabled:cursor-not-allowed"
+                  onClick={() => setAtendidosPage(p => Math.max(1, p - 1))}
+                  disabled={!canPrev}
+                >
+                  Voltar
+                </button>
+                <div className="flex items-center gap-3">
+                  <span>Página {Math.min(atendidosPage, totalPages)} de {totalPages}</span>
+                  <span className="text-gray-400">•</span>
+                  <span>Total: {total}</span>
+                </div>
+                <button
+                  className="p-0 text-blue-600 hover:underline disabled:text-gray-400 disabled:hover:no-underline disabled:cursor-not-allowed"
+                  onClick={() => setAtendidosPage(p => (p + 1 <= totalPages ? p + 1 : p))}
+                  disabled={!canNext}
+                >
+                  Avançar
+                </button>
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>
