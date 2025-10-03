@@ -100,6 +100,8 @@ export default function TelaLogs() {
   const [to, setTo] = useState("");
   const [periodos, setPeriodos] = useState([]);
   const [periodoId, setPeriodoId] = useState("");
+  // Busca sob demanda
+  const [hasSearched, setHasSearched] = useState(true); // volta a buscar automaticamente
 
   const datePopoverRef = useRef(null);
   
@@ -118,7 +120,7 @@ export default function TelaLogs() {
     })();
   }, [user.token]);
 
-  // Buscar logs
+  // Buscar logs sob demanda (depende de filtros aplicados e página)
   useEffect(() => {
     const fetchLogs = async () => {
       setCarregando(true);
@@ -131,9 +133,13 @@ export default function TelaLogs() {
         if (from) params.from = from;
         if (to) params.to = to;
         if (periodoId) params.periodo_id = periodoId;
-        
+        if (filtros.usuario) params.usuario = filtros.usuario;
+        if (filtros.acao) params.acao = filtros.acao;
+        if (filtros.entidade) params.entidade = filtros.entidade;
+        if (filtros.texto) params.texto = filtros.texto;
+
         console.log('Fetching logs with params:', params);
-        
+
         const res = await axios.get("/api/logs", {
           headers: { Authorization: `Bearer ${user.token}` },
           params
@@ -147,7 +153,9 @@ export default function TelaLogs() {
       }
     };
     fetchLogs();
-  }, [user.token, from, to, periodoId, pagina]);
+  }, [user.token, from, to, periodoId, filtros.usuario, filtros.acao, filtros.entidade, filtros.texto, pagina]);
+
+  function handleBuscar() {}
 
   // Gerar listas únicas para filtros dropdown
   const usuarios = Array.from(new Set(logs.map(l => l.usuario_nome).filter(Boolean)));
@@ -224,14 +232,14 @@ export default function TelaLogs() {
             placeholder="Buscar em qualquer campo..."
             className="flex-1 border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
             value={filtros.texto}
-            onChange={e => { setFiltros(f => ({ ...f, texto: e.target.value })); setPagina(0); }}
+            onChange={e => { setFiltros(f => ({ ...f, texto: e.target.value })); }}
           />
           
           {/* Filtros dropdown em sequência */}
           <select
             className="border rounded px-3 py-2 w-auto focus:outline-none focus:ring-2 focus:ring-blue-300"
             value={filtros.usuario}
-            onChange={e => { setFiltros(f => ({ ...f, usuario: e.target.value })); setPagina(0); }}
+            onChange={e => { setFiltros(f => ({ ...f, usuario: e.target.value })); }}
           >
             <option value="">Todos os usuários</option>
             {usuarios.map(u => <option key={u} value={u}>{u}</option>)}
@@ -239,7 +247,7 @@ export default function TelaLogs() {
           <select
             className="border rounded px-3 py-2 w-auto focus:outline-none focus:ring-2 focus:ring-blue-300"
             value={periodoId}
-            onChange={e => { setPeriodoId(e.target.value); setPagina(0); }}
+            onChange={e => { setPeriodoId(e.target.value); }}
           >
             <option value="">Todos os períodos</option>
             {periodos.map(p => (
@@ -249,7 +257,7 @@ export default function TelaLogs() {
           <select
             className="border rounded px-3 py-2 w-auto focus:outline-none focus:ring-2 focus:ring-blue-300"
             value={filtros.acao}
-            onChange={e => { setFiltros(f => ({ ...f, acao: e.target.value })); setPagina(0); }}
+            onChange={e => { setFiltros(f => ({ ...f, acao: e.target.value })); }}
           >
             <option value="">Todas as ações</option>
             {acoes.map(a => <option key={a} value={a}>{a.charAt(0).toUpperCase() + a.slice(1)}</option>)}
@@ -257,7 +265,7 @@ export default function TelaLogs() {
           <select
             className="border rounded px-3 py-2 w-auto focus:outline-none focus:ring-2 focus:ring-blue-300"
             value={filtros.entidade}
-            onChange={e => { setFiltros(f => ({ ...f, entidade: e.target.value })); setPagina(0); }}
+            onChange={e => { setFiltros(f => ({ ...f, entidade: e.target.value })); }}
           >
             <option value="">Todas as entidades</option>
             {entidades.map(ent => <option key={ent} value={ent}>{ent.charAt(0).toUpperCase() + ent.slice(1)}</option>)}
@@ -341,6 +349,7 @@ export default function TelaLogs() {
               </div>
             )}
           </div>
+          {/* Busca automática ao mudar filtros/página */}
         </div>
 
         {/* Indicador de filtros ativos */}
@@ -372,10 +381,10 @@ export default function TelaLogs() {
           {/* MOBILE: Cards */}
           {carregando ? (
             <div className="text-center py-8 text-gray-400">Carregando...</div>
+          ) : !hasSearched ? (
+            <div className="text-center py-8 text-gray-400">Use os filtros e clique em Buscar.</div>
           ) : logsFiltrados.length === 0 ? (
-            <div className="text-center py-8 text-gray-400">
-              Nenhum registro encontrado.
-            </div>
+            <div className="text-center py-8 text-gray-400">Nenhum registro encontrado.</div>
           ) : (
             logsFiltrados.map((log) => (
               <div
@@ -408,6 +417,10 @@ export default function TelaLogs() {
               {carregando ? (
                 <tr>
                   <td colSpan={6} className="text-center py-8 text-gray-400">Carregando...</td>
+                </tr>
+              ) : !hasSearched ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-8 text-gray-400">Use os filtros e clique em Buscar.</td>
                 </tr>
               ) : logsFiltrados.length === 0 ? (
                 <tr>
