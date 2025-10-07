@@ -16,6 +16,29 @@ const AvatarIcon = () => (
   </svg>
 );
 
+// Ícone original com degradê azul aplicado via máscara (mantém o formato do logo192.png)
+const LogoMask = ({ size = 32 }) => (
+  <span
+    aria-label="PoliUB"
+    role="img"
+    className="shrink-0"
+    style={{
+      width: size,
+      height: size,
+      display: 'inline-block',
+      backgroundImage: 'linear-gradient(90deg, #1D4ED8, #3B82F6, #60A5FA)',
+      WebkitMaskImage: 'url(/logo192.png)',
+      maskImage: 'url(/logo192.png)',
+      WebkitMaskSize: 'cover',
+      maskSize: 'cover',
+      WebkitMaskRepeat: 'no-repeat',
+      maskRepeat: 'no-repeat',
+      WebkitMaskPosition: 'center',
+      maskPosition: 'center',
+    }}
+  />
+);
+
 const BORDER_COLORS = [
   '#e63946', // vermelho
   '#457b9d', // azul escuro
@@ -81,14 +104,19 @@ export default function Header({ onlineUsers = [] }) {
     <header className="fixed top-0 left-0 right-0 h-16 bg-white shadow flex items-center justify-between px-4 md:px-6 z-50">
       {/* Título responsivo */}
       <h1
-        className={`font-bold text-[#0095DA] transition-all duration-200
+        className={`font-bold transition-all duration-200
         ${isMobile ? "text-lg" : "text-2xl"} flex items-center gap-2`}
         style={{
           maxWidth: isMobile ? 185 : 420
         }}
       >
-        <img src="/logo192.png" alt="PoliUB" width="32" height="32" className="w-8 h-8 shrink-0" />
-        <span className="truncate">PoliUB Atendimentos</span>
+        <LogoMask size={isMobile ? 28 : 32} />
+        <span
+          className="truncate bg-gradient-to-r from-[#1D4ED8] via-[#3B82F6] to-[#60A5FA] bg-clip-text text-transparent"
+          aria-label="PoliUB"
+        >
+          PoliUB
+        </span>
       </h1>
 
       {/* Direita: lupa, avatares e menu perfil */}
