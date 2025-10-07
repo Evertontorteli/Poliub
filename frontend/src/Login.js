@@ -42,10 +42,31 @@ function Login({ onLogin }) {
           onSubmit={handleSubmit}
           className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8 space-y-6"
         >
-          <h2 className="text-left text-3xl font-bold text-gray-800">
-            PoliUB
-            <p className="text-base font-normal">Atendimentos</p>
-          </h2>
+          <div className="flex items-center gap-2">
+            {/* Ícone com degradê azul usando máscara do logo */}
+            <span
+              aria-label="PoliUB"
+              role="img"
+              className="shrink-0"
+              style={{
+                width: 32,
+                height: 32,
+                display: 'inline-block',
+                backgroundImage: 'linear-gradient(90deg, #1D4ED8, #3B82F6, #60A5FA)',
+                WebkitMaskImage: 'url(/logo192.png)',
+                maskImage: 'url(/logo192.png)',
+                WebkitMaskSize: 'cover',
+                maskSize: 'cover',
+                WebkitMaskRepeat: 'no-repeat',
+                maskRepeat: 'no-repeat',
+                WebkitMaskPosition: 'center',
+                maskPosition: 'center',
+              }}
+            />
+            <h2 className="text-3xl font-bold">
+              <span className="bg-gradient-to-r from-[#1D4ED8] via-[#3B82F6] to-[#60A5FA] bg-clip-text text-transparent">PoliUB</span>
+            </h2>
+          </div>
           <p className="text-left text-gray-600">Faça login na sua conta</p>
 
           <div className="relative">
