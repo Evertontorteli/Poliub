@@ -61,11 +61,10 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
   function nextDow(fromDate, dow) {
     const start = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
     const cur = start.getDay();
-    let delta = (dow - cur + 7) % 7;
-    if (delta === 0) delta = 7; // sempre o próximo (futuro)
+    const delta = (dow - cur + 7) % 7; // 0 = hoje
     const n = new Date(start);
     n.setDate(start.getDate() + delta);
-    return n;
+    return n; // inclui hoje
   }
   function fmtYmd(ymd) {
     if (!ymd) return '-';
@@ -89,17 +88,20 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
   const solicitacaoInfo = React.useMemo(() => {
     if (!solWin.enabled) return null;
     if (!disciplinaInfoBase) return null;
-    const minDays = Math.ceil(Number(solWin.windowHours || 0) / 24) || 0; // 48 -> 2
+    const windowHours = Number(solWin.windowHours || 0);
+    const minDays = Math.ceil(windowHours / 24) || 0;
     const { dow, diaLabel } = disciplinaInfoBase;
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const nextClinic = nextDow(today, dow);
     const lastClinic = new Date(nextClinic); lastClinic.setDate(nextClinic.getDate() - 7);
     const deadline = new Date(lastClinic); deadline.setDate(lastClinic.getDate() + minDays);
+    // Considera o dia do deadline inteiro (até 23:59:59)
+    const deadlineEnd = new Date(deadline); deadlineEnd.setHours(23, 59, 59, 999);
     const nextYmd = nextClinic.toISOString().slice(0,10);
     const deadlineYmd = deadline.toISOString().slice(0,10);
     const secondClinic = new Date(nextClinic); secondClinic.setDate(nextClinic.getDate() + 7);
-    const allowedMin = (now > deadline) ? secondClinic : nextClinic;
+    const allowedMin = (now > deadlineEnd) ? secondClinic : nextClinic;
     const allowedMinYmd = allowedMin.toISOString().slice(0,10);
     return {
       nextYmd,
@@ -275,7 +277,8 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
     if (!solWin.enabled) return false;
     if (!data || !hora) return false;
     const agDate = new Date(`${data}T${hora}:00`);
-    const minDays = Math.ceil(Number(solWin.windowHours || 0) / 24) || 0; // 48 -> 2
+    const windowHours = Number(solWin.windowHours || 0);
+    const minDays = Math.ceil(windowHours / 24) || 0;
     const disc = disciplinas.find(d => String(d.id) === String(disciplinaId));
     if (disc?.dia_semana) {
       const key = String(disc.dia_semana).toLowerCase();
@@ -292,14 +295,13 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
       if (dow != null) {
         const now = new Date();
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const cur = today.getDay();
-        let delta = (dow - cur + 7) % 7; if (delta === 0) delta = 7;
-        const nextClinic = new Date(today); nextClinic.setDate(today.getDate() + delta);
+        const nextClinic = nextDow(today, dow); // inclui hoje
         const secondClinic = new Date(nextClinic); secondClinic.setDate(nextClinic.getDate() + 7);
         const lastClinic = new Date(nextClinic); lastClinic.setDate(nextClinic.getDate() - 7);
         const deadline = new Date(lastClinic); deadline.setDate(lastClinic.getDate() + minDays);
+        const deadlineEnd = new Date(deadline); deadlineEnd.setHours(23, 59, 59, 999);
         const agYmd = data;
-        const allowedMin = (now > deadline) ? secondClinic : nextClinic;
+        const allowedMin = (now > deadlineEnd) ? secondClinic : nextClinic;
         const allowedMinYmd = allowedMin.toISOString().slice(0,10);
         // 1) se o dia da semana do agendamento não for o da disciplina → bloqueia
         const agDow = new Date(`${data}T00:00:00`).getDay();
@@ -313,6 +315,7 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const earliest = new Date(startOfToday); earliest.setDate(startOfToday.getDate() + minDays);
+    const earliestEnd = new Date(earliest); earliestEnd.setHours(23,59,59,999);
     return agDate < earliest;
   }, [role, solWin.enabled, solWin.windowHours, data, hora, disciplinas, disciplinaId]);
 
