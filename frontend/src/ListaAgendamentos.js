@@ -149,12 +149,17 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
   const openCancel = (id) => { setCancelId(id); setCancelMotivo(''); setShowCancelModal(true); };
   const submitCancel = async () => {
     if (!cancelId) return;
+    const motivoTrimmed = String(cancelMotivo || '').trim();
+    if (motivoTrimmed.length < 15) {
+      toast.error('Informe um motivo com no mínimo 15 caracteres.');
+      return;
+    }
     const token = localStorage.getItem('token');
     try {
-      await axios.post(`/api/agendamentos/${cancelId}/cancel`, { motivo: cancelMotivo }, {
+      await axios.post(`/api/agendamentos/${cancelId}/cancel`, { motivo: motivoTrimmed }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setAgendamentos(prev => prev.map(a => a.id === cancelId ? { ...a, status: 'Cancelado', canceledReason: cancelMotivo } : a));
+      setAgendamentos(prev => prev.map(a => a.id === cancelId ? { ...a, status: 'Cancelado', canceledReason: motivoTrimmed } : a));
       toast.success('Agendamento cancelado.');
       setShowCancelModal(false);
       setCancelId(null);
@@ -512,13 +517,13 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
       {showCancelModal && (
         <Modal isOpen={showCancelModal} onRequestClose={() => setShowCancelModal(false)}>
           <h2 className="text-2xl font-bold mb-6 text-[#0095DA]">Cancelar agendamento</h2>
-          <p className="text-sm text-gray-600 mb-3">Informe um motivo (opcional) para o cancelamento.</p>
+          <p className="text-sm text-gray-600 mb-3">Informe um motivo para o cancelamento (mínimo 15 caracteres).</p>
           <textarea
             value={cancelMotivo}
             onChange={e => setCancelMotivo(e.target.value)}
             className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
             rows={3}
-            placeholder="Motivo do cancelamento (opcional)"
+            placeholder="Descreva o motivo do cancelamento (mínimo 15 caracteres)"
           />
           <div className="mt-4 flex gap-2 justify-end">
             <button onClick={submitCancel} className="bg-[#1A1C2C] hover:bg-[#3B4854] text-white px-4 py-2 rounded-full">Confirmar cancelamento</button>

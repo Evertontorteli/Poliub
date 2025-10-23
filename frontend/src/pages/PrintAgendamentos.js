@@ -218,11 +218,16 @@ export default function PrintAgendamentos() {
                 <td className="px-2 py-2 text-sm text-gray-800">{ag.auxiliarNome || '-'}</td>
 
                 <td
-                  className="px-2 py-2 text-sm text-gray-800 whitespace-nowrap overflow-hidden text-ellipsis"
+                  className="px-2 py-2 text-sm text-gray-800 whitespace-normal"
                   style={{ maxWidth: '26ch' }}
                   title={ag.pacienteNome || '-'}
                 >
-                  {ag.pacienteNome || '-'}
+                  <div>{ag.pacienteNome || '-'}</div>
+                  {ag.canceledReason ? (
+                    <div className="text-xs text-gray-600 italic mt-0.5" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+                      Motivo do cancelamento: {ag.canceledReason}
+                    </div>
+                  ) : null}
                 </td>
 
                 <td className="px-2 py-2 text-sm text-gray-800 text-center whitespace-nowrap tabular-nums">

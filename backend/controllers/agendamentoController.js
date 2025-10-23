@@ -29,6 +29,13 @@ exports.cancelarAgendamento = async (req, res) => {
       return res.status(403).json({ error: 'Role não autorizado para cancelar agendamento.' });
     }
 
+    // Validação: motivo obrigatório com pelo menos 15 caracteres
+    const motivoTrimmed = String(motivo || '').trim();
+    if (motivoTrimmed.length < 15) {
+      conn.release();
+      return res.status(400).json({ error: 'O motivo do cancelamento é obrigatório e deve ter no mínimo 15 caracteres.' });
+    }
+
     await Agendamento.atualizarStatus(id, 'Cancelado');
 
     // LOG
@@ -38,7 +45,7 @@ exports.cancelarAgendamento = async (req, res) => {
       acao: 'cancelou',
       entidade: 'agendamento',
       entidade_id: id,
-      detalhes: { motivo }
+      detalhes: { motivo: motivoTrimmed }
     });
     conn.release();
 
@@ -49,7 +56,7 @@ exports.cancelarAgendamento = async (req, res) => {
         id: Number(id),
         por: req.user.role,
         por_nome: req.user && req.user.nome ? req.user.nome : undefined,
-        motivo
+        motivo: motivoTrimmed
       });
     } catch {}
 
