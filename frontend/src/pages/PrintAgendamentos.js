@@ -127,27 +127,30 @@ export default function PrintAgendamentos() {
   const cancelados = agendamentosFiltrados.filter(a => String(a.status).toLowerCase() === 'cancelado');
   const agendamentosParaImprimir = [...ativos, ...cancelados];
 
+  const selectedDateStr = filtros?.data
+    ? `${formatarData(filtros.data)}${filtros?.hora ? ` ${filtros.hora}` : ''}`
+    : '—';
+  const printDateStr = printStamp.toLocaleDateString('pt-BR');
+  const printTimeStr = printStamp.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
   return (
     <div className="printable bg-white p-4">
-      {/* Cabeçalho: Disciplina | Lista de Agendamentos */}
+      {/* Cabeçalho: logo à esquerda; título acima da disciplina; datas na linha de baixo */}
       <div className="header-line mb-2">
-        <div className="w-full flex flex-wrap items-baseline gap-2 whitespace-nowrap overflow-hidden">
-          <h2 className="text-2xl font-bold m-0">Agendamentos</h2>
-          <span className="opacity-40">|</span>
-          <span className="text-sm truncate"><span className="font-semibold">Disciplina:</span> {disciplinaNome || 'Todas'}</span>
-          <span className="opacity-40">|</span>
-          <span className="text-xs truncate text-gray-700">
-            <span className="font-semibold">Data selecionada:</span>{' '}
-            {filtros?.data ? `${formatarData(filtros.data)}${filtros?.hora ? ` ${filtros.hora}` : ''}` : '—'}
-          </span>
-          <span className="opacity-40">|</span>
-          <span className="text-xs truncate text-gray-700">
-            <span className="font-semibold">Impressão:</span>{' '}
-            {printStamp.toLocaleDateString('pt-BR')} {printStamp.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-          </span>
+        <div className="w-full flex justify-start">
+          <div className="flex items-center gap-3">
+            <img src="/logo192.png" alt="Poliub" className="h-10 w-auto" />
+            <div className="text-left">
+              <h2 className="text-2xl font-bold m-0 leading-tight">Lista de Agendamentos</h2>
+              <div className="text-sm"><span className="font-semibold">Disciplina:</span> {disciplinaNome || 'Todas'}</div>
+              <div className="text-xs text-gray-700 mt-0.5">
+                <span className="font-semibold">Datas:</span> Selecionada: {selectedDateStr} | Impressão: {printDateStr} {printTimeStr}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-      <div className="overflow-x-auto">
+      <div className="mt-4 overflow-x-auto">
         {/* Tabela */}
         <table className="min-w-full table-fixed bg-white divide-y divide-gray-200 rounded-lg shadow-sm">
           {/* Larguras ajustadas para caber na página */}
@@ -160,18 +163,20 @@ export default function PrintAgendamentos() {
             <col style={{ width: '5.5ch' }} /> {/* Pron. */}
             <col style={{ width: '5.5ch' }} /> {/* Gav. */}
             <col style={{ width: '10ch' }} />  {/* Status */}
+            <col style={{ width: '14ch' }} />  {/* Assinatura */}
           </colgroup>
 
           <thead className="bg-gray-100">
             <tr>
-              <th className="px-2 py-2 text-left text-xs font-medium text-gray-600 uppercase">#</th>
-              <th className="px-2 py-2 text-left text-xs font-medium text-gray-600 uppercase">Box</th>
-              <th className="px-2 py-2 text-left text-xs font-medium text-gray-600 uppercase">Operador</th>
-              <th className="px-2 py-2 text-left text-xs font-medium text-gray-600 uppercase">Auxiliar</th>
-              <th className="px-2 py-2 text-left text-xs font-medium text-gray-600 uppercase">Paciente</th>
-              <th className="px-2 py-2 text-center text-xs font-medium text-gray-600 uppercase">Pron.</th>
-              <th className="px-2 py-2 text-center text-xs font-medium text-gray-600 uppercase">Gav.</th>
-              <th className="px-2 py-2 text-left text-xs font-medium text-gray-600 uppercase">Status</th>
+              <th className="px-2 py-2 text-left text-xs font-semibold text-gray-700 capitalize">#</th>
+              <th className="px-2 py-2 text-left text-xs font-semibold text-gray-700 capitalize">Box</th>
+              <th className="px-2 py-2 text-left text-xs font-semibold text-gray-700 capitalize">Operador</th>
+              <th className="px-2 py-2 text-left text-xs font-semibold text-gray-700 capitalize">Auxiliar</th>
+              <th className="px-2 py-2 text-left text-xs font-semibold text-gray-700 capitalize">Paciente</th>
+              <th className="px-2 py-2 text-center text-xs font-semibold text-gray-700 capitalize">Pron.</th>
+              <th className="px-2 py-2 text-center text-xs font-semibold text-gray-700 capitalize">Gav.</th>
+              <th className="px-2 py-2 text-left text-xs font-semibold text-gray-700 capitalize">Status</th>
+              <th className="px-2 py-2 text-left text-xs font-semibold text-gray-700 capitalize">Assinatura</th>
             </tr>
           </thead>
 
@@ -199,15 +204,21 @@ export default function PrintAgendamentos() {
                 </td>
 
                 <td className="px-2 py-2 text-sm text-gray-800">{ag.status || '-'}</td>
+                <td className="px-2 py-2 text-sm text-gray-800"></td>
               </tr>
             ))}
 
             {cancelados.length > 0 && (
-              <tr className="bg-gray-50">
-                <td colSpan={8} className="px-2 py-2 text-xs font-semibold uppercase tracking-wide text-gray-600">
-                  Cancelados
-                </td>
-              </tr>
+              <>
+                <tr className="cancelados-spacer">
+                  <td colSpan={9}></td>
+                </tr>
+                <tr className="cancelados-header">
+                  <td colSpan={9} className="px-2 py-2 text-xs font-semibold text-gray-700 capitalize">
+                    Cancelados
+                  </td>
+                </tr>
+              </>
             )}
 
             {cancelados.map((ag, idx) => (
@@ -238,10 +249,29 @@ export default function PrintAgendamentos() {
                 </td>
 
                 <td className="px-2 py-2 text-sm text-gray-800">{ag.status || '-'}</td>
+                <td className="px-2 py-2 text-sm text-gray-800"></td>
               </tr>
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Rodapé: texto de importância e campos de assinatura */}
+      <div className="mt-6 signatures">
+        <p className="text-sm text-gray-700">
+          Este documento é fundamental para a organização do fluxo clínico, comunicação entre equipes
+          e rastreabilidade das ações realizadas. Sua correta conferência e assinatura asseguram a
+          responsabilidade técnica e acadêmica dos atendimentos.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="signature-item border border-gray-300 rounded p-3 h-24 flex flex-col justify-end">
+              <div className="border-t border-gray-400 pt-2 text-center text-xs text-gray-700">
+                Carimbo e assinatura do professor
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <style>
@@ -254,6 +284,10 @@ export default function PrintAgendamentos() {
           }
 
           .printable .header-line { margin-bottom: 4px; }
+          .printable .header-line h2 { margin: 0; }
+          .printable .header-line img { display: inline-block; }
+          /* Zebra geral */
+          .printable tbody tr:nth-child(even) { background-color: #D9F2FF; }
 
           @media print {
             /* Evita quebra no meio de uma linha */
@@ -284,6 +318,29 @@ export default function PrintAgendamentos() {
               line-height: 1.15 !important;
               font-size: 11px !important;
             }
+            /* Força espaço para assinatura na última coluna */
+            .printable td:last-child {
+              height: 28px;
+            }
+            /* Mantém a seção de assinaturas agrupada */
+            .printable .signatures { page-break-inside: avoid; break-inside: avoid; }
+            .printable .signature-item { page-break-inside: avoid; break-inside: avoid; }
+            /* Zebra em print (cinza neutro para P&B - um pouco mais escuro) */
+            .printable tbody tr:nth-child(even) { background-color: #f0f0f0 !important; }
+            /* Sem contornos de linha no modo impressão */
+            .printable tbody tr { border-bottom: none !important; }
+            /* Cabeçalho um tom mais forte que a zebra */
+            .printable thead { background-color: #e0e0e0 !important; }
+            .printable thead th { background-color: #e0e0e0 !important; color: #333 !important; }
+            /* Seção Cancelados com mesmo padrão do cabeçalho */
+            .printable .cancelados-header td { background-color: #e0e0e0 !important; color: #333 !important; }
+            /* Espaço anterior sem cor (para não parecer desalinhado) */
+            .printable .cancelados-spacer td { height: 16px !important; background: transparent !important; }
+            /* Remover quaisquer sombras nas linhas e tabela na impressão */
+            .printable table, .printable tr, .printable td, .printable th { box-shadow: none !important; }
+            /* Remover completamente contornos/bordas de linhas e células (inclusive divide-y, border-b, etc.) */
+            .printable table, .printable thead, .printable tbody, .printable tr, .printable th, .printable td { border: none !important; }
+            .printable tbody tr + tr { border-top: none !important; }
           }
         `}
       </style>

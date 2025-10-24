@@ -88,17 +88,17 @@ export default function PrintMovimentacoes() {
         </div>
       )}
 
-      <div className="overflow-x-auto">
+      <div className="mt-4 overflow-x-auto">
         <table className="min-w-full bg-white divide-y divide-gray-200 rounded-lg shadow-sm">
           <thead className="bg-gray-100">
             <tr>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">#</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">Tipo</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">Caixa</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">Aluno</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">Período</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">Data/Hora</th>
-              <th className="px-4 py-2 text-left text-xs font-medium text-gray-600 uppercase">Operador</th>
+              <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 capitalize">#</th>
+              <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 capitalize">Tipo</th>
+              <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 capitalize">Caixa</th>
+              <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 capitalize">Aluno</th>
+              <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 capitalize">Período</th>
+              <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 capitalize">Data/Hora</th>
+              <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 capitalize">Operador</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -132,6 +132,18 @@ export default function PrintMovimentacoes() {
               width: 100% !important;
               border-collapse: collapse !important;
             }
+            /* Zebra em print (cinza neutro para P&B - um pouco mais escuro) */
+            .printable tbody tr:nth-child(even) { background-color: #f0f0f0 !important; }
+            /* Sem contornos de linha no modo impressão */
+            .printable tbody tr { border-bottom: none !important; }
+            /* Remover quaisquer sombras nas linhas e tabela na impressão */
+            .printable table, .printable tr, .printable td, .printable th { box-shadow: none !important; }
+            /* Remover completamente contornos/bordas de linhas e células */
+            .printable table, .printable thead, .printable tbody, .printable tr, .printable th, .printable td { border: none !important; }
+            .printable tbody tr + tr { border-top: none !important; }
+            /* Cabeçalho um tom mais forte que a zebra */
+            .printable thead { background-color: #e0e0e0 !important; }
+            .printable thead th { background-color: #e0e0e0 !important; color: #333 !important; }
           }
         `}
       </style>
