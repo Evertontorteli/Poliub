@@ -173,32 +173,32 @@ export default function TelaAjustes() {
           <div className="pb-2">
             <h3 className="text-lg font-semibold text-gray-800 mb-2">Filtros</h3>
           <div className="grid grid-cols-1 md:grid-cols-6 gap-3 mb-3">
-            <div>
-              <label className="text-xs text-gray-600">Data inicial</label>
+            <div className="group">
+              <label className="text-xs text-gray-600 transition-colors group-focus-within:text-blue-600">Data inicial</label>
               <input type="date" value={filters.startDate} onChange={e=>setFilters(f=>({...f,startDate:e.target.value}))} className="w-full border rounded p-2"/>
             </div>
-            <div>
-              <label className="text-xs text-gray-600">Data final</label>
+            <div className="group">
+              <label className="text-xs text-gray-600 transition-colors group-focus-within:text-blue-600">Data final</label>
               <input type="date" value={filters.endDate} onChange={e=>setFilters(f=>({...f,endDate:e.target.value}))} className="w-full border rounded p-2"/>
             </div>
-            <div>
-              <label className="text-xs text-gray-600">Role</label>
+            <div className="group">
+              <label className="text-xs text-gray-600 transition-colors group-focus-within:text-blue-600">Role</label>
               <select value={filters.role} onChange={e=>setFilters(f=>({...f,role:e.target.value}))} className="w-full border rounded p-2">
                 <option value="">Todas</option>
                 <option value="recepcao">Recepção</option>
                 <option value="aluno">Aluno</option>
               </select>
             </div>
-            <div>
-              <label className="text-xs text-gray-600">NPS mínimo</label>
+            <div className="group">
+              <label className="text-xs text-gray-600 transition-colors group-focus-within:text-blue-600">NPS mínimo</label>
               <input type="number" min={0} max={10} value={filters.minScore} onChange={e=>setFilters(f=>({...f,minScore:e.target.value}))} className="w-full border rounded p-2"/>
             </div>
-            <div>
-              <label className="text-xs text-gray-600">Busca (comentário/página)</label>
+            <div className="group">
+              <label className="text-xs text-gray-600 transition-colors group-focus-within:text-blue-600">Busca (comentário/página)</label>
               <input type="text" value={filters.q} onChange={e=>setFilters(f=>({...f,q:e.target.value}))} className="w-full border rounded p-2" placeholder="ex: esterilizacao"/>
             </div>
-            <div>
-              <label className="text-xs text-gray-600">Ordenar por</label>
+            <div className="group">
+              <label className="text-xs text-gray-600 transition-colors group-focus-within:text-blue-600">Ordenar por</label>
               <div className="flex gap-2">
                 <select value={filters.orderBy} onChange={e=>setFilters(f=>({...f,orderBy:e.target.value}))} className="w-full border rounded p-2">
                   <option value="created_at">Data</option>
@@ -267,7 +267,7 @@ export default function TelaAjustes() {
           {error && <div className="text-red-600">Erro: {error}</div>}
           {resumo && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-              <CardKpi label="NPS (30d)" value={resumo.nps} suffix="" color="#3172C0" />
+              <CardKpi label="NPS (30d)" value={resumo.nps} suffix="" color="#0095DA" />
               <CardKpi label="Média NPS" value={resumo.avg_nps != null ? resumo.avg_nps.toFixed(1) : '-'} color="#ECAD21" />
               <CardKpi label="Promotores" value={resumo.promoters} color="#2FA74E" />
               <CardKpi label="Detratores" value={resumo.detractors} color="#DA3648" />
@@ -538,8 +538,8 @@ function ModelosAnamnese() {
         <div className="border rounded-lg p-4">
           <h3 className="text-lg font-semibold text-gray-800 mb-3">Criar modelo de anamnese</h3>
           <div className="grid gap-3">
-            <div>
-              <label className="block text-xs text-gray-600 mb-1">Nome da Anamnese</label>
+            <div className="group">
+              <label className="block text-xs text-gray-600 mb-1 transition-colors group-focus-within:text-blue-600">Nome da Anamnese</label>
               <input
                 type="text"
                 value={novoNome}
@@ -548,8 +548,8 @@ function ModelosAnamnese() {
                 placeholder="Ex.: Anamnese Clínica Geral"
               />
             </div>
-            <div>
-              <label className="block text-xs text-gray-600 mb-1">Origem do modelo</label>
+            <div className="group">
+              <label className="block text-xs text-gray-600 mb-1 transition-colors group-focus-within:text-blue-600">Origem do modelo</label>
               <label className="inline-flex items-center gap-2">
                 <input
                   type="radio"
@@ -595,20 +595,20 @@ function ModelosAnamnese() {
               <div className="p-2">
                 <h3 className="text-lg font-semibold text-gray-800 mb-3">Adicionar pergunta</h3>
                 <div className="grid gap-3">
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">Pergunta</label>
+                  <div className="group">
+                    <label className="block text-xs text-gray-600 mb-1 transition-colors group-focus-within:text-blue-600">Pergunta</label>
                     <input
                       type="text"
                       value={novaPerguntaTitulo}
                       onChange={(e) => setNovaPerguntaTitulo(e.target.value)}
-                      className="w-full border rounded p-2"
+                      className="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
                       placeholder="Digite a pergunta"
                     />
                   </div>
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">Tipo de resposta</label>
+                  <div className="group">
+                    <label className="block text-xs text-gray-600 mb-1 transition-colors group-focus-within:text-blue-600">Tipo de resposta</label>
                     <select
-                      className="w-full border rounded p-2"
+                      className="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
                       value={novaPerguntaTipo}
                       onChange={(e) => setNovaPerguntaTipo(e.target.value)}
                     >
@@ -972,8 +972,8 @@ function FeedbackPromptModal({ open, onClose }) {
             <input id="fb-enabled" type="checkbox" className="w-4 h-4" checked={enabled} onChange={e=>setEnabled(e.target.checked)} />
             <label htmlFor="fb-enabled" className="text-sm text-gray-800">Exibir modal de feedback automaticamente</label>
           </div>
-          <div className="md:ml-6">
-            <label className="block text-xs text-gray-600">Frequência</label>
+          <div className="md:ml-6 group">
+            <label className="block text-xs text-gray-600 transition-colors group-focus-within:text-blue-600">Frequência</label>
             <select disabled={!enabled} value={frequencyDays} onChange={e=>setFrequencyDays(Number(e.target.value))} className="border rounded p-2 min-w-[160px] disabled:bg-gray-100">
               <option value={1}>Todos os dias</option>
               <option value={7}>A cada 7 dias</option>
@@ -1069,7 +1069,7 @@ function ManutencaoSistema() {
         {selected === 'agendamento' && (
           <div className="md:grid md:grid-cols-2 md:gap-6">
             <div>
-              <div className="text-sm font-medium text-gray-900">Solicitação de pacientes</div>
+            <div className="text-sm font-medium text-gray-900">Solicitação de pacientes</div>
               <p className="text-sm text-gray-600 mt-1">
                 Controla quando alunos podem usar “Solicitar”. Fora da antecedência mínima (ex.: 48h),
                 o tipo Solicitar é bloqueado; o aluno deve usar “Novo” ou “Retorno”.
@@ -1087,8 +1087,10 @@ function ManutencaoSistema() {
                 <div className="w-11 h-6 bg-gray-300 rounded-full relative transition peer-checked:bg-[#0095DA] after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-5 after:h-5 after:bg-white after:rounded-full after:shadow after:transition peer-checked:after:translate-x-5" />
               </label>
               <div className="flex items-end gap-3 w-full md:w-auto">
-                <div>
-                  <label className="block text-xs text-gray-600">Antecedência mínima (horas)</label>
+                <div className="group">
+                  <label className="block text-xs text-gray-600 transition-colors group-focus-within:text-blue-600">
+                    Antecedência mínima <small className="text-gray-500">(horas)</small>
+                  </label>
                   <input
                     type="number"
                     min={1}
@@ -1096,7 +1098,7 @@ function ManutencaoSistema() {
                     value={windowHours}
                     onChange={e=>setWindowHours(Number(e.target.value))}
                     disabled={!enabled}
-                    className="border rounded p-2 w-36 disabled:bg-gray-100"
+                    className="border rounded p-2 w-36 disabled:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-300"
                   />
                   <div className="text-xs text-gray-500 mt-1">Até 14 dias (336h)</div>
                 </div>
@@ -1121,10 +1123,10 @@ function ManutencaoSistema() {
                 <span className="ml-3 text-sm text-gray-800">Habilitar (fictício)</span>
               </label>
               <div className="flex items-end gap-3 w-full md:w-auto">
-                <div>
-                  <label className="block text-xs text-gray-600">Nível</label>
+                <div className="group">
+                  <label className="block text-xs text-gray-600 transition-colors group-focus-within:text-blue-600">Nível</label>
                   <select
-                    className="border rounded p-2 w-36"
+                    className="border rounded p-2 w-36 focus:outline-none focus:ring-2 focus:ring-blue-300"
                     value={fakeLevel}
                     onChange={e=>setFakeLevel(e.target.value)}
                   >

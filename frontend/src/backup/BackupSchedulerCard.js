@@ -2,7 +2,7 @@
 import React, { useMemo, useState } from 'react';
 import { Plus, X } from 'lucide-react';
 
-const labelCls = 'block text-sm font-medium text-gray-700';
+const labelCls = 'block text-sm font-medium text-gray-700 transition-colors group-focus-within:text-blue-600';
 const inputCls =
   'w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300';
 
@@ -70,7 +70,7 @@ export default function SchedulerCard({ schedule, onChange }) {
       </div>
 
       {/* dias */}
-      <div className="mb-4">
+      <div className="mb-4 group">
         <label className={labelCls}>Dias da semana</label>
         <div className="flex flex-wrap gap-2 mt-2">
           {DAYS.map(d => (
@@ -91,7 +91,7 @@ export default function SchedulerCard({ schedule, onChange }) {
       </div>
 
       {/* horários */}
-      <div>
+      <div className="group">
         <label className={labelCls}>Horários (HH:mm)</label>
         <div className="space-y-2 mt-2 max-w-md">
           {times.map((t, idx) => (
