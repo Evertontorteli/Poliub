@@ -12,6 +12,7 @@ export default function TelaPacientes() {
   const [editando, setEditando] = useState(null); // Paciente em edição
   const [reloadKey, setReloadKey] = useState(0);
   const [pacienteSelecionado, setPacienteSelecionado] = useState(null);
+  const [showConfirmCancel, setShowConfirmCancel] = useState(false);
 
   // Abrir modal para novo paciente
   const handleNovo = () => {
@@ -39,6 +40,24 @@ export default function TelaPacientes() {
     setEditando(null);
   };
 
+  const requestCloseModal = () => {
+    // Se estiver editando, não fechar de imediato: pedir confirmação
+    if (editando) {
+      setShowConfirmCancel(true);
+      return;
+    }
+    handleCancelar();
+  };
+
+  const confirmCancelarEdicao = () => {
+    setShowConfirmCancel(false);
+    handleCancelar();
+  };
+
+  const continuarEditando = () => {
+    setShowConfirmCancel(false);
+  };
+
   return (
     <div>
       <div className="flex justify-between px-4 items-center mb-4 gap-2 flex-nowrap">
@@ -51,13 +70,32 @@ export default function TelaPacientes() {
         </button>
       </div>
       <ListaPacientes reloadKey={reloadKey} onEditar={handleEditar} />
-      <Modal isOpen={mostrarModal} onRequestClose={handleCancelar} size={isAluno ? 'lg' : 'md'}>
+      <Modal
+        isOpen={mostrarModal}
+        onRequestClose={requestCloseModal}
+        size="xl"
+        shouldCloseOnOverlayClick={!editando}
+        shouldCloseOnEsc={!editando}
+      >
         <FormPaciente
           onNovoPaciente={handleSalvar}
           pacienteEditando={editando}
-          onFimEdicao={handleCancelar}
+          onFimEdicao={() => setShowConfirmCancel(true)}
         />
       </Modal>
+
+      {showConfirmCancel && (
+        <Modal isOpen={showConfirmCancel} onRequestClose={continuarEditando} size="sm">
+          <div className="p-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Cancelar edição?</h3>
+            <p className="text-sm text-gray-700">Você possui alterações em andamento. Tem certeza que deseja cancelar?</p>
+            <div className="flex justify-end gap-2 mt-4">
+              <button className="px-3 py-2 rounded border" onClick={continuarEditando}>Continuar editando</button>
+              <button className="px-3 py-2 rounded text-white bg-red-600 hover:brightness-110" onClick={confirmCancelarEdicao}>Cancelar edição</button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

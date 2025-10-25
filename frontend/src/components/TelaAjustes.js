@@ -131,37 +131,37 @@ export default function TelaAjustes() {
       </div>
       <div className="flex items-center gap-2 border-b mb-4">
         <button
-          className={`px-3 py-2 -mb-px border-b-2 ${tab==='feedbacks' ? 'border-[#0095DA] text-[#0095DA]' : 'border-transparent text-gray-600'}`}
+          className={`px-3 py-2 -mb-px border-b-2 ${tab==='feedbacks' ? 'border-[#0095DA] text-[#0095DA] font-bold' : 'border-transparent text-gray-600'}`}
           onClick={() => setTab('feedbacks')}
         >
           Feedbacks
         </button>
         <button
-          className={`px-3 py-2 -mb-px border-b-2 ${tab==='anamnese' ? 'border-[#0095DA] text-[#0095DA]' : 'border-transparent text-gray-600'}`}
+          className={`px-3 py-2 -mb-px border-b-2 ${tab==='anamnese' ? 'border-[#0095DA] text-[#0095DA] font-bold' : 'border-transparent text-gray-600'}`}
           onClick={() => setTab('anamnese')}
         >
           Modelos de Anamnese
         </button>
         <button
-          className={`px-3 py-2 -mb-px border-b-2 ${tab==='manutencao' ? 'border-[#0095DA] text-[#0095DA]' : 'border-transparent text-gray-600'}`}
+          className={`px-3 py-2 -mb-px border-b-2 ${tab==='manutencao' ? 'border-[#0095DA] text-[#0095DA] font-bold' : 'border-transparent text-gray-600'}`}
           onClick={() => setTab('manutencao')}
         >
           Manutenção do Sistema
         </button>
         <button
-          className={`px-3 py-2 -mb-px border-b-2 ${tab==='backup' ? 'border-[#0095DA] text-[#0095DA]' : 'border-transparent text-gray-600'}`}
+          className={`px-3 py-2 -mb-px border-b-2 ${tab==='backup' ? 'border-[#0095DA] text-[#0095DA] font-bold' : 'border-transparent text-gray-600'}`}
           onClick={() => setTab('backup')}
         >
           Backup
         </button>
         <button
-          className={`px-3 py-2 -mb-px border-b-2 ${tab==='auditoria' ? 'border-[#0095DA] text-[#0095DA]' : 'border-transparent text-gray-600'}`}
+          className={`px-3 py-2 -mb-px border-b-2 ${tab==='auditoria' ? 'border-[#0095DA] text-[#0095DA] font-bold' : 'border-transparent text-gray-600'}`}
           onClick={() => setTab('auditoria')}
         >
           Auditoria
         </button>
         <button
-          className={`px-3 py-2 -mb-px border-b-2 ${tab==='outros' ? 'border-[#0095DA] text-[#0095DA]' : 'border-transparent text-gray-600'}`}
+          className={`px-3 py-2 -mb-px border-b-2 ${tab==='outros' ? 'border-[#0095DA] text-[#0095DA] font-bold' : 'border-transparent text-gray-600'}`}
           onClick={() => setTab('outros')}
         >
           Outros (em breve)

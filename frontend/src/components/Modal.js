@@ -5,9 +5,15 @@ Modal.setAppElement('#root'); // Para acessibilidade
 
 export default function ModalCustom({ isOpen, onRequestClose, onClose, children, size = 'md', shouldCloseOnOverlayClick = true, shouldCloseOnEsc = true }) {
   const handleClose = onRequestClose || onClose;
-  const contentSizeClasses = size === 'lg'
-    ? 'min-w-[340px] sm:min-w-[480px] md:min-w-[560px]'
-    : 'min-w-[340px]';
+  const contentSizeClasses =
+    size === 'xl' ? 'w-full max-w-6xl h-[85vh]'
+    : size === 'lg' ? 'w-full max-w-5xl h-[78vh]'
+    : size === 'sm' ? 'w-full max-w-md'
+    : 'w-full max-w-3xl h-[72vh]';
+  const innerClasses =
+    size === 'sm'
+      ? 'overflow-y-auto pt-2 pb-20 px-8 w-full'
+      : 'overflow-y-auto pt-2 pb-20 px-8 w-full h-full';
   return (
     <Modal
       isOpen={isOpen}
@@ -17,7 +23,7 @@ export default function ModalCustom({ isOpen, onRequestClose, onClose, children,
       overlayClassName="fixed inset-0 bg-black bg-opacity-40 flex justify-center items-center z-50"
       className={`
         bg-white rounded-xl shadow-lg p-0
-        w-auto
+        w-full
         ${contentSizeClasses}
         flex flex-col outline-none relative
       `}
@@ -30,10 +36,7 @@ export default function ModalCustom({ isOpen, onRequestClose, onClose, children,
         className="absolute right-4 top-4 text-gray-400 hover:text-gray-700 text-2xl"
         aria-label="Fechar"
       >×</button>
-      <div
-        className="overflow-y-auto pt-2 pb-8 px-8 w-full h-full"
-        style={{ maxHeight: '90vh' }}
-      >
+      <div className={innerClasses}>
         {children}
       </div>
     </Modal>
