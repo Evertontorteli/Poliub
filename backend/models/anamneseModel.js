@@ -27,6 +27,41 @@ async function ensureSchema() {
         CONSTRAINT fk_anam_modelo FOREIGN KEY (modelo_id) REFERENCES anamnese_modelos(id) ON DELETE CASCADE
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     `);
+
+    // Descobre o tipo exato da coluna pacientes.id para compatibilizar o FK
+    const [[idTypeRow]] = await conn.query(`
+      SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS
+      WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'pacientes' AND COLUMN_NAME = 'id'
+    `);
+    const pacienteIdColumnType = (idTypeRow && idTypeRow.COLUMN_TYPE) ? idTypeRow.COLUMN_TYPE : 'BIGINT';
+
+    // Preenchimentos por paciente (instâncias respondidas)
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS anamnese_preenchimentos (
+        id BIGINT PRIMARY KEY AUTO_INCREMENT,
+        paciente_id ${pacienteIdColumnType} NOT NULL,
+        modelo_id BIGINT NOT NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_paciente (paciente_id),
+        INDEX idx_modelo (modelo_id),
+        CONSTRAINT fk_anam_paciente FOREIGN KEY (paciente_id) REFERENCES pacientes(id) ON DELETE CASCADE,
+        CONSTRAINT fk_anam_preench_modelo FOREIGN KEY (modelo_id) REFERENCES anamnese_modelos(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
+
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS anamnese_preench_respostas (
+        id BIGINT PRIMARY KEY AUTO_INCREMENT,
+        preenchimento_id BIGINT NOT NULL,
+        pergunta_id BIGINT NOT NULL,
+        opcao ENUM('sim','nao','nao_sei') NULL,
+        texto TEXT NULL,
+        INDEX idx_preench (preenchimento_id),
+        INDEX idx_pergunta (pergunta_id),
+        CONSTRAINT fk_anam_resp_preench FOREIGN KEY (preenchimento_id) REFERENCES anamnese_preenchimentos(id) ON DELETE CASCADE,
+        CONSTRAINT fk_anam_resp_perg FOREIGN KEY (pergunta_id) REFERENCES anamnese_perguntas(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    `);
   } finally {
     conn.release();
   }
@@ -149,6 +184,101 @@ const Anamnese = {
     } catch (e) {
       try { await conn.rollback(); } catch {}
       throw e;
+    } finally { conn.release(); }
+  },
+
+  // ===== Preenchimentos =====
+  criarPreenchimento: async (pacienteId, modeloId, respostasMap = {}) => {
+    const conn = await getConnection();
+    try {
+      // Garante schema compatível
+      await ensureSchema();
+
+      await conn.beginTransaction();
+      const [res] = await conn.query(
+        'INSERT INTO anamnese_preenchimentos (paciente_id, modelo_id) VALUES (?,?)',
+        [pacienteId, modeloId]
+      );
+      const preenchId = res.insertId;
+      // respostasMap: { [perguntaId]: { opcao?: 'sim'|'nao'|'nao_sei', texto?: string } }
+      for (const [pid, ans] of Object.entries(respostasMap || {})) {
+        const opcao = ans?.opcao ?? null;
+        const texto = ans?.texto ?? null;
+        await conn.query(
+          'INSERT INTO anamnese_preench_respostas (preenchimento_id, pergunta_id, opcao, texto) VALUES (?,?,?,?)',
+          [preenchId, Number(pid), opcao, texto]
+        );
+      }
+      await conn.commit();
+      return { id: preenchId };
+    } catch (e) {
+      try { await conn.rollback(); } catch {}
+      throw e;
+    } finally { conn.release(); }
+  },
+
+  listarPreenchimentosPorPaciente: async (pacienteId) => {
+    const conn = await getConnection();
+    try {
+      const [rows] = await conn.query(`
+        SELECT p.id, p.created_at, p.modelo_id, m.nome AS modelo_nome
+        FROM anamnese_preenchimentos p
+        JOIN anamnese_modelos m ON m.id = p.modelo_id
+        WHERE p.paciente_id = ?
+        ORDER BY p.created_at DESC, p.id DESC
+      `, [pacienteId]);
+      return rows;
+    } finally { conn.release(); }
+  },
+
+  listarRespostasDoPreenchimento: async (preenchId) => {
+    const conn = await getConnection();
+    try {
+      const [[header]] = await conn.query(`
+        SELECT p.id, p.created_at, p.modelo_id, m.nome AS modelo_nome
+        FROM anamnese_preenchimentos p
+        JOIN anamnese_modelos m ON m.id = p.modelo_id
+        WHERE p.id = ?
+      `, [preenchId]);
+      const [resps] = await conn.query(`
+        SELECT r.id, r.pergunta_id, q.titulo, q.tipo, r.opcao, r.texto
+        FROM anamnese_preench_respostas r
+        JOIN anamnese_perguntas q ON q.id = r.pergunta_id
+        WHERE r.preenchimento_id = ?
+        ORDER BY q.posicao ASC, q.id ASC
+      `, [preenchId]);
+      return { preenchimento: header || null, respostas: resps };
+    } finally { conn.release(); }
+  },
+
+  atualizarPreenchimento: async (preenchId, respostasMap = {}) => {
+    const conn = await getConnection();
+    try {
+      await ensureSchema();
+      await conn.beginTransaction();
+      await conn.query('DELETE FROM anamnese_preench_respostas WHERE preenchimento_id = ?', [preenchId]);
+      for (const [pid, ans] of Object.entries(respostasMap || {})) {
+        const opcao = ans?.opcao ?? null;
+        const texto = ans?.texto ?? null;
+        await conn.query(
+          'INSERT INTO anamnese_preench_respostas (preenchimento_id, pergunta_id, opcao, texto) VALUES (?,?,?,?)',
+          [preenchId, Number(pid), opcao, texto]
+        );
+      }
+      await conn.commit();
+      return { ok: true };
+    } catch (e) {
+      try { await conn.rollback(); } catch {}
+      throw e;
+    } finally { conn.release(); }
+  },
+
+  removerPreenchimento: async (preenchId) => {
+    const conn = await getConnection();
+    try {
+      await ensureSchema();
+      const [res] = await conn.query('DELETE FROM anamnese_preenchimentos WHERE id = ?', [preenchId]);
+      return res;
     } finally { conn.release(); }
   },
 };

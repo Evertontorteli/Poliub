@@ -13,6 +13,7 @@ export default function TelaPacientes() {
   const [reloadKey, setReloadKey] = useState(0);
   const [pacienteSelecionado, setPacienteSelecionado] = useState(null);
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
+  const [dirty, setDirty] = useState(false);
 
   // Abrir modal para novo paciente
   const handleNovo = () => {
@@ -41,8 +42,8 @@ export default function TelaPacientes() {
   };
 
   const requestCloseModal = () => {
-    // Se estiver editando, não fechar de imediato: pedir confirmação
-    if (editando) {
+    // Só pede confirmação se estiver editando E houver alterações (dirty)
+    if (editando && dirty) {
       setShowConfirmCancel(true);
       return;
     }
@@ -81,6 +82,7 @@ export default function TelaPacientes() {
           onNovoPaciente={handleSalvar}
           pacienteEditando={editando}
           onFimEdicao={() => setShowConfirmCancel(true)}
+          onDirtyChange={setDirty}
         />
       </Modal>
 

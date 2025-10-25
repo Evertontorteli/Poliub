@@ -145,7 +145,7 @@ export default function DashboardEsterilizacao() {
         <button
           className={`relative pb-2 text-sm md:text-base transition-colors after:content-[''] after:absolute after:left-0 after:-bottom-[1px] after:h-[2px] after:rounded after:transition-all after:duration-200 after:ease-out after:w-0
             ${aba === 'dashboard'
-              ? 'text-gray-900 after:w-full after:bg-blue-300'
+              ? 'text-[#0095DA] after:w-full after:bg-[#0095DA]'
               : 'text-gray-600 hover:text-gray-800 hover:after:w-full hover:after:bg-gray-300'}`}
           onClick={() => setAba('dashboard')}
         >
@@ -154,7 +154,7 @@ export default function DashboardEsterilizacao() {
         <button
           className={`relative pb-2 text-sm md:text-base transition-colors after:content-[''] after:absolute after:left-0 after:-bottom-[1px] after:h-[2px] after:rounded after:transition-all after:duration-200 after:ease-out after:w-0
             ${aba === 'movimentacao'
-              ? 'text-gray-900 after:w-full after:bg-blue-300'
+              ? 'text-[#0095DA] after:w-full after:bg-[#0095DA]'
               : 'text-gray-600 hover:text-gray-800 hover:after:w-full hover:after:bg-gray-300'}`}
           onClick={() => setAba('movimentacao')}
         >
@@ -163,7 +163,7 @@ export default function DashboardEsterilizacao() {
         <button
           className={`relative pb-2 text-sm md:text-base transition-colors after:content-[''] after:absolute after:left-0 after:-bottom-[1px] after:h-[2px] after:rounded after:transition-all after:duration-200 after:ease-out after:w-0
             ${aba === 'relatorio'
-              ? 'text-gray-900 after:w-full after:bg-blue-300'
+              ? 'text-[#0095DA] after:w-full after:bg-[#0095DA]'
               : 'text-gray-600 hover:text-gray-800 hover:after:w-full hover:after:bg-gray-300'}`}
           onClick={() => setAba('relatorio')}
         >

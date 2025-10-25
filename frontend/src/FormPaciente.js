@@ -5,9 +5,11 @@ import { toast } from 'react-toastify';
 import { useAuth } from './context/AuthContext';
 import PaginaTratamento from './pages/PaginaTratamento';
 import EncaminhamentosPaciente from './components/EncaminhamentosPaciente';
+import Modal from './components/Modal';
+import { FileText, Pencil, Trash } from 'lucide-react';
 import 'react-toastify/dist/ReactToastify.css';
 
-function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
+function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao, onDirtyChange }) {
   const { user } = useAuth();
   const isAluno = user?.role === 'aluno';
 
@@ -40,6 +42,14 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
   const [perguntasAnamnese, setPerguntasAnamnese] = useState([]);
   const [respostas, setRespostas] = useState({});
   const [savingAnamnese, setSavingAnamnese] = useState(false);
+  const [showSelectModelo, setShowSelectModelo] = useState(false);
+  const [modeloEscolhidoId, setModeloEscolhidoId] = useState('');
+  const [anamnesesPreenchidas, setAnamnesesPreenchidas] = useState([]); // lista vinda do backend
+  const [detalheAbertoId, setDetalheAbertoId] = useState(null);
+  const [detalheCarregando, setDetalheCarregando] = useState(false);
+  const [detalheDados, setDetalheDados] = useState(null);
+  const [confirmRemoverId, setConfirmRemoverId] = useState(null);
+  const [preenchimentoEditandoId, setPreenchimentoEditandoId] = useState(null);
   const cardColors = ['#5956D6', '#2B8FF2', '#ECAD21', '#03A400', '#DA5D5C', '#926AFF', '#568BEF', '#ECAD21', '#FF7FAF', '#926AFF', '#009AF3'];
 
   useEffect(() => {
@@ -65,9 +75,11 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
         responsavel_telefone: formatarTelefone(pacienteEditando.responsavel_telefone || '')
       });
       setAbaAtiva('dados'); // sempre inicia na aba Dados
+      onDirtyChange?.(false);
     } else {
       resetForm();
       setAbaAtiva('dados');
+      onDirtyChange?.(false);
     }
     setMensagemErro('');
   }, [pacienteEditando]);
@@ -92,6 +104,23 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
       }
     })();
     return () => { alive = false; };
+  }, [abaAtiva, pacienteEditando?.id]);
+
+  // Carrega preenchimentos do paciente ao abrir a aba Anamnese
+  useEffect(() => {
+    if (abaAtiva !== 'anamnese' || !pacienteEditando?.id) return;
+    let vivo = true;
+    (async () => {
+      try {
+        const { data } = await axios.get(`/api/anamnese/preenchimentos/paciente/${pacienteEditando.id}`);
+        if (!vivo) return;
+        setAnamnesesPreenchidas(Array.isArray(data) ? data : []);
+      } catch {
+        if (!vivo) return;
+        setAnamnesesPreenchidas([]);
+      }
+    })();
+    return () => { vivo = false; };
   }, [abaAtiva, pacienteEditando?.id]);
 
   async function selecionarModelo(m) {
@@ -139,9 +168,48 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
     setSavingAnamnese(true);
     try {
       toast.dismiss && toast.dismiss();
-      toast.success('Anamnese preenchida (rascunho UI). Persistência será conectada.');
+      if (!pacienteEditando?.id || !selectedModeloId) {
+        toast.error('Selecione um modelo.');
+        return;
+      }
+      // envia mapa de respostas como { [perguntaId]: { opcao, texto } }
+      await axios.post('/api/anamnese/preenchimentos', {
+        paciente_id: pacienteEditando.id,
+        modelo_id: selectedModeloId,
+        respostas
+      });
+      // recarrega lista de preenchimentos
+      try {
+        const { data } = await axios.get(`/api/anamnese/preenchimentos/paciente/${pacienteEditando.id}`);
+        setAnamnesesPreenchidas(Array.isArray(data) ? data : []);
+      } catch {}
+      toast.success('Anamnese salva com sucesso.');
+      // fecha modal e limpa seleção
+      setShowSelectModelo(false);
+      setModeloEscolhidoId('');
+      setSelectedModeloId(null);
+      setSelectedModelo(null);
+      setPerguntasAnamnese([]);
+      setRespostas({});
+    } catch (e) {
+      const msg = e?.response?.data?.error || e?.message || 'Falha ao salvar anamnese.';
+      toast.error(msg);
     } finally {
       setSavingAnamnese(false);
+    }
+  }
+
+  async function abrirDetalhePreenchimento(id) {
+    setDetalheAbertoId(id);
+    setDetalheCarregando(true);
+    setDetalheDados(null);
+    try {
+      const { data } = await axios.get(`/api/anamnese/preenchimentos/${id}`);
+      setDetalheDados(data || null);
+    } catch {
+      setDetalheDados(null);
+    } finally {
+      setDetalheCarregando(false);
     }
   }
 
@@ -233,6 +301,7 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
   const handleChange = e => {
     const { name, value } = e.target;
     setFormData(fd => ({ ...fd, [name]: value }));
+    onDirtyChange?.(true);
   };
 
   const handleDateChange = e => {
@@ -351,7 +420,7 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
       <div className="flex border-b mb-6 gap-6">
         <button
           className={`relative pb-2 text-sm md:text-base transition-colors after:content-[''] after:absolute after:left-0 after:-bottom-[1px] after:h-[2px] after:rounded after:transition-all after:duration-200 after:ease-out after:w-0 focus:outline-none
-            ${abaAtiva === 'dados' ? 'text-[#0095DA] font-bold after:w-full after:bg-[#0095DA]' : 'text-gray-600 hover:text-gray-800 hover:after:w-full hover:after:bg-gray-300'}`}
+            ${abaAtiva === 'dados' ? 'text-[#0095DA] after:w-full after:bg-[#0095DA]' : 'text-gray-600 hover:text-gray-800 hover:after:w-full hover:after:bg-gray-300'}`}
           onClick={() => setAbaAtiva('dados')}
         >
           Dados do Paciente
@@ -361,21 +430,21 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
             {/* Anamnese como segunda opção */}
             <button
               className={`relative pb-2 text-sm md:text-base transition-colors after:content-[''] after:absolute after:left-0 after:-bottom-[1px] after:h-[2px] after:rounded after:transition-all after:duration-200 after:ease-out after:w-0 focus:outline-none
-                ${abaAtiva === 'anamnese' ? 'text-[#0095DA] font-bold after:w-full after:bg-[#0095DA]' : 'text-gray-600 hover:text-gray-800 hover:after:w-full hover:after:bg-gray-300'}`}
+                ${abaAtiva === 'anamnese' ? 'text-[#0095DA] after:w-full after:bg-[#0095DA]' : 'text-gray-600 hover:text-gray-800 hover:after:w-full hover:after:bg-gray-300'}`}
               onClick={() => setAbaAtiva('anamnese')}
             >
               Anamnese
             </button>
             <button
               className={`relative pb-2 text-sm md:text-base transition-colors after:content-[''] after:absolute after:left-0 after:-bottom-[1px] after:h-[2px] after:rounded after:transition-all after:duration-200 after:ease-out after:w-0 focus:outline-none
-                ${abaAtiva === 'encaminhamentos' ? 'text-[#0095DA] font-bold after:w-full after:bg-[#0095DA]' : 'text-gray-600 hover:text-gray-800 hover:after:w-full hover:after:bg-gray-300'}`}
+                ${abaAtiva === 'encaminhamentos' ? 'text-[#0095DA] after:w-full after:bg-[#0095DA]' : 'text-gray-600 hover:text-gray-800 hover:after:w-full hover:after:bg-gray-300'}`}
               onClick={() => setAbaAtiva('encaminhamentos')}
             >
               Encaminhamentos
             </button>
             <button
               className={`relative pb-2 text-sm md:text-base transition-colors after:content-[''] after:absolute after:left-0 after:-bottom-[1px] after:h-[2px] after:rounded after:transition-all after:duration-200 after:ease-out after:w-0 focus:outline-none
-                ${abaAtiva === 'tratamento' ? 'text-[#0095DA] font-bold after:w-full after:bg-[#0095DA]' : 'text-gray-600 hover:text-gray-800 hover:after:w-full hover:after:bg-gray-300'}`}
+                ${abaAtiva === 'tratamento' ? 'text-[#0095DA] after:w-full after:bg-[#0095DA]' : 'text-gray-600 hover:text-gray-800 hover:after:w-full hover:after:bg-gray-300'}`}
               onClick={() => setAbaAtiva('tratamento')}
             >
               Tratamento
@@ -400,7 +469,7 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
               <select
                 name="tipo_paciente"
                 value={formData.tipo_paciente}
-                onChange={handleChange}
+                onChange={(e) => { handleChange(e); onDirtyChange?.(true); }}
                 className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
               >
                 <option value="NORMAL">Normal</option>
@@ -422,7 +491,7 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
                   type="text"
                   maxLength={8}
                   value={numeroProntuario}
-                  onChange={e => setNumeroProntuario(e.target.value)}
+                onChange={e => { setNumeroProntuario(e.target.value); onDirtyChange?.(true); }}
                   className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
                 />
               </div>
@@ -436,7 +505,7 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
                   type="text"
                   name="numero_gaveta"
                   value={formData.numero_gaveta}
-                  onChange={handleChange}
+                  onChange={(e) => { handleChange(e); onDirtyChange?.(true); }}
                   className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
                 />
               </div>
@@ -453,7 +522,7 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
                 type="text"
                 required
                 value={nome}
-                onChange={e => setNome(e.target.value)}
+                onChange={e => { setNome(e.target.value); onDirtyChange?.(true); }}
                 className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
               />
             </div>
@@ -471,7 +540,7 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
                 type="tel"
                 required={formData.tipo_paciente === 'NORMAL'}
                 value={telefone}
-                onChange={e => setTelefone(formatarTelefone(e.target.value))}
+                onChange={e => { setTelefone(formatarTelefone(e.target.value)); onDirtyChange?.(true); }}
                 placeholder="(XX) XXXXX-XXXX"
                 className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
               />
@@ -702,63 +771,220 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao }) {
       {/* Aba Anamnese */}
       {abaAtiva === 'anamnese' && pacienteEditando && (
         <div className="p-2">
-          <h2 className="text-2xl font-bold mb-4 text-gray-800">Anamnese</h2>
-          {!selectedModeloId ? (
-            <div className="border rounded-lg p-4 bg-white">
-              {modelosLoading && <div className="text-gray-500">Carregando modelos…</div>}
-              {modelosErro && <div className="text-red-600 mb-2">{modelosErro}</div>}
-              {!modelosLoading && !modelosErro && (
-                modelosAnamnese.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {modelosAnamnese.map((m, idx) => (
-                      <div key={m.id} className="relative border rounded-lg bg-white p-3 overflow-hidden">
-                        <span className="absolute left-0 top-0 h-full w-1" style={{ backgroundColor: cardColors[idx % cardColors.length] }} aria-hidden="true" />
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <div className="font-semibold text-gray-800" title={m.nome}>{m.nome}</div>
-                            <div className="text-xs text-gray-600 mt-1">Atualizado em: {m.updated_at ? new Date(m.updated_at).toLocaleString('pt-BR') : '-'}</div>
-                          </div>
-                        </div>
-                        <div className="mt-3 flex justify-end">
-                          <button onClick={() => selecionarModelo(m)} className="px-3 py-2 rounded text-white bg-[#0095DA] hover:brightness-110">Selecionar</button>
-                        </div>
-                      </div>
-                    ))}
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold text-gray-800">Anamnese</h2>
+            <button
+              className="px-4 py-2 rounded text-white bg-[#0095DA] hover:brightness-110"
+              onClick={() => setShowSelectModelo(true)}
+            >
+              Preencher anamnese
+            </button>
+          </div>
+
+          {anamnesesPreenchidas.length > 0 ? (
+            <div className="space-y-2">
+              {anamnesesPreenchidas.map((a, idx) => (
+                <div key={a.id} className="relative overflow-hidden w-full border rounded-lg bg-white px-3 py-2 flex items-center justify-between">
+                  <span className="absolute left-0 top-0 h-full w-1" style={{ backgroundColor: cardColors[(Number(a.modelo_id || a.modeloId || idx)) % cardColors.length] }} aria-hidden="true" />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <FileText size={16} className="text-[#0095DA]" />
+                      <div className="text-sm font-semibold text-gray-800 truncate" title={a.modelo_nome || a.modeloNome}>{a.modelo_nome || a.modeloNome}</div>
+                    </div>
+                    <div className="text-xs text-gray-600">{new Date(a.created_at || a.preenchidoEm).toLocaleString('pt-BR')}</div>
                   </div>
-                ) : (
-                  <div className="text-gray-600">Nenhum modelo disponível.</div>
-                )
-              )}
+                  <div className="ml-3 shrink-0 flex items-center gap-3">
+                    <button className="p-2 rounded hover:bg-blue-100 text-blue-800" title="Abrir" onClick={() => abrirDetalhePreenchimento(a.id)}>
+                      <FileText size={18} />
+                    </button>
+                    <button className="p-2 rounded hover:bg-blue-100 text-blue-800" title="Editar" onClick={async () => {
+                      // carrega e abre modal de edição reaproveitando o modal de preenchimento
+                      try {
+                        const { data } = await axios.get(`/api/anamnese/preenchimentos/${a.id}`);
+                        const mId = data?.preenchimento?.modelo_id;
+                        const modelo = modelosAnamnese.find(x => Number(x.id) === Number(mId));
+                        setSelectedModeloId(mId);
+                        setSelectedModelo(modelo || null);
+                        setModeloEscolhidoId(String(mId || ''));
+                        // converte lista p/ mapa
+                        const map = {};
+                        (data?.respostas || []).forEach(r => { map[String(r.pergunta_id)] = { opcao: r.opcao || null, texto: r.texto || '' }; });
+                        setRespostas(map);
+                        // perguntas do modelo
+                        try {
+                          const { data: qs } = await axios.get(`/api/anamnese/modelos/${mId}/perguntas`);
+                          setPerguntasAnamnese(Array.isArray(qs) ? qs : []);
+                        } catch { setPerguntasAnamnese([]); }
+                        setShowSelectModelo(true);
+                        // marca id de edição (reusar PUT no salvar)
+                        setPreenchimentoEditandoId(a.id);
+                      } catch {}
+                    }}>
+                      <Pencil size={18} />
+                    </button>
+                    <button className="p-2 rounded hover:bg-red-100 text-red-700" title="Remover" onClick={() => setConfirmRemoverId(a.id)}>
+                      <Trash size={18} />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
-            <div className="border rounded-lg p-4 bg-white">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <div className="text-sm text-gray-600">Modelo selecionado</div>
-                  <div className="text-lg font-semibold text-gray-800">{selectedModelo?.nome || '-'}</div>
+            <div className="text-gray-600 border rounded-lg bg-white px-3 py-3">Nenhuma anamnese preenchida ainda.</div>
+          )}
+
+          {/* Modal de seleção de modelo e preenchimento */}
+          {showSelectModelo && (
+            <Modal isOpen={showSelectModelo} onClose={() => {}} shouldCloseOnOverlayClick={false} shouldCloseOnEsc={false} size="md">
+              <div className="p-2">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Selecionar modelo</h3>
+                <div className="group mb-3">
+                  <label className="block text-xs text-gray-600 mb-1 transition-colors group-focus-within:text-blue-600">Modelo</label>
+                  <select
+                    className="w-full border rounded p-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    value={modeloEscolhidoId}
+                    onChange={async (e) => {
+                      const id = e.target.value;
+                      setModeloEscolhidoId(id);
+                      setSelectedModeloId(id ? Number(id) : null);
+                      if (id) {
+                        const m = (modelosAnamnese || []).find(x => String(x.id) === String(id));
+                        setSelectedModelo(m || null);
+                        try {
+                          const { data } = await axios.get(`/api/anamnese/modelos/${id}/perguntas`);
+                          setPerguntasAnamnese(Array.isArray(data) ? data : []);
+                        } catch { setPerguntasAnamnese([]); }
+                      } else {
+                        setSelectedModelo(null);
+                        setPerguntasAnamnese([]);
+                      }
+                    }}
+                  >
+                    <option value="">Selecione…</option>
+                    {modelosAnamnese.map(m => (
+                      <option key={m.id} value={m.id}>{m.nome}</option>
+                    ))}
+                  </select>
                 </div>
-                <div className="flex gap-2">
-                  <button className="px-3 py-2 rounded border" onClick={() => { setSelectedModeloId(null); setSelectedModelo(null); setPerguntasAnamnese([]); setRespostas({}); }}>Trocar modelo</button>
-                  <button className="px-3 py-2 rounded text-white bg-[#0095DA] hover:brightness-110 disabled:opacity-60" disabled={savingAnamnese} onClick={salvarAnamnesePaciente}>
-                    {savingAnamnese ? 'Salvando…' : 'Salvar anamnese'}
-                  </button>
-                </div>
-              </div>
-              <div className="space-y-4">
-                {perguntasAnamnese.length === 0 && (
-                  <div className="text-gray-500">Sem perguntas neste modelo.</div>
-                )}
-                {perguntasAnamnese.map((p, i) => (
-                  <div key={p.id} className="border rounded-md p-3">
-                    <div className="text-xs text-gray-600 mb-1">Pergunta {i + 1}</div>
-                    <div className="font-medium text-gray-900 mb-2">{p.titulo}</div>
-                    {renderPergunta(p)}
+
+                {selectedModelo && (
+                  <div className="mt-4">
+                    <div className="text-sm text-gray-600">Modelo selecionado</div>
+                    <div className="text-lg font-semibold text-gray-800">{selectedModelo?.nome || '-'}</div>
+                    <div className="mt-3 space-y-3 max-h-[50vh] overflow-y-auto pr-1">
+                      {perguntasAnamnese.length === 0 && (
+                        <div className="text-gray-500">Sem perguntas neste modelo.</div>
+                      )}
+                      {perguntasAnamnese.map((p, i) => (
+                        <div key={p.id} className="border rounded-md p-3">
+                          <div className="text-xs text-gray-600 mb-1">Pergunta {i + 1}</div>
+                          <div className="font-medium text-gray-900 mb-2">{p.titulo}</div>
+                          {renderPergunta(p)}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex justify-end gap-2 mt-4">
+                      <button className="px-3 py-2 rounded border" onClick={() => { setShowSelectModelo(false); setPreenchimentoEditandoId(null); }}>Cancelar</button>
+                      <button className="px-3 py-2 rounded text-white bg-[#0095DA] hover:brightness-110 disabled:opacity-60" disabled={savingAnamnese || !selectedModelo} onClick={async () => {
+                        if (preenchimentoEditandoId) {
+                          // edição via PUT
+                          setSavingAnamnese(true);
+                          try {
+                            await axios.put(`/api/anamnese/preenchimentos/${preenchimentoEditandoId}`, { respostas });
+                            const { data } = await axios.get(`/api/anamnese/preenchimentos/paciente/${pacienteEditando.id}`);
+                            setAnamnesesPreenchidas(Array.isArray(data) ? data : []);
+                            toast.dismiss && toast.dismiss();
+                            toast.success('Anamnese atualizada com sucesso.');
+                            setShowSelectModelo(false);
+                            setPreenchimentoEditandoId(null);
+                          } catch (e) {
+                            toast.dismiss && toast.dismiss();
+                            toast.error(e?.response?.data?.error || 'Falha ao atualizar anamnese.');
+                          } finally {
+                            setSavingAnamnese(false);
+                          }
+                        } else {
+                          await salvarAnamnesePaciente();
+                        }
+                      }}>
+                        {savingAnamnese ? 'Salvando…' : 'Salvar anamnese'}
+                      </button>
+                    </div>
                   </div>
-                ))}
+                )}
               </div>
-            </div>
+            </Modal>
           )}
         </div>
+      )}
+
+      {/* Confirmação de remoção */}
+      {confirmRemoverId != null && (
+        <Modal isOpen={true} onClose={() => setConfirmRemoverId(null)} size="sm">
+          <div className="p-3">
+            <h4 className="text-lg font-semibold text-gray-800 mb-2">Remover anamnese</h4>
+            <p className="text-sm text-gray-700">Tem certeza que deseja remover este preenchimento?</p>
+            <div className="flex justify-end gap-2 mt-4">
+              <button className="px-3 py-2 rounded border" onClick={() => setConfirmRemoverId(null)}>Cancelar</button>
+              <button
+                className="px-3 py-2 rounded text-white bg-red-600 hover:brightness-110"
+                onClick={async () => {
+                  try {
+                    await axios.delete(`/api/anamnese/preenchimentos/${confirmRemoverId}`);
+                    const { data } = await axios.get(`/api/anamnese/preenchimentos/paciente/${pacienteEditando.id}`);
+                    setAnamnesesPreenchidas(Array.isArray(data) ? data : []);
+                    toast.dismiss && toast.dismiss();
+                    toast.success('Anamnese removida.');
+                  } catch (e) {
+                    toast.dismiss && toast.dismiss();
+                    toast.error(e?.response?.data?.error || 'Falha ao remover.');
+                  } finally {
+                    setConfirmRemoverId(null);
+                  }
+                }}
+              >
+                Remover
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal de detalhe do preenchimento */}
+      {detalheAbertoId != null && (
+        <Modal isOpen={true} onClose={() => setDetalheAbertoId(null)} size="md">
+          <div className="p-2">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Anamnese preenchida</h3>
+            {detalheCarregando && <div className="text-gray-500">Carregando…</div>}
+            {!detalheCarregando && detalheDados && (
+              <div className="space-y-2">
+                <div className="text-sm text-gray-700"><span className="font-semibold">Modelo:</span> {detalheDados?.preenchimento?.modelo_nome || '-'}</div>
+                <div className="text-sm text-gray-700"><span className="font-semibold">Data:</span> {detalheDados?.preenchimento?.created_at ? new Date(detalheDados.preenchimento.created_at).toLocaleString('pt-BR') : '-'}</div>
+                <div className="mt-2 space-y-3 max-h-[55vh] overflow-y-auto pr-1">
+                  {(detalheDados?.respostas || []).map((r, i) => (
+                    <div key={r.id || i} className="border rounded p-3">
+                      <div className="text-xs text-gray-600 mb-1">Pergunta {i + 1}</div>
+                      <div className="font-medium text-gray-900 mb-1">{r.titulo}</div>
+                      {r.tipo === 'texto' ? (
+                        <div className="text-sm text-gray-800 whitespace-pre-wrap">{r.texto || '-'}</div>
+                      ) : (
+                        <div className="text-sm text-gray-800">
+                          Opção: {r.opcao === 'sim' ? 'Sim' : r.opcao === 'nao' ? 'Não' : r.opcao === 'nao_sei' ? 'Não sei' : '-'}
+                          {r.tipo === 'snn_texto' && r.texto ? (
+                            <div className="mt-1 text-gray-700">Obs: {r.texto}</div>
+                          ) : null}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="flex justify-end gap-2 mt-4">
+              <button className="px-3 py-2 rounded border" onClick={() => setDetalheAbertoId(null)}>Fechar</button>
+            </div>
+          </div>
+        </Modal>
       )}
 
     </div>
