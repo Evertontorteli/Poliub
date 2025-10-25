@@ -86,6 +86,16 @@ io.on('connection', (socket) => {
         console.warn('[schema bootstrap] feedbackModel indisponível:', e2.message);
       }
 
+      // Anamnese
+      try {
+        const { ensureSchema: ensureAnamneseSchema } = require('./models/anamneseModel');
+        if (typeof ensureAnamneseSchema === 'function') {
+          ensureAnamneseSchema().catch((e) => console.warn('[schema anamnese] aviso:', e.message));
+        }
+      } catch (eAnam) {
+        console.warn('[schema bootstrap] anamneseModel indisponível:', eAnam.message);
+      }
+
       // App Settings (para prompts de feedback, etc.)
       try {
         const { ensureSchema: ensureSettingsSchema } = require('./models/appSettingsModel');
@@ -118,6 +128,7 @@ io.on('connection', (socket) => {
     app.use('/api/feedbacks', require('./routes/feedbackRoutes'));
     app.use('/api/settings', require('./routes/settingsRoutes'));
     app.use('/api/encaminhamentos', require('./routes/encaminhamentoRoutes'));
+    app.use('/api/anamnese', require('./routes/anamneseRoutes'));
 
     // Endpoint simples de versão para cache-busting no frontend
     app.get('/api/version', (_req, res) => {

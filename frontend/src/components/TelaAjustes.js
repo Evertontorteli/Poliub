@@ -2,8 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import TelaLogs from './TelaLogs';
 import BackupConfig from '../backup/BackupConfig';
-import { Filter, Settings, Calendar } from 'lucide-react';
+import { Filter, Settings, Calendar, Pencil, Trash, GripVertical } from 'lucide-react';
 import Modal from './Modal';
+import { toast } from 'react-toastify';
 
 export default function TelaAjustes() {
   const [tab, setTab] = useState(() => {
@@ -134,6 +135,12 @@ export default function TelaAjustes() {
           onClick={() => setTab('feedbacks')}
         >
           Feedbacks
+        </button>
+        <button
+          className={`px-3 py-2 -mb-px border-b-2 ${tab==='anamnese' ? 'border-[#0095DA] text-[#0095DA]' : 'border-transparent text-gray-600'}`}
+          onClick={() => setTab('anamnese')}
+        >
+          Modelos de Anamnese
         </button>
         <button
           className={`px-3 py-2 -mb-px border-b-2 ${tab==='manutencao' ? 'border-[#0095DA] text-[#0095DA]' : 'border-transparent text-gray-600'}`}
@@ -326,6 +333,12 @@ export default function TelaAjustes() {
         </div>
       )}
 
+      {tab === 'anamnese' && (
+        <div className="mt-2">
+          <ModelosAnamnese />
+        </div>
+      )}
+
       {tab === 'auditoria' && (
         <div className="mt-2">
           <TelaLogs />
@@ -362,6 +375,558 @@ function Th({ children }) {
 function Td({ children, colSpan }) {
   return (
     <td colSpan={colSpan} className="p-2 text-gray-800">{children}</td>
+  );
+}
+
+function ModelosAnamnese() {
+  const [modelos, setModelos] = useState([]);
+  const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState(null);
+  const [criando, setCriando] = useState(false);
+  const [criandoStep, setCriandoStep] = useState(1);
+  const [salvandoModelo, setSalvandoModelo] = useState(false);
+  const [novoNome, setNovoNome] = useState('');
+  const [fromZero, setFromZero] = useState(true);
+  const [perguntas, setPerguntas] = useState([]);
+  const [addingPergunta, setAddingPergunta] = useState(false);
+  const [novaPerguntaTitulo, setNovaPerguntaTitulo] = useState('');
+  const [novaPerguntaTipo, setNovaPerguntaTipo] = useState('snn');
+  const [editingId, setEditingId] = useState(null);
+  const [editingTitle, setEditingTitle] = useState('');
+  const [editingTipo, setEditingTipo] = useState('snn');
+  const [confirmRemoveId, setConfirmRemoveId] = useState(null);
+  const [confirmDiscardEditId, setConfirmDiscardEditId] = useState(null);
+  const [dragFromIndex, setDragFromIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+  const [editingModelId, setEditingModelId] = useState(null);
+  const [confirmRemoveModelId, setConfirmRemoveModelId] = useState(null);
+  const tipoLabels = {
+    snn: 'Sim / Não / Não sei',
+    snn_texto: 'Sim / Não / Não sei e Texto',
+    texto: 'Somente texto'
+  };
+  const cardColors = [
+    '#5956D6', '#2B8FF2', '#ECAD21', '#03A400', '#DA5D5C', '#926AFF', '#568BEF', '#ECAD21', '#FF7FAF', '#926AFF', '#009AF3'
+  ];
+
+  // Persistência em localStorage foi desativada a pedido do usuário
+
+  async function salvarModelo() {
+    const nomeTrim = novoNome.trim();
+    if (!nomeTrim) return;
+    try {
+      setSalvandoModelo(true);
+      if (editingModelId != null) {
+        await axios.put(`/api/anamnese/modelos/${editingModelId}`, { nome: nomeTrim });
+        toast.dismiss && toast.dismiss();
+        toast.success(`Modelo "${nomeTrim}" atualizado com sucesso!`);
+      } else {
+        await axios.post('/api/anamnese/modelos', { nome: nomeTrim, perguntas });
+        toast.dismiss && toast.dismiss();
+        toast.success(`Modelo "${nomeTrim}" salvo com sucesso!`);
+      }
+      // Recarrega modelos
+      try {
+        setCarregando(true);
+        const { data } = await axios.get('/api/anamnese/modelos');
+        setModelos(Array.isArray(data) ? data : []);
+      } catch {}
+    } catch (e) {
+      toast.dismiss && toast.dismiss();
+      toast.error('Não foi possível salvar o modelo.');
+      setSalvandoModelo(false);
+      setCarregando(false);
+      return;
+    }
+    // Finaliza fluxo e limpa rascunho
+    setCriando(false);
+    setCriandoStep(1);
+    setNovoNome('');
+    setFromZero(true);
+    setPerguntas([]);
+    setEditingModelId(null);
+    setCarregando(false);
+    setSalvandoModelo(false);
+  }
+
+  useEffect(() => {
+    let vivo = true;
+    async function carregar() {
+      try {
+        setCarregando(true);
+        setErro(null);
+        // Endpoint futuro: manter tolerante a erro
+        const res = await axios.get('/api/anamnese/modelos').catch(() => ({ data: [] }));
+        if (!vivo) return;
+        setModelos(Array.isArray(res.data) ? res.data : []);
+      } catch (e) {
+        if (!vivo) return;
+        setErro('Não foi possível carregar os modelos.');
+      } finally {
+        if (vivo) setCarregando(false);
+      }
+    }
+    carregar();
+    return () => { vivo = false; };
+  }, []);
+
+  return (
+    <div className="border rounded-lg bg-white p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-lg font-semibold text-gray-800">Modelos de Anamnese</h2>
+        {!criando && (
+          <button className="px-3 py-2 rounded text-white bg-[#0095DA] hover:brightness-110" onClick={() => { setCriando(true); setCriandoStep(1); }}>
+            Novo modelo
+          </button>
+        )}
+      </div>
+      {!criando && (
+        <>
+          {carregando && <div className="text-gray-500">Carregando...</div>}
+          {erro && <div className="text-red-600">{erro}</div>}
+          {!carregando && !erro && (
+            modelos.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {modelos.map((m, idx) => (
+                  <div key={m.id} className="relative border rounded-lg bg-white p-3 overflow-hidden">
+                    <span className="absolute left-0 top-0 h-full w-1" style={{ backgroundColor: cardColors[idx % cardColors.length] }} aria-hidden="true" />
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="font-semibold text-gray-800" title={m.nome}>{m.nome}</div>
+                        <div className="text-xs text-gray-600 mt-1">Atualizado em: {m.updated_at ? new Date(m.updated_at).toLocaleString('pt-BR') : '-'}</div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          className="p-2 rounded hover:bg-blue-100 text-blue-800"
+                          title="Editar"
+                          aria-label="Editar"
+                        onClick={async () => {
+                            setEditingModelId(m.id);
+                            setNovoNome(m.nome || '');
+                            setFromZero(true);
+                            try {
+                              const { data } = await axios.get(`/api/anamnese/modelos/${m.id}/perguntas`);
+                              setPerguntas(Array.isArray(data) ? data : []);
+                            } catch { setPerguntas([]); }
+                            setCriando(true);
+                            setCriandoStep(2);
+                          }}
+                        >
+                          <Pencil size={18} />
+                        </button>
+                        <button
+                          className="p-2 rounded hover:bg-red-100 text-red-700"
+                          title="Remover"
+                          aria-label="Remover"
+                          onClick={() => setConfirmRemoveModelId(m.id)}
+                        >
+                          <Trash size={18} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-gray-600">Nenhum modelo cadastrado ainda.</div>
+            )
+          )}
+        </>
+      )}
+
+      {criando && criandoStep === 1 && (
+        <div className="border rounded-lg p-4">
+          <h3 className="text-lg font-semibold text-gray-800 mb-3">Criar modelo de anamnese</h3>
+          <div className="grid gap-3">
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">Nome da Anamnese</label>
+              <input
+                type="text"
+                value={novoNome}
+                onChange={(e) => setNovoNome(e.target.value)}
+                className="w-full border rounded p-2"
+                placeholder="Ex.: Anamnese Clínica Geral"
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">Origem do modelo</label>
+              <label className="inline-flex items-center gap-2">
+                <input
+                  type="radio"
+                  className="w-4 h-4"
+                  checked={fromZero}
+                  onChange={() => setFromZero(true)}
+                />
+                <span className="text-sm text-gray-800">Criar modelo do zero</span>
+              </label>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <button onClick={() => { setCriando(false); setNovoNome(''); setFromZero(true); setPerguntas([]); setCriandoStep(1); }} className="px-3 py-2 rounded border">Voltar</button>
+            <button
+              onClick={() => { setCriando(true); setCriandoStep(2); }}
+              className="px-3 py-2 rounded text-white bg-[#0095DA] hover:brightness-110"
+              disabled={!novoNome.trim()}
+            >
+              Avançar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {criando && criandoStep === 2 && (
+        <div className="border rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold text-gray-800">Criar modelo de anamnese</h3>
+            <button
+              className="px-3 py-2 rounded text-white bg-[#0095DA] hover:brightness-110"
+              onClick={() => { setAddingPergunta(true); setNovaPerguntaTitulo(''); setNovaPerguntaTipo('snn'); setEditingId(null); }}
+              disabled={addingPergunta}
+            >
+              Adicionar Pergunta
+            </button>
+          </div>
+          <div className="text-sm text-gray-700 mb-4">
+            <div><span className="font-semibold">Nome:</span> {novoNome || '-'}</div>
+            <div><span className="font-semibold">Origem:</span> {fromZero ? 'Criar do zero' : '-'}</div>
+          </div>
+          {addingPergunta && (
+            <Modal isOpen={addingPergunta} onClose={() => { setAddingPergunta(false); setNovaPerguntaTitulo(''); setNovaPerguntaTipo('snn'); }} size="md">
+              <div className="p-2">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Adicionar pergunta</h3>
+                <div className="grid gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Pergunta</label>
+                    <input
+                      type="text"
+                      value={novaPerguntaTitulo}
+                      onChange={(e) => setNovaPerguntaTitulo(e.target.value)}
+                      className="w-full border rounded p-2"
+                      placeholder="Digite a pergunta"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">Tipo de resposta</label>
+                    <select
+                      className="w-full border rounded p-2"
+                      value={novaPerguntaTipo}
+                      onChange={(e) => setNovaPerguntaTipo(e.target.value)}
+                    >
+                      <option value="snn">Sim / Não / Não sei</option>
+                      <option value="snn_texto">Sim / Não / Não sei e Texto</option>
+                      <option value="texto">Somente texto</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2 mt-4">
+                  <button
+                    className="px-3 py-2 rounded border"
+                    onClick={() => { setAddingPergunta(false); setNovaPerguntaTitulo(''); setNovaPerguntaTipo('snn'); }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    className="px-3 py-2 rounded text-white bg-[#0095DA] hover:brightness-110"
+                    disabled={!novaPerguntaTitulo.trim()}
+                    onClick={async () => {
+                      const titulo = novaPerguntaTitulo.trim();
+                      if (!titulo) return;
+                      if (editingModelId != null) {
+                        try {
+                          await axios.post(`/api/anamnese/modelos/${editingModelId}/perguntas`, { titulo, tipo: novaPerguntaTipo, enabled: 1 });
+                          try {
+                            const { data } = await axios.get(`/api/anamnese/modelos/${editingModelId}/perguntas`);
+                            setPerguntas(Array.isArray(data) ? data : []);
+                          } catch {}
+                          toast.dismiss && toast.dismiss();
+                          toast.success('Pergunta adicionada com sucesso!');
+                        } catch (e) {
+                          toast.dismiss && toast.dismiss();
+                          toast.error('Não foi possível adicionar a pergunta.');
+                          return;
+                        }
+                      } else {
+                        setPerguntas(prev => [...prev, { id: Date.now(), titulo, tipo: novaPerguntaTipo, enabled: 1 }]);
+                        toast.dismiss && toast.dismiss();
+                        toast.success('Pergunta adicionada com sucesso!');
+                      }
+                      setAddingPergunta(false);
+                      setNovaPerguntaTitulo('');
+                      setNovaPerguntaTipo('snn');
+                    }}
+                  >
+                    Salvar
+                  </button>
+                </div>
+              </div>
+            </Modal>
+          )}
+
+          {perguntas.length === 0 ? (
+            <div className="text-gray-500">Nenhuma pergunta adicionada ainda.</div>
+          ) : (
+            <div className="space-y-2">
+              {perguntas.map((p, idx) => (
+                <div
+                  key={p.id}
+                  className={`border rounded-lg p-2 bg-white ${dragOverIndex === idx ? 'ring-2 ring-blue-200' : ''}`}
+                  draggable
+                  onDragStart={(e) => { setDragFromIndex(idx); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(idx)); } catch {} }}
+                  onDragOver={(e) => { e.preventDefault(); if (dragOverIndex !== idx) setDragOverIndex(idx); e.dataTransfer.dropEffect = 'move'; }}
+                  onDragEnd={() => { setDragFromIndex(null); setDragOverIndex(null); }}
+                  onDrop={async (e) => {
+                    e.preventDefault();
+                    const from = dragFromIndex ?? Number(e.dataTransfer.getData('text/plain'));
+                    const to = idx;
+                    if (Number.isFinite(from) && from !== to) {
+                      const prevOrder = perguntas;
+                      const arr = [...perguntas];
+                      const [item] = arr.splice(from, 1);
+                      arr.splice(to, 0, item);
+                      setPerguntas(arr);
+                      if (editingModelId != null) {
+                        try {
+                          const ids = arr.map(p => p.id);
+                          await axios.post(`/api/anamnese/modelos/${editingModelId}/perguntas/reorder`, { ids });
+                          toast.dismiss && toast.dismiss();
+                          toast.success('Ordem atualizada.');
+                        } catch (err) {
+                          setPerguntas(prevOrder);
+                          toast.dismiss && toast.dismiss();
+                          toast.error('Não foi possível atualizar a ordem.');
+                        }
+                      }
+                    }
+                    setDragFromIndex(null);
+                    setDragOverIndex(null);
+                  }}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="min-w-0 overflow-hidden flex items-start gap-2">
+                      <div
+                        className="text-gray-400 cursor-move select-none mt-[2px]"
+                        title="Arraste para reordenar"
+                        aria-label="Arraste para reordenar"
+                        aria-grabbed={dragFromIndex === idx}
+                      >
+                        <GripVertical size={16} />
+                      </div>
+                      <div className="min-w-0">
+                      <div className="text-xs text-gray-600">Pergunta {idx + 1}</div>
+                      <div className="font-medium text-gray-900 truncate">{p.titulo}</div>
+                      <div className="text-xs text-gray-600">Tipo: {tipoLabels[p.tipo] || '-'}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+                      <label className="inline-flex items-center cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={!!p.enabled}
+                          onChange={async () => {
+                            const newVal = !p.enabled;
+                            setPerguntas(prev => prev.map(x => x.id === p.id ? { ...x, enabled: newVal } : x));
+                            if (editingModelId != null) {
+                              try { await axios.put(`/api/anamnese/perguntas/${p.id}`, { enabled: newVal ? 1 : 0 }); }
+                              catch {
+                                setPerguntas(prev => prev.map(x => x.id === p.id ? { ...x, enabled: !newVal } : x));
+                                toast.dismiss && toast.dismiss();
+                                toast.error('Não foi possível atualizar a pergunta.');
+                              }
+                            }
+                          }}
+                        />
+                        <div className="w-11 h-6 bg-gray-300 rounded-full relative transition peer-checked:bg-[#0095DA] after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-5 after:h-5 after:bg-white after:rounded-full after:shadow after:transition peer-checked:after:translate-x-5" />
+                      </label>
+                      <button
+                        className="p-2 rounded hover:bg-blue-100 text-blue-800"
+                        title="Editar"
+                        aria-label="Editar"
+                        onClick={() => { setEditingId(p.id); setEditingTitle(p.titulo); setEditingTipo(p.tipo); }}
+                      >
+                        <Pencil size={18} />
+                      </button>
+                      <button
+                        className="p-2 rounded hover:bg-red-100 text-red-700"
+                        title="Remover"
+                        aria-label="Remover"
+                          onClick={() => setConfirmRemoveId(p.id)}
+                      >
+                        <Trash size={18} />
+                      </button>
+                    </div>
+                  </div>
+                  {editingId === p.id ? (
+                    <div className="grid gap-2 mt-1">
+                      <input
+                        type="text"
+                        value={editingTitle}
+                        onChange={(e) => setEditingTitle(e.target.value)}
+                        className="w-full border rounded p-2"
+                        placeholder="Título da pergunta"
+                      />
+                      <select
+                        className="w-full border rounded p-2"
+                        value={editingTipo}
+                        onChange={(e) => setEditingTipo(e.target.value)}
+                      >
+                        <option value="snn">Sim / Não / Não sei</option>
+                        <option value="snn_texto">Sim / Não / Não sei e Texto</option>
+                        <option value="texto">Somente texto</option>
+                      </select>
+                      <div className="flex justify-end gap-2 mt-2">
+                        <button
+                          className="px-2 py-1 rounded border"
+                          onClick={() => {
+                            const original = perguntas.find(x => x.id === p.id) || {};
+                            if ((editingTitle.trim() !== (original.titulo || '')) || (editingTipo !== (original.tipo || 'snn'))) {
+                              setConfirmDiscardEditId(p.id);
+                            } else {
+                              setEditingId(null);
+                              setEditingTitle('');
+                              setEditingTipo('snn');
+                            }
+                          }}
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          className="px-2 py-1 rounded text-white bg-[#0095DA] hover:brightness-110"
+                          disabled={!editingTitle.trim()}
+                          onClick={async () => {
+                            const newTitle = editingTitle.trim();
+                            const newTipo = editingTipo;
+                            if (!newTitle) return;
+                            if (editingModelId != null) {
+                              try { await axios.put(`/api/anamnese/perguntas/${p.id}`, { titulo: newTitle, tipo: newTipo }); }
+                              catch {
+                                toast.dismiss && toast.dismiss();
+                                toast.error('Não foi possível atualizar a pergunta.');
+                                return;
+                              }
+                            }
+                            setPerguntas(prev => prev.map(x => x.id === p.id ? { ...x, titulo: newTitle, tipo: newTipo } : x));
+                            setEditingId(null);
+                            setEditingTitle('');
+                            setEditingTipo('snn');
+                            toast.dismiss && toast.dismiss();
+                            toast.success('Pergunta atualizada com sucesso!');
+                          }}
+                        >
+                          Salvar
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {confirmRemoveId != null && (
+            <Modal isOpen={true} onClose={() => setConfirmRemoveId(null)} size="sm">
+              <div className="p-3">
+                <h4 className="text-lg font-semibold text-gray-800 mb-2">Remover pergunta</h4>
+                <p className="text-sm text-gray-700">Tem certeza que deseja remover esta pergunta?</p>
+                <div className="flex justify-end gap-2 mt-4">
+                  <button className="px-3 py-2 rounded border" onClick={() => setConfirmRemoveId(null)}>Cancelar</button>
+                  <button
+                    className="px-3 py-2 rounded text-white bg-red-600 hover:brightness-110"
+                    onClick={async () => {
+                      if (editingModelId != null) {
+                        try { await axios.delete(`/api/anamnese/perguntas/${confirmRemoveId}`); }
+                        catch {
+                          toast.dismiss && toast.dismiss();
+                          toast.error('Não foi possível remover a pergunta.');
+                          return;
+                        }
+                      }
+                      setPerguntas(prev => prev.filter(x => x.id !== confirmRemoveId));
+                      setConfirmRemoveId(null);
+                      toast.dismiss && toast.dismiss();
+                      toast.success('Pergunta removida com sucesso!');
+                    }}
+                  >
+                    Remover
+                  </button>
+                </div>
+              </div>
+            </Modal>
+          )}
+
+          {confirmDiscardEditId != null && (
+            <Modal isOpen={true} onClose={() => setConfirmDiscardEditId(null)} size="sm">
+              <div className="p-3">
+                <h4 className="text-lg font-semibold text-gray-800 mb-2">Descartar alterações?</h4>
+                <p className="text-sm text-gray-700">Você tem alterações não salvas nesta pergunta. Deseja descartá-las?</p>
+                <div className="flex justify-end gap-2 mt-4">
+                  <button className="px-3 py-2 rounded border" onClick={() => setConfirmDiscardEditId(null)}>Continuar editando</button>
+                  <button
+                    className="px-3 py-2 rounded text-white bg-red-600 hover:brightness-110"
+                    onClick={() => {
+                      setEditingId(null);
+                      setEditingTitle('');
+                      setEditingTipo('snn');
+                      setConfirmDiscardEditId(null);
+                    }}
+                  >
+                    Descartar
+                  </button>
+                </div>
+              </div>
+            </Modal>
+          )}
+          <div className="flex justify-end gap-2 mt-4">
+            <button onClick={() => setCriandoStep(1)} className="px-3 py-2 rounded border" disabled={salvandoModelo}>Voltar</button>
+            <button
+              onClick={salvarModelo}
+              className="px-3 py-2 rounded text-white bg-[#0095DA] hover:brightness-110 disabled:opacity-60"
+              disabled={!novoNome.trim() || salvandoModelo}
+            >
+              {salvandoModelo ? 'Salvando…' : 'Salvar'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {confirmRemoveModelId != null && (
+        <Modal isOpen={true} onClose={() => setConfirmRemoveModelId(null)} size="sm">
+          <div className="p-3">
+            <h4 className="text-lg font-semibold text-gray-800 mb-2">Remover modelo</h4>
+            <p className="text-sm text-gray-700">Tem certeza que deseja remover este modelo de anamnese?</p>
+            <div className="flex justify-end gap-2 mt-4">
+              <button className="px-3 py-2 rounded border" onClick={() => setConfirmRemoveModelId(null)}>Cancelar</button>
+              <button
+                className="px-3 py-2 rounded text-white bg-red-600 hover:brightness-110"
+                onClick={async () => {
+                  try {
+                    await axios.delete(`/api/anamnese/modelos/${confirmRemoveModelId}`);
+                  } catch (e) {
+                    toast.dismiss && toast.dismiss();
+                    toast.error('Não foi possível remover o modelo.');
+                    return;
+                  }
+                  setModelos(prev => prev.filter(x => x.id !== confirmRemoveModelId));
+                  if (editingModelId === confirmRemoveModelId) {
+                    setCriando(false);
+                    setCriandoStep(1);
+                    setNovoNome('');
+                    setFromZero(true);
+                    setPerguntas([]);
+                    setEditingModelId(null);
+                  }
+                  setConfirmRemoveModelId(null);
+                  toast.dismiss && toast.dismiss();
+                  try { toast.success('Modelo removido com sucesso!'); } catch {}
+                }}
+              >
+                Remover
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+    </div>
   );
 }
 
