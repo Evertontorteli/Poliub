@@ -39,6 +39,7 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
   const [mensagem, setMensagem] = useState('');
   const [solWin, setSolWin] = useState({ enabled: false, windowHours: 48 });
   const [showSolicitarBlocked, setShowSolicitarBlocked] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // Refs
   const inputRef = useRef(null);
@@ -327,6 +328,7 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
   // Submissão do form
 async function handleSubmit(e) {
   e.preventDefault();
+  if (saving) return; // evita múltiplos envios
   if (!operadorId) return setMensagem('Selecione um operador.');
   if (role !== 'recepcao' && String(user.id) !== operadorId && String(user.id) !== auxiliar1Id) {
     return setMensagem('Você deve ser o Operador ou Auxiliar para realizar este agendamento.');
@@ -360,6 +362,7 @@ async function handleSubmit(e) {
   const headers = { Authorization: `Bearer ${token}` };
 
   try {
+    setSaving(true);
     if (agendamentoEditando) {
       await axios.put(`/api/agendamentos/${agendamentoEditando.id}`, payload, { headers });
       toast.success('Agendamento atualizado com sucesso!');
@@ -378,6 +381,9 @@ async function handleSubmit(e) {
     const msg = err.response?.data?.error || 'Erro ao salvar agendamento. Verifique os dados e tente novamente.';
     setMensagem(msg);
     console.error(err);
+  }
+  finally {
+    setSaving(false);
   }
 }
 
@@ -628,11 +634,10 @@ async function handleSubmit(e) {
         <div className="flex gap-4 mt-8">
           <button
             type="submit"
-            className="bg-[#1A1C2C] hover:bg-[#3B4854] text-white font-bold px-6 py-2 rounded-full"
+            disabled={saving}
+            className={`font-bold px-6 py-2 rounded-full text-white ${saving ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#1A1C2C] hover:bg-[#3B4854]'}`}
           >
-            {tipoAtendimento === 'Solicitar'
-              ? 'Solicitar para Recepção'
-              : 'Agendar Paciente'}
+            {saving ? 'Agendando…' : (tipoAtendimento === 'Solicitar' ? 'Solicitar para Recepção' : 'Agendar Paciente')}
           </button>
           {agendamentoEditando && (
             <button
