@@ -67,23 +67,9 @@ export default function FormPeriodo({ periodoEditando, onSalvar, onCancel }) {
           <option value="Noturno">Noturno</option>
         </select>
       </div>
-      <div className="flex flex-col md:flex-row gap-4">
-      <button
-        type="submit"
-        className="bg-[#1A1C2C] hover:bg-[#3B4854] text-white font-bold px-4 py-2 rounded-full"
-      >
-        {periodoEditando ? "Atualizar" : "Cadastrar"}
-      </button>
-      {periodoEditando && (
-        <button
-          type="button"
-          className="bg-[#DA3648] text-white hover:bg-[#BC3140] px-4 py-2 rounded-full"
-          onClick={onCancel}
-        >
-          Cancelar
-        </button>
-        
-      )}</div>
+      <div className="flex justify-end gap-2 mt-4">
+        <button type="submit" className="bg-[#0095DA] hover:brightness-110 text-white px-6 py-2 rounded-full">Salvar</button>
+      </div>
     </form>
   );
 }

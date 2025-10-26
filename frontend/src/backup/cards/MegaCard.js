@@ -111,7 +111,7 @@ export default function MegaCard({ value, onChange, retentionDays }) {
           </div>
 
           <div className="flex gap-3 justify-end">
-            <button onClick={save} disabled={anyLoading} className={`bg-[#1A1C2C] hover:bg-[#3B4854] text-white px-4 py-2 rounded-full ${anyLoading ? 'opacity-70 cursor-not-allowed' : ''}`}>Salvar</button>
+            <button onClick={save} disabled={anyLoading} className={`bg-[#0095DA] hover:brightness-110 text-white px-4 py-2 rounded-full ${anyLoading ? 'opacity-70 cursor-not-allowed' : ''}`}>Salvar</button>
             <button onClick={testMega} disabled={anyLoading} className={`bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-full flex items-center gap-2 ${anyLoading ? 'opacity-70 cursor-not-allowed' : ''}`}>
               {testing ? <span className="inline-block h-4 w-4 border-2 border-current border-t-transparent rounded-full animate-spin" /> : null}
               {testing ? 'Testando…' : 'Conexão'}

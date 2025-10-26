@@ -635,7 +635,7 @@ async function handleSubmit(e) {
           <button
             type="submit"
             disabled={saving}
-            className={`font-bold px-6 py-2 rounded-full text-white ${saving ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#1A1C2C] hover:bg-[#3B4854]'}`}
+            className={`font-bold px-6 py-2 rounded-full text-white ${saving ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#0095DA] hover:brightness-110'}`}
           >
             {saving ? 'Agendando…' : (tipoAtendimento === 'Solicitar' ? 'Solicitar para Recepção' : 'Agendar Paciente')}
           </button>

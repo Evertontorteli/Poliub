@@ -341,22 +341,8 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
       )}
 
       {/* Botões */}
-      <div className="flex gap-4 pt-4">
-        <button
-          type="submit"
-          className="bg-[#1A1C2C] hover:bg-[#3B4854] text-white font-bold px-4 py-2 rounded-full"
-        >
-          {alunoEditando ? 'Atualizar' : 'Cadastrar'}
-        </button>
-        {alunoEditando && (
-          <button
-            type="button"
-            onClick={onFimEdicao}
-            className="bg-red-600 hover:bg-red-700 text-white font-bold px-6 py-2 rounded-full"
-          >
-            Cancelar
-          </button>
-        )}
+      <div className="flex gap-2 justify-end mt-4">
+        <button type="submit" className="bg-[#0095DA] hover:brightness-110 text-white px-6 py-2 rounded-full">Salvar</button>
       </div>
     </form>
   );

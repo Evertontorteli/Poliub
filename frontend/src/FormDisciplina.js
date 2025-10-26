@@ -104,22 +104,8 @@ function FormDisciplina({ onNovaDisciplina, disciplinaEditando, onFimEdicao }) {
             <option value="Domingo">Domingo</option>
           </select>
         </div>
-        <div className="flex flex-col md:flex-row gap-4">
-          <button
-            type="submit"
-            className="bg-[#1A1C2C] hover:bg-[#3B4854] text-white font-bold py-2 px-6 rounded-full"
-          >
-            {disciplinaEditando ? 'Atualizar' : 'Cadastrar'}
-          </button>
-          {disciplinaEditando && (
-            <button
-              type="button"
-              className="bg-[#DA3648] text-white hover:bg-[#BC3140] px-4 py-2 rounded-full"
-              onClick={onFimEdicao}
-            >
-              Cancelar
-            </button>
-          )}
+        <div className="flex justify-end gap-2 mt-4">
+          <button type="submit" className="bg-[#0095DA] hover:brightness-110 text-white px-6 py-2 rounded-full">Salvar</button>
         </div>
         {mensagem && <p className="mt-4 text-red-600">{mensagem}</p>}
       </form>

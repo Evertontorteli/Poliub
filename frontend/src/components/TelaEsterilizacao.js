@@ -600,7 +600,7 @@ export default function TelaEsterilizacao() {
             />
             <button
               onClick={validarPin}
-              className="bg-[#1A1C2C] hover:bg-[#3B4854] text-white px-6 rounded-full"
+              className="bg-[#0095DA] hover:brightness-110 text-white px-6 rounded-full"
             >
               Validar PIN
             </button>
@@ -695,7 +695,7 @@ export default function TelaEsterilizacao() {
               />
               <button
                 onClick={buscarCaixa}
-                className="bg-[#1A1C2C] hover:bg-[#3B4854] text-white px-6 rounded-full"
+                className="bg-[#0095DA] hover:brightness-110 text-white px-6 rounded-full"
               >
                 Adicionar
               </button>

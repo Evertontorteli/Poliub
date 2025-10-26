@@ -65,7 +65,7 @@ export default function TelaPacientes() {
         <h1 className="text-lg md:text-2xl font-medium">Lista de Pacientes</h1>
         <button
           onClick={handleNovo}
-          className="bg-[#1A1C2C] text-white px-3 py-1.5 md:px-4 md:py-2 rounded-full hover:bg-[#3B4854] transition text-sm md:text-base whitespace-nowrap"
+          className="bg-[#0095DA] text-white px-3 py-1.5 md:px-4 md:py-2 rounded-full hover:brightness-110 transition text-sm md:text-base whitespace-nowrap"
         >
           Novo Paciente
         </button>

@@ -40,7 +40,7 @@ export default function TelaPeriodos() {
         <h1 className="text-2xl font-medium">Lista de Períodos</h1>
         <button
           onClick={handleNovo}
-          className="bg-[#1A1C2C] text-white px-4 py-2 rounded-full hover:bg-[#3B4854] transition"
+          className="bg-[#0095DA] hover:brightness-110 text-white px-4 py-2 rounded-full"
         >
           Novo Período
         </button>

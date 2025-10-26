@@ -800,7 +800,7 @@ export default function DashboardRecepcao() {
             placeholder="Descreva o motivo do cancelamento (mínimo 15 caracteres)"
               />
               <div className="mt-4 flex gap-2 justify-end">
-                <button onClick={submitCancel} className="bg-[#1A1C2C] hover:bg-[#3B4854] text-white px-4 py-2 rounded-full">Confirmar cancelamento</button>
+                <button onClick={submitCancel} className="bg-[#0095DA] hover:brightness-110 text-white px-4 py-2 rounded-full">Confirmar cancelamento</button>
               </div>
             </Modal>
           )}

@@ -9,9 +9,9 @@ import { toast } from 'react-toastify';
 export default function TelaAjustes() {
   const [tab, setTab] = useState(() => {
     try {
-      return localStorage.getItem('ajustesActiveTab') || 'feedbacks';
+      return localStorage.getItem('ajustesActiveTab') || 'anamnese';
     } catch {
-      return 'feedbacks';
+      return 'anamnese';
     }
   });
   const [loading, setLoading] = useState(false);
@@ -40,6 +40,7 @@ export default function TelaAjustes() {
   });
   const [showFilters, setShowFilters] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
   // Filtros agora usam Modal (overlay/ESC já fecham)
 
@@ -109,38 +110,37 @@ export default function TelaAjustes() {
           {tab === 'feedbacks' && (
             <button
               onClick={() => setShowFilters((v) => !v)}
-              className="inline-flex items-center gap-2 px-3 py-2 border rounded-md hover:bg-gray-50"
+              className="p-2 rounded hover:bg-blue-50"
               aria-label="Abrir filtros"
+              title="Filtros"
             >
-              <Filter size={18} />
-              Filtros
+              <Filter size={20} color="#0095DA" />
             </button>
           )}
           {tab === 'feedbacks' && (
             <button
               onClick={() => setShowConfig(true)}
-              className="inline-flex items-center gap-2 px-3 py-2 border rounded-md hover:bg-gray-50"
+              className="p-2 rounded hover:bg-blue-50"
               aria-label="Configurações de feedback"
-              title="Configurações de feedback"
+              title="Configurações"
             >
-              <Settings size={18} />
-              Configurações
+              <Settings size={20} color="#0095DA" />
             </button>
           )}
         </div>
       </div>
       <div className="flex items-center gap-2 border-b mb-4">
         <button
-          className={`px-3 py-2 -mb-px border-b-2 ${tab==='feedbacks' ? 'border-[#0095DA] text-[#0095DA]' : 'border-transparent text-gray-600'}`}
-          onClick={() => setTab('feedbacks')}
-        >
-          Feedbacks
-        </button>
-        <button
           className={`px-3 py-2 -mb-px border-b-2 ${tab==='anamnese' ? 'border-[#0095DA] text-[#0095DA]' : 'border-transparent text-gray-600'}`}
           onClick={() => setTab('anamnese')}
         >
           Modelos de Anamnese
+        </button>
+        <button
+          className={`px-3 py-2 -mb-px border-b-2 ${tab==='feedbacks' ? 'border-[#0095DA] text-[#0095DA]' : 'border-transparent text-gray-600'}`}
+          onClick={() => setTab('feedbacks')}
+        >
+          Feedbacks
         </button>
         <button
           className={`px-3 py-2 -mb-px border-b-2 ${tab==='manutencao' ? 'border-[#0095DA] text-[#0095DA]' : 'border-transparent text-gray-600'}`}
@@ -149,22 +149,16 @@ export default function TelaAjustes() {
           Manutenção do Sistema
         </button>
         <button
-          className={`px-3 py-2 -mb-px border-b-2 ${tab==='backup' ? 'border-[#0095DA] text-[#0095DA]' : 'border-transparent text-gray-600'}`}
-          onClick={() => setTab('backup')}
-        >
-          Backup
-        </button>
-        <button
           className={`px-3 py-2 -mb-px border-b-2 ${tab==='auditoria' ? 'border-[#0095DA] text-[#0095DA]' : 'border-transparent text-gray-600'}`}
           onClick={() => setTab('auditoria')}
         >
           Auditoria
         </button>
         <button
-          className={`px-3 py-2 -mb-px border-b-2 ${tab==='outros' ? 'border-[#0095DA] text-[#0095DA]' : 'border-transparent text-gray-600'}`}
-          onClick={() => setTab('outros')}
+          className={`px-3 py-2 -mb-px border-b-2 ${tab==='backup' ? 'border-[#0095DA] text-[#0095DA]' : 'border-transparent text-gray-600'}`}
+          onClick={() => setTab('backup')}
         >
-          Outros (em breve)
+          Backup
         </button>
       </div>
 
@@ -273,57 +267,71 @@ export default function TelaAjustes() {
               <CardKpi label="Detratores" value={resumo.detractors} color="#DA3648" />
             </div>
           )}
-          <div className="overflow-auto border rounded-md">
-            <table className="min-w-full text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <Th>Data</Th>
-                  <Th>Usuário</Th>
-                  <Th>Role</Th>
-                  <Th>NPS</Th>
-                  <Th>Página</Th>
-                  <Th>Comentário</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((it) => (
-                  <tr key={it.id} className="border-t">
-                    <Td>{new Date(it.created_at).toLocaleString('pt-BR')}</Td>
-                    <Td>{it.user_id ?? '-'}</Td>
-                    <Td>{it.user_role ?? '-'}</Td>
-                    <Td>{it.nps_score ?? '-'}</Td>
-                    <Td className="max-w-[220px] truncate" title={it.page || ''}>{it.page || '-'}</Td>
-                    <Td className="max-w-[420px] truncate" title={it.comment || ''}>{it.comment || '-'}</Td>
-                  </tr>
-                ))}
-                {items.length === 0 && !loading && (
-                  <tr>
-                    <Td colSpan={6} className="text-center text-gray-500 py-6">Nenhum feedback ainda.</Td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+          <div className="flex justify-start mb-4">
+            <button
+              onClick={() => setShowHistory(v => !v)}
+              className="px-4 py-2 bg-gray-200 rounded-lg text-sm font-semibold hover:bg-gray-300"
+              aria-label={showHistory ? "Ocultar histórico" : "Ver histórico"}
+              title={showHistory ? "Ocultar histórico" : "Ver histórico"}
+            >
+              {showHistory ? 'Ocultar histórico' : 'Ver histórico'}
+            </button>
           </div>
-          <div className="flex justify-between items-center my-4">
-            <div className="text-sm text-gray-600">
-              {items.length > 0
-                ? `Mostrando ${page * 100 + 1}–${page * 100 + items.length}`
-                : 'Sem registros'}
-            </div>
-            <span className="text-sm text-gray-700">Página {page + 1}</span>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
-                disabled={page === 0 || loading}
-                className="text-blue-600 hover:underline rounded disabled:opacity-50"
-              >Anterior</button>
-              <button
-                onClick={() => setPage((p) => p + 1)}
-                disabled={!hasMore || loading}
-                className="text-blue-600 hover:underline rounded disabled:opacity-50"
-              >Próxima</button>
-            </div>
-          </div>
+          {showHistory && (
+            <>
+              <div className="overflow-auto border rounded-md">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <Th>Data</Th>
+                      <Th>Usuário</Th>
+                      <Th>Role</Th>
+                      <Th>NPS</Th>
+                      <Th>Página</Th>
+                      <Th>Comentário</Th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((it) => (
+                      <tr key={it.id} className="border-t">
+                        <Td>{new Date(it.created_at).toLocaleString('pt-BR')}</Td>
+                        <Td>{it.user_id ?? '-'}</Td>
+                        <Td>{it.user_role ?? '-'}</Td>
+                        <Td>{it.nps_score ?? '-'}</Td>
+                        <Td className="max-w-[220px] truncate" title={it.page || ''}>{it.page || '-'}</Td>
+                        <Td className="max-w-[420px] truncate" title={it.comment || ''}>{it.comment || '-'}</Td>
+                      </tr>
+                    ))}
+                    {items.length === 0 && !loading && (
+                      <tr>
+                        <Td colSpan={6} className="text-center text-gray-500 py-6">Nenhum feedback ainda.</Td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex justify-between items-center my-4">
+                <div className="text-sm text-gray-600">
+                  {items.length > 0
+                    ? `Mostrando ${page * 100 + 1}–${page * 100 + items.length}`
+                    : 'Sem registros'}
+                </div>
+                <span className="text-sm text-gray-700">Página {page + 1}</span>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setPage((p) => Math.max(0, p - 1))}
+                    disabled={page === 0 || loading}
+                    className="text-blue-600 hover:underline rounded disabled:opacity-50"
+                  >Anterior</button>
+                  <button
+                    onClick={() => setPage((p) => p + 1)}
+                    disabled={!hasMore || loading}
+                    className="text-blue-600 hover:underline rounded disabled:opacity-50"
+                  >Próxima</button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -475,7 +483,7 @@ function ModelosAnamnese() {
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-lg font-semibold text-gray-800">Modelos de Anamnese</h2>
         {!criando && (
-          <button className="px-3 py-2 rounded text-white bg-[#0095DA] hover:brightness-110" onClick={() => { setCriando(true); setCriandoStep(1); }}>
+          <button className="px-3 py-2 rounded-full text-white bg-[#0095DA] hover:brightness-110" onClick={() => { setCriando(true); setCriandoStep(1); }}>
             Novo modelo
           </button>
         )}

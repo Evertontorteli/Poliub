@@ -133,7 +133,7 @@ export default function TelaCaixas() {
         <h1 className="text-2xl font-medium">Lista de Caixas</h1>
         <button
           onClick={() => openModal()}
-          className="bg-[#1A1C2C] text-white px-4 py-2 rounded-full hover:bg-[#3B4854] transition"
+          className="bg-[#0095DA] hover:brightness-110 text-white px-4 py-2 rounded-full"
         >
           Nova Caixa
         </button>
@@ -317,7 +317,7 @@ export default function TelaCaixas() {
               <div className="flex justify-end gap-2 pt-4">
                 <button
                   type="submit"
-                  className="bg-[#1A1C2C] hover:bg-[#3B4854] text-white font-bold px-6 py-2 rounded-full"
+                  className="bg-[#0095DA] hover:brightness-110 text-white px-6 py-2 rounded-full"
                 >
                   {editingId ? 'Atualizar' : 'Cadastrar'}
                 </button>

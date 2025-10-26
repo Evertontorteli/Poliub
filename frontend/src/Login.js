@@ -115,7 +115,7 @@ function Login({ onLogin }) {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full bg-[#1A1C2C] hover:bg-[#3B4854] text-white font-semibold py-2 rounded-full transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
+            className={`w-full bg-[#0095DA] hover:brightness-110 text-white font-semibold py-2 rounded-full transition ${loading ? 'opacity-70 cursor-not-allowed' : ''}`}
           >
             {loading ? 'Entrando…' : 'Entrar'}
           </button>

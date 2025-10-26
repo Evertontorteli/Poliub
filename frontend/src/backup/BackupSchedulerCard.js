@@ -136,7 +136,7 @@ export default function SchedulerCard({ schedule, onChange }) {
       <div className="pt-4 flex justify-end">
         <button
           onClick={save}
-          className="bg-[#1A1C2C] hover:bg-[#3B4854] text-white px-4 py-2 rounded-full"
+          className="bg-[#0095DA] hover:brightness-110 text-white px-4 py-2 rounded-full"
         >
           Salvar agendamento
         </button>

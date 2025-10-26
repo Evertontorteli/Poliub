@@ -51,7 +51,7 @@ export default function FeedbackModal({ open, onClose, page, onSent, frequencyDa
       }
       try { localStorage.setItem(`feedbackCooldownUntil${storageSuffix}`, String(Date.now() + 30_000)) } catch {}
       onClose?.();
-    }} size="md">
+    }} size="auto">
       <div className="p-4">
         {!sent ? (
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -108,11 +108,11 @@ export default function FeedbackModal({ open, onClose, page, onSent, frequencyDa
                 }
                 try { localStorage.setItem(`feedbackCooldownUntil${storageSuffix}`, String(Date.now() + 30_000)) } catch {}
                 onClose?.();
-              }} className="px-3 py-2 rounded border">Cancelar</button>
+              }} className="px-3 py-2 rounded-full border">Cancelar</button>
               <button
                 type="submit"
                 disabled={submitting || score == null}
-                className={`px-3 py-2 rounded text-white ${submitting || score == null ? 'bg-gray-300' : 'bg-[#0095DA] hover:brightness-110'}`}
+                className={`px-3 py-2 rounded-full text-white ${submitting || score == null ? 'bg-gray-300' : 'bg-[#0095DA] hover:brightness-110'}`}
               >
                 Enviar
               </button>

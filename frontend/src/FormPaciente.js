@@ -721,10 +721,10 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao, onDirtyCh
           )}
 
           {/* Botões - alinhamento e respiro padronizados com FormAluno */}
-          <div className="flex gap-4 pt-6 pb-6">
+          <div className="flex gap-4 pt-6 pb-6 justify-end">
             <button
               type="submit"
-              className="bg-[#1A1C2C] hover:bg-[#3B4854] text-white font-bold px-6 py-2 rounded-full"
+              className="bg-[#0095DA] hover:brightness-110 text-white font-bold px-6 py-2 rounded-full"
             >
               {pacienteEditando ? 'Atualizar' : 'Cadastrar'}
             </button>
@@ -774,7 +774,7 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao, onDirtyCh
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-bold text-gray-800">Anamnese</h2>
             <button
-              className="px-4 py-2 rounded text-white bg-[#0095DA] hover:brightness-110"
+              className="px-4 py-2 rounded-full text-white bg-[#0095DA] hover:brightness-110"
               onClick={() => setShowSelectModelo(true)}
             >
               Preencher anamnese

@@ -133,7 +133,7 @@ export default function EncaminhamentosPaciente({ pacienteId }) {
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-xl font-semibold text-gray-800">Encaminhamentos</h3>
         {!mostrandoWizard && (
-          <button onClick={abrirNovo} className="bg-[#1A1C2C] text-white px-4 py-2 rounded-full hover:bg-[#3B4854]">Novo Encaminhamento</button>
+          <button onClick={abrirNovo} className="bg-[#0095DA] hover:brightness-110 text-white px-4 py-2 rounded-full">Novo encaminhamento</button>
         )}
       </div>
       {erro && <div className="text-red-600 mb-2">{String(erro)}</div>}

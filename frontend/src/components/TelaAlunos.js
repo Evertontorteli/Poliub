@@ -190,8 +190,8 @@ export default function TelaAlunos() {
         <div className="flex justify-between px-2 items-center mb-4">
           <h1 className="text-2xl font-medium">Lista de Alunos</h1>
           <button
-            className="bg-[#1A1C2C] text-white px-2 py-2 rounded-full hover:bg-[#3B4854] transition"
             onClick={() => setMostrarModal(true)}
+            className="bg-[#0095DA] hover:brightness-110 text-white px-4 py-2 rounded-full"
           >
             Novo Aluno
           </button>

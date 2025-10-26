@@ -53,7 +53,7 @@ export default function BackupManual() {
         disabled={loading}
         className={`${
           loading ? "opacity-70 cursor-not-allowed" : ""
-        } bg-[#1A1C2C] hover:bg-[#3B4854] text-white px-4 py-2 rounded-full`}
+        } bg-[#0095DA] hover:brightness-110 text-white px-4 py-2 rounded-full`}
       >
         {loading ? (
           <span className="inline-block mr-2 align-[-2px] h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
