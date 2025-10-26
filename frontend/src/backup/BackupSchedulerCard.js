@@ -1,6 +1,6 @@
 // src/backup/SchedulerCard.jsx
 import React, { useMemo, useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, ChevronDown, ChevronUp, Clock } from 'lucide-react';
 
 const labelCls = 'block text-sm font-medium text-gray-700 transition-colors group-focus-within:text-blue-600';
 const inputCls =
@@ -17,6 +17,7 @@ const DAYS = [
 ];
 
 export default function SchedulerCard({ schedule, onChange }) {
+  const [open, setOpen] = useState(false);
   const [enabled, setEnabled] = useState(!!schedule?.enabled);
   const [days, setDays] = useState(schedule?.days || [1,3,5]);
   const [times, setTimes] = useState(schedule?.times || ['03:00']);
@@ -50,11 +51,18 @@ export default function SchedulerCard({ schedule, onChange }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow p-6">
-      <h3 className="text-lg font-semibold text-gray-800 mb-2">Agendamento automático</h3>
-      <p className="text-sm text-gray-600 mb-4">
-        Configure dias da semana e múltiplos horários no mesmo dia. Timezone: <b>{tz}</b>
-      </p>
+    <div className="bg-white rounded-2xl shadow hover:shadow-md transition self-start">
+      <button type="button" onClick={() => setOpen(v => !v)} className="w-full p-6 flex items-center gap-3 text-left">
+        <Clock className="text-blue-600" />
+        <div className="flex-1">
+          <h3 className="text-lg font-semibold text-gray-800">Agendamento automático</h3>
+          <p className="text-sm text-gray-600">Configure dias e horários recorrentes. Timezone: <b>{tz}</b></p>
+        </div>
+        {open ? <ChevronUp /> : <ChevronDown />}
+      </button>
+
+      {open && (
+      <div className="px-6 pb-6">
 
       {/* habilitar */}
       <div className="flex items-center gap-3 mb-4">
@@ -80,7 +88,7 @@ export default function SchedulerCard({ schedule, onChange }) {
               onClick={() => toggleDay(d.v)}
               className={`px-3 py-1 rounded-full border ${
                 days.includes(d.v)
-                  ? 'bg-blue-600 text-white border-blue-600'
+                  ? 'bg-[#0095DA] text-white border-[#0095DA]'
                   : 'bg-white text-gray-700 border-gray-300'
               }`}
             >
@@ -125,14 +133,16 @@ export default function SchedulerCard({ schedule, onChange }) {
         </div>
       </div>
 
-      <div className="pt-4">
+      <div className="pt-4 flex justify-end">
         <button
           onClick={save}
-          className="bg-[#1A1C2C] hover:bg-[#3B4854] text-white font-bold px-4 py-2 rounded-full"
+          className="bg-[#1A1C2C] hover:bg-[#3B4854] text-white px-4 py-2 rounded-full"
         >
           Salvar agendamento
         </button>
       </div>
+      </div>
+      )}
     </div>
   );
 }

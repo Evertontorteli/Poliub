@@ -108,13 +108,14 @@ export default function BackupConfig() {
     <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold text-gray-800">Backup</h2>
+        {/* Botão “Fazer backup agora” alinhado à direita da linha do título */}
+        <div className="ml-4">
+          <BackupManual />
+        </div>
       </div>
 
-      {/* Backup manual (download .zip) */}
-      <BackupManual />
-
-      {/* Destinos (cards expansíveis) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Destinos e Agendamento lado a lado */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
         <MegaCard
           value={settings.destinations.mega}
           retentionDays={settings.retentionDays}
@@ -124,15 +125,13 @@ export default function BackupConfig() {
             });
           }}
         />
+        <SchedulerCard
+          schedule={settings.schedule}
+          onChange={async (sched) => {
+            await save({ schedule: sched });
+          }}
+        />
       </div>
-
-      {/* Agendamento */}
-      <SchedulerCard
-        schedule={settings.schedule}
-        onChange={async (sched) => {
-          await save({ schedule: sched });
-        }}
-      />
     </div>
   );
 }

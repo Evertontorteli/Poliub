@@ -1,7 +1,6 @@
 // src/components/BackupManual.jsx
 import React, { useState } from "react";
 import axios from "axios";
-import { RefreshCcw } from "lucide-react";
 import NProgress from "nprogress";
 import "nprogress/nprogress.css";
 
@@ -48,20 +47,17 @@ export default function BackupManual() {
   }
 
   return (
-    <div className="pt-4">
+    <div className="pt-0">
       <button
         onClick={handleManual}
         disabled={loading}
         className={`${
           loading ? "opacity-70 cursor-not-allowed" : ""
-        } bg-green-600 hover:bg-green-700 text-white font-bold px-4 py-2 rounded-full flex items-center gap-2`}
+        } bg-[#1A1C2C] hover:bg-[#3B4854] text-white px-4 py-2 rounded-full`}
       >
         {loading ? (
-          // spinner simples com Tailwind
-          <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-        ) : (
-          <RefreshCcw size={18} />
-        )}
+          <span className="inline-block mr-2 align-[-2px] h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        ) : null}
         {loading ? "Gerando backup..." : "Fazer backup agora"}
       </button>
     </div>

@@ -26,7 +26,7 @@ const LogoMask = ({ size = 32 }) => (
       width: size,
       height: size,
       display: 'inline-block',
-      backgroundImage: 'linear-gradient(90deg, #1D4ED8, #3B82F6, #60A5FA)',
+      backgroundColor: '#0095DA',
       WebkitMaskImage: 'url(/logo192.png)',
       maskImage: 'url(/logo192.png)',
       WebkitMaskSize: 'cover',
@@ -112,7 +112,7 @@ export default function Header({ onlineUsers = [] }) {
       >
         <LogoMask size={isMobile ? 28 : 32} />
         <span
-          className="truncate bg-gradient-to-r from-[#1D4ED8] via-[#3B82F6] to-[#60A5FA] bg-clip-text text-transparent"
+          className="truncate text-[#0095DA]"
           aria-label="PoliUB"
         >
           PoliUB
