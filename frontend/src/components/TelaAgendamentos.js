@@ -37,7 +37,7 @@ export default function TelaAgendamentos() {
       <div className="flex justify-between px-4 items-center mb-4 gap-2 flex-nowrap">
         <h1 className="text-lg md:text-2xl font-medium">Lista de Agendamentos</h1>
         <button
-          className="bg-[#0095DA] hover:brightness-110 text-white px-4 py-2 rounded-full"
+          className="bg-[#0095DA] text-white px-3 py-1.5 md:px-4 md:py-2 rounded-full hover:brightness-110 transition text-sm md:text-base whitespace-nowrap"
           onClick={handleNovo}
         >
           Novo agendamento

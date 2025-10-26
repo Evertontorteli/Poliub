@@ -207,7 +207,7 @@ export default function DashboardAluno() {
   if (loading) return <p className="text-center py-8">Carregando seu dashboard...</p>;
 
   return (
-    <div className="max-w-2xl mx-auto py-8 px-4">
+    <div className="w-full max-w-5xl mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold mb-8">Olá, {user.nome}!</h1>
 
       {/* --- MINI GRÁFICOS / KPIs --- */}
@@ -234,15 +234,15 @@ export default function DashboardAluno() {
         <button
           onClick={() => toggleCard("caixas")}
           className={`
-            relative flex-none w-[34%] md:w-full md:min-w-0 aspect-[1.2/1] md:aspect-[1.2/1] rounded-xl p-4 text-center border transition snap-start
+            relative flex-none w-[32%] md:w-full md:min-w-0 aspect-[1.1/1] md:aspect-[1.15/1] rounded-xl p-3 text-center border transition snap-start
             flex flex-col items-center justify-center bg-white text-gray-700 border-gray-300 shadow-sm hover:shadow-md
             focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 focus:ring-offset-white
             ${selectedCard === "caixas" ? "ring-2 ring-blue-300 ring-offset-2 ring-offset-white" : ""}
           `}
         >
           <span className={`absolute left-0 top-1 bottom-1 w-1 ${stripeColors.caixas} rounded-l-xl`} aria-hidden="true" />
-          <div className="text-2xl font-bold text-gray-700 leading-none mb-1">{caixasLoading ? "..." : totalCaixas}</div>
-          <div className="text-sm text-gray-600">Minhas Caixas</div>
+          <div className="text-xl font-bold text-gray-700 leading-none mb-1">{caixasLoading ? "..." : totalCaixas}</div>
+          <div className="text-xs text-gray-600">Minhas Caixas</div>
         </button>
 
         {[
@@ -254,15 +254,15 @@ export default function DashboardAluno() {
             key={card.key}
             onClick={() => toggleCard(card.key)}
             className={`
-              relative flex-none w-[34%] md:w-full md:min-w-0 aspect-[1.2/1] md:aspect-[1.2/1] rounded-xl p-4 text-center border transition snap-start
+              relative flex-none w-[32%] md:w-full md:min-w-0 aspect-[1.1/1] md:aspect-[1.15/1] rounded-xl p-3 text-center border transition snap-start
               flex flex-col items-center justify-center bg-white text-gray-700 border-gray-300 shadow-sm hover:shadow-md
               focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 focus:ring-offset-white
               ${selectedCard === card.key ? "ring-2 ring-blue-300 ring-offset-2 ring-offset-white" : ""}
             `}
           >
             <span className={`absolute left-0 top-1 bottom-1 w-1 ${stripeColors[card.key]} rounded-l-xl`} aria-hidden="true" />
-            <div className="text-2xl font-bold text-gray-700 leading-none mb-1">{card.count}</div>
-            <div className="text-sm text-gray-600">{card.label}</div>
+            <div className="text-xl font-bold text-gray-700 leading-none mb-1">{card.count}</div>
+            <div className="text-xs text-gray-600">{card.label}</div>
           </button>
         ))}
       </div>

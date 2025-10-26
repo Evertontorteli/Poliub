@@ -32,19 +32,8 @@ export default function TelaAlunos() {
       const url = role === "recepcao" ? "/api/alunos" : "/api/alunos/me";
       const res = await axios.get(url, { headers });
       const lista = Array.isArray(res.data) ? res.data : [res.data];
-      // Busca box de cada aluno
-      const listaComBox = await Promise.all(
-        lista.map(async (a) => {
-          try {
-            const boxRes = await axios.get(`/api/boxes/${a.id}`, { headers });
-            const conteudo = boxRes.data[0]?.conteudo || "";
-            return { ...a, box: conteudo };
-          } catch {
-            return { ...a, box: "" };
-          }
-        })
-      );
-      setAlunos(listaComBox);
+      // Evita N+1 requisições: não buscar box individualmente para cada aluno (melhora muito no mobile)
+      setAlunos(lista);
     } catch (err) {
       console.error("Erro ao buscar alunos:", err.response?.data || err.message);
       setAlunos([]);
@@ -188,10 +177,10 @@ export default function TelaAlunos() {
       {/* Cadastrar só para recepção */}
       {role === "recepcao" && (
         <div className="flex justify-between px-2 items-center mb-4">
-          <h1 className="text-2xl font-medium">Lista de Alunos</h1>
+          <h1 className="text-lg md:text-2xl font-medium">Lista de Alunos</h1>
           <button
             onClick={() => setMostrarModal(true)}
-            className="bg-[#0095DA] hover:brightness-110 text-white px-4 py-2 rounded-full"
+            className="bg-[#0095DA] text-white px-3 py-1.5 md:px-4 md:py-2 rounded-full hover:brightness-110 transition text-sm md:text-base whitespace-nowrap"
           >
             Novo Aluno
           </button>
@@ -320,13 +309,14 @@ export default function TelaAlunos() {
         </div>
 
         {/* Cards no mobile */}
-        <div className="md:hidden space-y-3">
+        <div className="md:hidden space-y-2">
           {alunosPagina.map((a, idx) => (
             <div
               key={a.id}
-              className="bg-gray-50 rounded-xl px-4 py-3 shadow-sm border border-gray-200"
+              className="relative bg-white rounded-xl px-3 py-2 shadow-sm border border-gray-200 overflow-hidden text-[12px]"
             >
-              <div className="flex justify-between mb-1 text-xs text-gray-500">
+              <span className="absolute left-0 top-0 bottom-0 w-1 bg-[#0095DA] rounded-l-xl" aria-hidden="true" />
+              <div className="flex justify-between mb-1 text-[11px] text-gray-500">
                 <span>#{inicio + idx + 1}</span>
                 <div className="flex gap-2">
                   <button
@@ -335,7 +325,7 @@ export default function TelaAlunos() {
                     title="Editar aluno"
                     aria-label="Editar aluno"
                   >
-                    <Pencil size={17} />
+                    <Pencil size={16} />
                   </button>
                   {role === "recepcao" && (
                     <button
@@ -344,16 +334,18 @@ export default function TelaAlunos() {
                       title="Deletar aluno"
                       aria-label="Deletar aluno"
                     >
-                      <Trash size={17} />
+                      <Trash size={16} />
                     </button>
                   )}
                 </div>
               </div>
-              <div>
-                <b>ID:</b> <span className="text-gray-700">{a.id}</span>
-              </div>
-              <div>
-                <b>Box:</b> <span className="text-gray-700">{a.box || "-"}</span>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <b>ID:</b> <span className="text-gray-700">{a.id}</span>
+                </div>
+                <div>
+                  <b>Box:</b> <span className="text-gray-700">{a.box || "-"}</span>
+                </div>
               </div>
               <div>
                 <b>Nome:</b> <span className="text-gray-800">{a.nome}</span>
@@ -367,14 +359,14 @@ export default function TelaAlunos() {
                   {a.periodo_nome}{a.periodo_turno ? ` - ${a.periodo_turno}` : ''}
                 </span>
               </div>
-              <div>
-                <b>PIN:</b> <span className="text-blue-600">{a.pin || "-"}</span>
-              </div>
-              <div>
-                <b>Cód. Esterilização:</b>{" "}
-                <span className="text-red-600">
-                  {a.cod_esterilizacao || "-"}
-                </span>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <b>PIN:</b> <span className="text-blue-600">{a.pin || "-"}</span>
+                </div>
+                <div>
+                  <b>Cód. Esterilização:</b>{" "}
+                  <span className="text-red-600">{a.cod_esterilizacao || "-"}</span>
+                </div>
               </div>
               <div>
                 <b>Usuário:</b> <span className="text-gray-700">{a.usuario}</span>

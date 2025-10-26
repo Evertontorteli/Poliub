@@ -173,13 +173,14 @@ function ListaDisciplinas({ reloadKey, onEditar }) {
         </div>
 
         {/* Lista em card (mobile) */}
-        <div className="md:hidden space-y-3">
+        <div className="md:hidden space-y-2">
           {disciplinasPagina.map((d, idx) => (
             <div
               key={d.id}
-              className="bg-gray-50 rounded-xl px-4 py-3 shadow-sm border border-gray-200"
+              className="relative bg-white rounded-xl px-3 py-2 shadow-sm border border-gray-200 overflow-hidden text-[12px]"
             >
-              <div className="flex justify-between mb-1 text-xs text-gray-500">
+              <span className="absolute left-0 top-0 bottom-0 w-1 bg-[#0095DA] rounded-l-xl" aria-hidden="true" />
+              <div className="flex justify-between mb-1 text-[11px] text-gray-500">
                 <span>#{inicio + idx + 1}</span>
                 <div className="flex gap-2">
                   <button
@@ -188,7 +189,7 @@ function ListaDisciplinas({ reloadKey, onEditar }) {
                     title="Editar disciplina"
                     aria-label="Editar disciplina"
                   >
-                    <Pencil size={17} />
+                    <Pencil size={16} />
                   </button>
                   <button
                     onClick={() => handleDeletar(d.id, d.nome)}
@@ -196,7 +197,7 @@ function ListaDisciplinas({ reloadKey, onEditar }) {
                     title="Deletar disciplina"
                     aria-label="Deletar disciplina"
                   >
-                    <Trash size={17} />
+                    <Trash size={16} />
                   </button>
                 </div>
               </div>

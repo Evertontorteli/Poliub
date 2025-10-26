@@ -18,6 +18,12 @@ const STATUS_COLORS = {
   'Solicitado': "bg-[#DA3648] text-white",
   'Cancelado': "bg-gray-300 text-gray-700",
 };
+const STATUS_STRIPES = {
+  'Novo': 'bg-[#2FA74E]',
+  'Retorno': 'bg-[#FEC139]',
+  'Solicitado': 'bg-[#DA3648]',
+  'Cancelado': 'bg-gray-300',
+};
 
 const POR_PAGINA = 100;
 
@@ -409,13 +415,17 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
         </div>
 
         {/* Cards no mobile */}
-        <div className="md:hidden space-y-3">
+        <div className="md:hidden space-y-2">
           {agsPagina.map((ag, idx) => (
             <div
               key={ag.id}
-              className="bg-gray-50 rounded-xl px-4 py-3 shadow-sm border border-gray-200"
+              className="relative bg-white rounded-xl px-3 py-2 shadow-sm border border-gray-200 text-[12px] overflow-hidden"
             >
-              <div className="flex justify-between mb-1 text-xs text-gray-500">
+              <span
+                className={`absolute left-0 top-0 bottom-0 w-1 ${STATUS_STRIPES[ag.status] || 'bg-gray-300'} rounded-l-xl`}
+                aria-hidden="true"
+              />
+              <div className="flex justify-between mb-1 text-[11px] text-gray-500">
                 <span>#{inicio + idx + 1}</span>
                 <div className="flex gap-2 items-center">
                   <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[ag.status] || 'bg-gray-200 text-gray-700'}`}>
@@ -426,7 +436,7 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
                       className="inline-flex items-center text-gray-500"
                       title={ag.canceledReason || 'Agendamento cancelado'}
                     >
-                      <Info size={14} />
+                      <Info size={13} />
                     </span>
                   )}
                   <button
@@ -435,7 +445,7 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
                     title="Editar agendamento"
                     aria-label="Editar agendamento"
                   >
-                    <Pencil size={17} />
+                    <Pencil size={16} />
                   </button>
                   {role === 'recepcao' ? (
                     <>
@@ -446,7 +456,7 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
                           title="Cancelar agendamento"
                           aria-label="Cancelar agendamento"
                         >
-                          <XCircle size={17} />
+                          <XCircle size={16} />
                         </button>
                       )}
                       <button
@@ -455,7 +465,7 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
                         title="Deletar agendamento"
                         aria-label="Deletar agendamento"
                       >
-                        <Trash size={17} />
+                        <Trash size={16} />
                       </button>
                     </>
                   ) : (
@@ -466,13 +476,13 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
                         title="Cancelar agendamento"
                         aria-label="Cancelar agendamento"
                       >
-                        <XCircle size={17} />
+                        <XCircle size={16} />
                       </button>
                     )
                   )}
                 </div>
               </div>
-              <div><b>Box:</b> <span className="text-gray-800">{ag.operadorBox ?? '-'}</span></div>
+              <div className="mt-1"><b>Box:</b> <span className="text-gray-800">{ag.operadorBox ?? '-'}</span></div>
               <div><b>Operador:</b> <span className="text-gray-800">{ag.operadorNome || '-'}</span></div>
               <div><b>Auxiliar:</b> <span className="text-gray-800">{ag.auxiliarNome || '-'}</span></div>
               <div><b>Disciplina:</b> <span className="text-gray-800">{ag.disciplinaNome || '-'}</span></div>
@@ -493,22 +503,19 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
                         {/* SVG do WhatsApp */}
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
-                          width="18"
-                          height="18"
+                          width="16"
+                          height="16"
                           fill="currentColor"
                           viewBox="0 0 24 24"
                         >
-                          <path d="M20.52 3.48A12 12 0 0 0 12 0C5.38 0 0 5.42 0 12.11a12 12 0 0 0 1.65 6.09L0 24l6.13-1.6A12.07 12.07 0 0 0 12 24c6.63 0 12-5.43 12-12.09a12.1 12.1 0 0 0-3.48-8.43Zm-8.52 18.09a10.03 10.03 0 0 1-5.15-1.4l-.37-.21-3.64.95.97-3.56-.24-.36A10.04 10.04 0 0 1 2 12.11C2 6.54 6.48 2 12 2c5.53 0 10 4.54 10 10.11 0 5.57-4.47 10.06-10 10.06Zm5.43-7.52c-.3-.15-1.76-.86-2.03-.96-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.07a8.1 8.1 0 0 1-2.37-1.46 9.06 9.06 0 0 1-1.68-2.09c-.17-.29-.02-.44.13-.59.13-.14.3-.36.45-.54.15-.18.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.5-.5-.67-.51-.17-.01-.36-.01-.55-.01-.19 0-.5.07-.77.36-.27.29-1.03 1.01-1.03 2.47 0 1.46 1.06 2.87 1.21 3.08.15.21 2.09 3.18 5.24 4.34.73.25 1.29.4 1.73.5.72.15 1.38.13 1.9.08.58-.07 1.76-.72 2.01-1.42.25-.7.25-1.3.18-1.43-.06-.13-.24-.21-.54-.36Z" />
+                          <path d="M20.52 3.48A12 12 0 0 0 12 0C5.38 0 0 5.42 0 12.11a12 12 0 0 0 1.65 6.09L0 24l6.13-1.6A12.07 12.07 0 0 0 12 24c6.63 0 12-5.43 12-12.09a12.1 12.1 0 0 0-3.48-8.43Zm-8.52 18.09a10.03 10.03 0 0 1-5.15-1.4l-.37-.21-3.64.95.97-3.56-.24-.36A10.04 10.04 0 0 1 2 12.11C2 6.54 6.48 2 12 2c5.53 0 10 4.54 10 10.11 0 5.57-4.47 10.06-10 10.06Zm5.43-7.52c-.3-.15-1.76-.86-2.03-.96-.27-.1-.47-.15-.67 .15-.2 .3-.77 .96-.94 1.16-.17 .2-.35 .22-.65 .07a8.1 8.1 0 0 1-2.37-1.46 9.06 9.06 0 0 1-1.68-2.09c-.17-.29-.02-.44 .13-.59 .13-.14 .3-.36 .45-.54 .15-.18 .2-.3 .3-.5 .1-.2 .05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.5-.5-.67-.51-.17-.01-.36-.01-.55-.01-.19  0-.5 .07-.77 .36-.27 .29-1.03 1.01-1.03 2.47 0 1.46 1.06 2.87 1.21 3.08 .15 .21 2.09 3.18 5.24 4.34 .73 .25 1.29 .4 1.73 .5 .72 .15 1.38 .13 1.9 .08 .58-.07 1.76-.72 2.01-1.42 .25-.7 .25-1.3 .18-1.43-.06-.13-.24-.21-.54-.36Z" />
                         </svg>
                       </a>
-
                     </>
                   ) : '-'}
                 </span>
               </div>
-
-              <div><b>Data:</b> <span className="text-gray-700">{ag.data ? ag.data.slice(0, 10).split('-').reverse().join('/') : '-'}</span></div>
-              <div><b>Hora:</b> <span className="text-gray-700">{ag.hora || '-'}</span></div>
+              <div><b>Data e Hora:</b> <span className="text-gray-700">{ag.data ? ag.data.slice(0, 10).split('-').reverse().join('/') : '-'} {ag.hora || '-'}</span></div>
             </div>
           ))}
         </div>

@@ -56,7 +56,7 @@ function LayoutInterno() {
   const [active, setActive] = useState('dashboard')
   const { user } = useAuth()
   const [onlineUsers, setOnlineUsers] = useState([])
-  const [showSidebar, setShowSidebar] = useState(window.innerWidth >= 1366)
+  const [showSidebar, setShowSidebar] = useState(window.innerWidth >= 1280)
   const [showFeedbackPrompt, setShowFeedbackPrompt] = useState(false)
   const [feedbackFreqDays, setFeedbackFreqDays] = useState(null)
   const [feedbackEnabled, setFeedbackEnabled] = useState(false)
@@ -74,7 +74,7 @@ function LayoutInterno() {
   // Lida com o resize para mostrar/esconder a sidebar
   useEffect(() => {
     function handleResize() {
-      setShowSidebar(window.innerWidth >= 1366)
+      setShowSidebar(window.innerWidth >= 1280)
     }
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)

@@ -5,7 +5,6 @@ export default function Ajuda() {
   const contatos = [
     { icon: <Phone size={32} />, label: 'Policlínica (Ramal 01)', link: 'tel:+551727861140' },
     { icon: <MessageCircle size={32} className="text-[#25D366]" />, label: 'Melissa (Secretária)', link: 'https://wa.me/5517997664221' },
-    { icon: <MessageCircle size={32} className="text-[#25D366]" />, label: 'Jeane (Secretária)', link: 'https://wa.me/5517981609628' },
     { icon: <MessageCircle size={32} className="text-[#25D366]" />, label: 'José Antônio (Secretário de Apoio)', link: 'https://wa.me/5518996794681' },
     { icon: <MessageCircle size={32} className="text-[#25D366]" />, label: 'Everton Torteli (Desenvolvedor)', link: 'https://wa.me/5517997190024' },
     

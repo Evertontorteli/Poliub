@@ -3,6 +3,7 @@ import {
   Home, CalendarDays, BookOpen, Users, UserRound, Mail, HelpCircle, Menu, PieChart, Box, PackagePlus,
   Database
 } from "lucide-react";
+import { Settings } from "lucide-react";
 import { useAuth } from '../context/AuthContext';
 
 const menuItems = [
@@ -62,7 +63,9 @@ export default function BottomNavBar({ active, onMenuClick }) {
   }, [allowedItems.length, isMobile]);
 
   const visibleMenus = allowedItems.slice(0, maxIcons - (allowedItems.length > maxIcons ? 1 : 0));
-  const overflowMenus = allowedItems.slice(visibleMenus.length);
+  const overflowMenus = allowedItems
+    .slice(visibleMenus.length)
+    .filter(item => !(role === 'recepcao' && item.key === 'backup'));
 
   if (window.innerWidth >= 1366) return null;
 
@@ -99,7 +102,7 @@ export default function BottomNavBar({ active, onMenuClick }) {
         {overflowMenus.length > 0 && (
           <button
             onClick={() => setShowOverflow(true)}
-            className={`relative flex flex-col items-center p-2 mx-1 rounded-full text-gray-600 hover:bg-gray-200 transition focus:outline-none`}
+            className={`relative flex flex-col items-center p-2 mx-1 rounded-full text-[#23263A] hover:bg-gray-100 transition focus:outline-none`}
             style={{ minWidth: isMobile ? 52 : 44 }}
             onMouseEnter={() => setTooltip("Mais opções")}
             onMouseLeave={() => setTooltip(null)}
@@ -119,22 +122,37 @@ export default function BottomNavBar({ active, onMenuClick }) {
             className="relative bg-white rounded-2xl shadow-xl p-6 flex flex-wrap gap-4 max-w-xs w-full justify-center animate-fade-in"
             onClick={e => e.stopPropagation()}
           >
-            {overflowMenus.map(item => (
+            {overflowMenus.map(item => {
+              const isActive = active === item.key;
+              return (
+                <button
+                  key={item.key}
+                  onClick={() => {
+                    setShowOverflow(false);
+                    onMenuClick(item.key);
+                  }}
+                  className={`flex flex-col items-center ${isMobile ? 'p-3' : 'p-2'} rounded-full transition ${isActive ? 'bg-blue-50 text-[#0095DA] border border-[#0095DA]/20' : 'text-[#23263A] hover:bg-gray-100'}`}
+                  style={{ minWidth: isMobile ? 52 : 44 }}
+                  onMouseEnter={() => setTooltip(item.label)}
+                  onMouseLeave={() => setTooltip(null)}
+                >
+                  {item.icon}
+                  <span className="text-xs mt-1">{item.label}</span>
+                </button>
+              );
+            })}
+            {role === 'recepcao' && (
               <button
-                key={item.key}
-                onClick={() => {
-                  setShowOverflow(false);
-                  onMenuClick(item.key);
-                }}
-                className="flex flex-col items-center p-2 rounded-full text-gray-700 hover:bg-gray-200 transition"
+                onClick={() => { setShowOverflow(false); onMenuClick('ajustes'); }}
+                className={`flex flex-col items-center ${isMobile ? 'p-3' : 'p-2'} rounded-full transition ${active === 'ajustes' ? 'bg-blue-50 text-[#0095DA] border border-[#0095DA]/20' : 'text-[#23263A] hover:bg-gray-100'}`}
                 style={{ minWidth: isMobile ? 52 : 44 }}
-                onMouseEnter={() => setTooltip(item.label)}
+                onMouseEnter={() => setTooltip('Ajustes')}
                 onMouseLeave={() => setTooltip(null)}
               >
-                {item.icon}
-                <span className="text-xs mt-1">{item.label}</span>
+                <Settings size={isMobile ? 24 : 24} />
+                <span className="text-xs mt-1">Ajustes</span>
               </button>
-            ))}
+            )}
             <button
               className="absolute top-2 right-2 text-gray-500 hover:text-gray-700"
               onClick={() => setShowOverflow(false)}
@@ -154,7 +172,9 @@ function NavIcon({ icon, label, active, onClick, setTooltip, tooltip, showLabel,
       className={`
         relative flex flex-col items-center justify-center transition
         ${isMobile ? "p-3" : "p-2"} rounded-full mx-1
-        ${active ? "bg-[#D3E4FE] text-[#23263A]" : "text-[#23263A] hover:bg-gray-100"}
+        ${active
+          ? "bg-blue-50 text-[#0095DA] border border-[#0095DA]/20"
+          : "text-[#23263A] hover:bg-gray-100"}
       `}
       style={{
         minWidth: isMobile ? 52 : 44,
