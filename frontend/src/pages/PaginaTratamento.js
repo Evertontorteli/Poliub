@@ -6,12 +6,13 @@ import FormTratamento from '../components/FormTratamento';
 import ListaTratamentos from '../ListaTratamentos';
 import Evolucoes from '../Evolucoes';
 import { toast } from "react-toastify";
+import { Circle, Layers, Crown, X } from 'lucide-react';
 
 const ICONES = [
-  { key: "normal", icon: "Normal", label: "Normal" },
-  { key: "implante", icon: <img src="." alt="Implante" style={{ width: 22 }} />, label: "Implante" },
-  { key: "coroa", icon: <img src="/img/icones/coroa.svg" alt="Coroa" style={{ width: 22 }} />, label: "Coroa" },
-  { key: "extracao", icon: <img src="/img/icones/extracao.svg" alt="Extração" style={{ width: 22 }} />, label: "Extração" },
+  { key: "normal", icon: Circle, label: "Normal" },
+  { key: "implante", icon: Layers, label: "Implante" },
+  { key: "coroa", icon: Crown, label: "Coroa" },
+  { key: "extracao", icon: X, label: "Extração" },
 ];
 
 export default function PaginaTratamento({ pacienteSelecionado }) {
@@ -140,27 +141,44 @@ export default function PaginaTratamento({ pacienteSelecionado }) {
     .map(([face]) => face);
 
   return (
-    <div className="w-full max-w-[1500px] mx-auto px-4 py-8">
+    <div className="p-2">
+      <div className="mb-4">
+        <h2 className="text-2xl font-bold text-gray-800">Tratamento</h2>
+      </div>
       <FormTratamento
         denteSelecionado={denteSelecionado}
         regioesSelecionadas={regioesSelecionadas}
         onAdicionarTratamento={handleAdicionarTratamento}
         pacienteId={pacienteSelecionado?.id}
       />
+      
+      {/* Separador */}
+      <div className="border-b-2 border-gray-200 my-6"></div>
+      
       {denteSelecionado && (
-        <div className="flex gap-2 justify-center mb-6">
-          {ICONES.map(ic => (
-            <button
-              key={ic.key}
-              title={ic.label}
-              onClick={() => handleTipoDente(denteSelecionado, ic.key)}
-              className={`border rounded p-2 ${tipoDente[denteSelecionado] === ic.key ? "bg-blue-100" : "bg-white"} hover:bg-blue-50`}
-              style={{ fontSize: 20, cursor: "pointer" }}
-              type="button"
-            >
-              {ic.icon}
-            </button>
-          ))}
+        <div className="flex flex-wrap gap-2 justify-center mb-6 items-center">
+          <span className="text-xs font-medium text-gray-600 mr-1">Tipo:</span>
+          {ICONES.map(ic => {
+            const IconComponent = ic.icon;
+            return (
+              <button
+                key={ic.key}
+                title={ic.label}
+                onClick={() => handleTipoDente(denteSelecionado, ic.key)}
+                className={`
+                  flex items-center gap-1.5 px-3 py-1.5 rounded-full border-2 transition-all
+                  ${tipoDente[denteSelecionado] === ic.key 
+                    ? "bg-[#0095DA] border-[#0095DA] text-white shadow-md" 
+                    : "bg-white border-gray-300 text-gray-700 hover:border-[#0095DA] hover:bg-blue-50"
+                  }
+                `}
+                type="button"
+              >
+                <IconComponent size={16} strokeWidth={2} />
+                <span className="text-xs font-medium">{ic.label}</span>
+              </button>
+            );
+          })}
         </div>
       )}
       <div className="flex justify-center">

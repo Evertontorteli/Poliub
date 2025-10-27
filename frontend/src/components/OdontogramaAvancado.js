@@ -2,39 +2,75 @@ import React from "react";
 
 // SVG do quadrado anatômico
 function OdontoQuadrado({ faces, onClickFace }) {
+  const [hoveredFace, setHoveredFace] = React.useState(null);
+  
+  const getFillColor = (faceName) => {
+    if (faces?.[faceName]) return "#BAE6FD"; // Azul claro selecionado
+    if (hoveredFace === faceName) return "#E0F2FE"; // Azul claro no hover
+    return "#FFFFFF"; // Branco padrão
+  };
+  
+  const getStrokeColor = (faceName) => {
+    return faces?.[faceName] ? "#7DD3FC" : "#E5E7EB";
+  };
+  
   return (
     <svg width={32} height={32} viewBox="0 0 36 36" style={{ cursor: "pointer" }}>
-      <polygon points="3,3 12,3 12,33 3,33"
-        fill={faces?.mesial ? "#fbbf24" : "#f3f4f6"}
-        stroke={faces?.mesial ? "#ea580c" : "#999"}
+      {/* Mesial - com espaçamento e cantos arredondados */}
+      <rect 
+        x="4.5" y="4.5" width="6" height="27" rx="2" ry="2"
+        fill={getFillColor("mesial")}
+        stroke={getStrokeColor("mesial")}
         strokeWidth={1.2}
         onClick={() => onClickFace("mesial")}
+        onMouseEnter={() => setHoveredFace("mesial")}
+        onMouseLeave={() => setHoveredFace(null)}
+        style={{ cursor: "pointer", transition: "fill 0.2s ease, stroke 0.2s ease" }}
       />
-      <polygon points="24,3 33,3 33,33 24,33"
-        fill={faces?.distal ? "#fbbf24" : "#f3f4f6"}
-        stroke={faces?.distal ? "#ea580c" : "#999"}
+      {/* Distal - com espaçamento e cantos arredondados */}
+      <rect 
+        x="25.5" y="4.5" width="6" height="27" rx="2" ry="2"
+        fill={getFillColor("distal")}
+        stroke={getStrokeColor("distal")}
         strokeWidth={1.2}
         onClick={() => onClickFace("distal")}
+        onMouseEnter={() => setHoveredFace("distal")}
+        onMouseLeave={() => setHoveredFace(null)}
+        style={{ cursor: "pointer", transition: "fill 0.2s ease, stroke 0.2s ease" }}
       />
-      <polygon points="12,3 24,3 24,12 12,12"
-        fill={faces?.vestibular ? "#fbbf24" : "#f3f4f6"}
-        stroke={faces?.vestibular ? "#ea580c" : "#999"}
+      {/* Vestibular - com espaçamento e cantos arredondados */}
+      <rect 
+        x="13" y="4.5" width="10" height="6" rx="2" ry="2"
+        fill={getFillColor("vestibular")}
+        stroke={getStrokeColor("vestibular")}
         strokeWidth={1.2}
         onClick={() => onClickFace("vestibular")}
+        onMouseEnter={() => setHoveredFace("vestibular")}
+        onMouseLeave={() => setHoveredFace(null)}
+        style={{ cursor: "pointer", transition: "fill 0.2s ease, stroke 0.2s ease" }}
       />
-      <polygon points="12,24 24,24 24,33 12,33"
-        fill={faces?.palatina ? "#fbbf24" : "#f3f4f6"}
-        stroke={faces?.palatina ? "#ea580c" : "#999"}
+      {/* Palatina - com espaçamento e cantos arredondados */}
+      <rect 
+        x="13" y="25.5" width="10" height="6" rx="2" ry="2"
+        fill={getFillColor("palatina")}
+        stroke={getStrokeColor("palatina")}
         strokeWidth={1.2}
         onClick={() => onClickFace("palatina")}
+        onMouseEnter={() => setHoveredFace("palatina")}
+        onMouseLeave={() => setHoveredFace(null)}
+        style={{ cursor: "pointer", transition: "fill 0.2s ease, stroke 0.2s ease" }}
       />
-      <polygon points="12,12 24,12 24,24 12,24"
-        fill={faces?.coroa ? "#fbbf24" : "#f3f4f6"}
-        stroke={faces?.coroa ? "#ea580c" : "#999"}
+      {/* Coroa - com espaçamento e cantos arredondados */}
+      <rect 
+        x="13" y="13" width="10" height="10" rx="2" ry="2"
+        fill={getFillColor("coroa")}
+        stroke={getStrokeColor("coroa")}
         strokeWidth={1.2}
         onClick={() => onClickFace("coroa")}
+        onMouseEnter={() => setHoveredFace("coroa")}
+        onMouseLeave={() => setHoveredFace(null)}
+        style={{ cursor: "pointer", transition: "fill 0.2s ease, stroke 0.2s ease" }}
       />
-      <rect x="3" y="3" width="30" height="30" fill="none" stroke="#858E9B" strokeWidth={2} rx={0} ry={0} />
     </svg>
   );
 }
@@ -47,24 +83,35 @@ function getSvgDente(num, tipo = "normal") {
   return "";
 }
 
+// Dentes permanentes
 const Q_SUP_DIR = [18, 17, 16, 15, 14, 13, 12, 11];
 const Q_SUP_ESQ = [21, 22, 23, 24, 25, 26, 27, 28];
 const Q_INF_ESQ = [31, 32, 33, 34, 35, 36, 37, 38];
 const Q_INF_DIR = [48, 47, 46, 45, 44, 43, 42, 41];
 
+// Dentes decíduos
+const Q_SUP_DIR_DEC = [55, 54, 53, 52, 51];
+const Q_SUP_ESQ_DEC = [61, 62, 63, 64, 65];
+const Q_INF_ESQ_DEC = [71, 72, 73, 74, 75];
+const Q_INF_DIR_DEC = [85, 84, 83, 82, 81];
+
 function renderQuadrante({
   arr, facesSelecionadas, denteSelecionado, onSelecionarDente, tipoDente, facesHandler, tipoHandler
 }) {
   return (
-    <div className="flex flex-row flex-wrap justify-center gap-2">
+    <div className="flex flex-row justify-center gap-2 items-start">
       {arr.map(num => (
-        <div key={num} className="flex flex-col items-center mx-1" style={{ minWidth: 48 }}>
+        <div key={num} className="flex flex-col items-center flex-shrink-0 gap-2" style={{ width: 50 }}>
           <input
             type="checkbox"
             checked={denteSelecionado === String(num)}
             onChange={() => onSelecionarDente(denteSelecionado === String(num) ? "" : String(num))}
-            className="accent-blue-600 mb-1"
-            style={{ width: 16, height: 16 }}
+            className="cursor-pointer"
+            style={{ 
+              width: 18, 
+              height: 18,
+              accentColor: "#0095DA"
+            }}
           />
           <img
             src={getSvgDente(num, tipoDente[num] || "normal")}
@@ -76,14 +123,14 @@ function renderQuadrante({
               marginBottom: -6,
               filter: tipoDente[num] === "extracao" ? "grayscale(1)" : undefined,
               opacity: tipoDente[num] === "extracao" ? 0.5 : 1,
-              transition: "0.2s"
+              transition: "all 0.2s ease"
             }}
           />
           <OdontoQuadrado
             faces={facesSelecionadas[num] || {}}
             onClickFace={face => facesHandler(num, face)}
           />
-          <span className="text-xs mt-1">{num}</span>
+          <span className="text-sm font-medium text-gray-700">{num}</span>
         </div>
       ))}
     </div>
@@ -98,16 +145,47 @@ export default function OdontogramaAvancado({
   onClickFace,
   onTipoDente
 }) {
+  const [tipoOdontograma, setTipoOdontograma] = React.useState('permanentes');
+
+  const quadrantes = tipoOdontograma === 'permanentes' 
+    ? { sup_dir: Q_SUP_DIR, sup_esq: Q_SUP_ESQ, inf_esq: Q_INF_ESQ, inf_dir: Q_INF_DIR }
+    : { sup_dir: Q_SUP_DIR_DEC, sup_esq: Q_SUP_ESQ_DEC, inf_esq: Q_INF_ESQ_DEC, inf_dir: Q_INF_DIR_DEC };
+
   return (
-    <div className="w-full max-w-6xl mx-auto p-2 bg-white rounded-xl shadow">
-      <div className="text-lg font-bold text-center mb-4">Odontograma</div>
-      <div className="flex flex-col gap-4 items-center">
-        {/* Topo: Quadrante 1 esquerda, Quadrante 2 direita */}
-        <div className="flex flex-row gap-10 w-full justify-center">
+    <div className="w-full max-w-6xl mx-auto p-4">
+      {/* Abas Permanentes / Decíduos */}
+      <div className="flex justify-center gap-2 mb-6">
+        <button
+          onClick={() => setTipoOdontograma('permanentes')}
+          className={`px-6 py-2 rounded-full font-medium transition-all ${
+            tipoOdontograma === 'permanentes'
+              ? 'bg-white text-gray-800 shadow-md border-2 border-gray-300'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-2 border-transparent'
+          }`}
+        >
+          Permanentes
+        </button>
+        <button
+          onClick={() => setTipoOdontograma('deciduos')}
+          className={`px-6 py-2 rounded-full font-medium transition-all ${
+            tipoOdontograma === 'deciduos'
+              ? 'bg-white text-gray-800 shadow-md border-2 border-gray-300'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200 border-2 border-transparent'
+          }`}
+        >
+          Decíduos
+        </button>
+      </div>
+
+      <div className="flex flex-col gap-6 items-center">
+        {/* Topo: Quadrante superior */}
+        <div className="flex flex-row gap-16 w-full justify-center">
           <div>
-            <div className="text-center text-xs font-semibold text-gray-500 mb-1">Quadrante 1</div>
+            <div className="text-center text-sm font-semibold text-gray-600 mb-2">
+              {tipoOdontograma === 'permanentes' ? 'Quadrante 1' : 'Quadrante 5'}
+            </div>
             {renderQuadrante({
-              arr: Q_SUP_DIR,
+              arr: quadrantes.sup_dir,
               facesSelecionadas,
               denteSelecionado,
               onSelecionarDente: setDenteSelecionado,
@@ -117,9 +195,11 @@ export default function OdontogramaAvancado({
             })}
           </div>
           <div>
-            <div className="text-center text-xs font-semibold text-gray-500 mb-1">Quadrante 2</div>
+            <div className="text-center text-sm font-semibold text-gray-600 mb-2">
+              {tipoOdontograma === 'permanentes' ? 'Quadrante 2' : 'Quadrante 6'}
+            </div>
             {renderQuadrante({
-              arr: Q_SUP_ESQ,
+              arr: quadrantes.sup_esq,
               facesSelecionadas,
               denteSelecionado,
               onSelecionarDente: setDenteSelecionado,
@@ -129,12 +209,14 @@ export default function OdontogramaAvancado({
             })}
           </div>
         </div>
-        {/* Embaixo: Quadrante 4 esquerda, Quadrante 3 direita */}
-        <div className="flex flex-row gap-10 w-full justify-center mt-4">
+        {/* Embaixo: Quadrante inferior */}
+        <div className="flex flex-row gap-16 w-full justify-center">
           <div>
-            <div className="text-center text-xs font-semibold text-gray-500 mb-1">Quadrante 4</div>
+            <div className="text-center text-sm font-semibold text-gray-600 mb-2">
+              {tipoOdontograma === 'permanentes' ? 'Quadrante 4' : 'Quadrante 8'}
+            </div>
             {renderQuadrante({
-              arr: Q_INF_DIR,
+              arr: quadrantes.inf_dir,
               facesSelecionadas,
               denteSelecionado,
               onSelecionarDente: setDenteSelecionado,
@@ -144,9 +226,11 @@ export default function OdontogramaAvancado({
             })}
           </div>
           <div>
-            <div className="text-center text-xs font-semibold text-gray-500 mb-1">Quadrante 3</div>
+            <div className="text-center text-sm font-semibold text-gray-600 mb-2">
+              {tipoOdontograma === 'permanentes' ? 'Quadrante 3' : 'Quadrante 7'}
+            </div>
             {renderQuadrante({
-              arr: Q_INF_ESQ,
+              arr: quadrantes.inf_esq,
               facesSelecionadas,
               denteSelecionado,
               onSelecionarDente: setDenteSelecionado,
@@ -158,12 +242,14 @@ export default function OdontogramaAvancado({
         </div>
       </div>
       {/* Legenda */}
-      <div className="flex flex-wrap gap-6 mt-6 justify-center text-sm">
-        <div>
-          <span className="inline-block w-4 h-4 mr-1 align-middle rounded bg-orange-400 border border-gray-400" /> Selecionado
+      <div className="flex flex-wrap gap-6 mt-8 justify-center text-sm text-gray-600">
+        <div className="flex items-center">
+          <span className="inline-block w-5 h-5 mr-2 rounded bg-[#BAE6FD] border border-[#7DD3FC]" />
+          <span>Selecionado</span>
         </div>
-        <div>
-          <span className="inline-block w-4 h-4 mr-1 align-middle rounded bg-gray-300 border border-gray-400" /> Não selecionado
+        <div className="flex items-center">
+          <span className="inline-block w-5 h-5 mr-2 rounded bg-white border border-gray-300" />
+          <span>Não selecionado</span>
         </div>
       </div>
     </div>

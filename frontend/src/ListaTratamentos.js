@@ -44,7 +44,7 @@ export default function ListaTratamentos({ tratamentos, onFinalizar, onRemover }
                     {t.status === "aberto" && (
                       <div className="flex gap-2 justify-end">
                         <button
-                          className="text-xs bg-green-500 text-white px-2 py-1 rounded"
+                          className="text-xs bg-[#0095DA] hover:brightness-110 text-white px-3 py-1.5 rounded-full transition"
                           onClick={() => onFinalizar(t.id)}
                         >
                           Finalizar
@@ -102,7 +102,7 @@ export default function ListaTratamentos({ tratamentos, onFinalizar, onRemover }
                   {t.status === "aberto" && (
                     <div className="flex gap-2">
                       <button
-                        className="text-xs bg-green-500 text-white px-2 py-1 rounded"
+                        className="text-xs bg-[#0095DA] hover:brightness-110 text-white px-3 py-1.5 rounded-full transition"
                         onClick={() => onFinalizar(t.id)}
                       >
                         Finalizar

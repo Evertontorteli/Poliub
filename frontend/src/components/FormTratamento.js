@@ -70,7 +70,7 @@ export default function FormTratamento({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="bg-gray-50 p-4 rounded shadow mb-4">
+    <form onSubmit={handleSubmit} className="p-4 mb-4">
       {/* Exibe mensagem de erro, se houver */}
       {erro && (
         <div className="mb-3 p-2 bg-red-100 text-red-700 rounded text-sm font-semibold border border-red-300">
@@ -79,11 +79,11 @@ export default function FormTratamento({
       )}
 
       <div className="flex flex-wrap gap-3 items-end">
-        <div className="flex-1 min-w-[350px]">
-          <label className="block text-xs text-gray-500 mb-1">Tratamento*</label>
+        <div className="flex-1 min-w-[350px] group">
+          <label className="block text-xs text-gray-600 mb-1 font-medium transition-colors group-focus-within:text-blue-600">Tratamento*</label>
           <input
             name="tratamento"
-            className="block w-full border rounded px-3 py-1 text-base"
+            className="block w-full border rounded px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-300"
             value={form.tratamento}
             onChange={handleChange}
             required
@@ -92,29 +92,29 @@ export default function FormTratamento({
             placeholder="Ex: Restauração, Extração, etc"
           />
         </div>
-        <div className="flex-1 min-w-[50px]">
-          <label className="block text-xs text-gray-500 mb-1">Dente*</label>
+        <div className="flex-none w-[80px]">
+          <label className="block text-xs text-gray-600 mb-1 font-medium">Dente*</label>
           <input
             name="dente"
-            className="block w-full border rounded px-2 py-1 bg-gray-100"
+            className="block w-full border rounded px-2 py-2 bg-gray-100 focus:outline-none text-center"
             value={form.dente}
             readOnly
             required
           />
         </div>
         <div className="flex-1 min-w-[100px]">
-          <label className="block text-xs text-gray-500 mb-1">Regiões*</label>
+          <label className="block text-xs text-gray-600 mb-1 font-medium">Regiões*</label>
           <input
             name="regioes"
-            className="block w-full border rounded px-2 py-1 bg-gray-100"
+            className="block w-full border rounded px-2 py-2 bg-gray-100 focus:outline-none"
             value={regioesSelecionadas.join(', ')}
             readOnly
           />
         </div>
         <div className="flex-1 min-w-[150px]">
-          <label className="block text-xs text-gray-500 mb-1">Profissional</label>
+          <label className="block text-xs text-gray-600 mb-1 font-medium">Profissional</label>
           <input
-            className="block w-full border rounded px-2 py-1 bg-gray-100"
+            className="block w-full border rounded px-2 py-2 bg-gray-100 focus:outline-none"
             value={user?.nome || ""}
             readOnly
             disabled
@@ -124,7 +124,7 @@ export default function FormTratamento({
         <div>
           <button
             type="submit"
-            className="bg-green-600 text-white px-4 py-2 rounded font-semibold w-full"
+            className="bg-[#0095DA] hover:brightness-110 text-white px-4 py-2 rounded-full w-full transition"
             disabled={loading}
             style={{ minWidth: 110 }}
           >
