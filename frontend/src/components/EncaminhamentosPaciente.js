@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { Pencil, Trash2 } from 'lucide-react';
+import Modal from './Modal';
 
 const STATUS_OPCOES = [
   { value: 'pendente', label: 'Pendente' },
@@ -129,90 +130,15 @@ export default function EncaminhamentosPaciente({ pacienteId }) {
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-xl font-semibold text-gray-800">Encaminhamentos</h3>
-        {!mostrandoWizard && (
-          <button onClick={abrirNovo} className="bg-[#0095DA] hover:brightness-110 text-white px-4 py-2 rounded-full">Novo encaminhamento</button>
-        )}
+    <div className="p-2">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-2xl font-bold text-gray-800">Encaminhamentos</h2>
+        <button onClick={abrirNovo} className="bg-[#0095DA] hover:brightness-110 text-white px-4 py-2 rounded-full">Novo encaminhamento</button>
       </div>
       {erro && <div className="text-red-600 mb-2">{String(erro)}</div>}
 
-      {mostrandoWizard && (
-        <div className="mb-4 border rounded-lg p-4 bg-white">
-          <h4 className="text-lg font-semibold text-gray-800 mb-3">{editingId ? 'Editar Encaminhamento' : 'Novo Encaminhamento'}</h4>
-          <div className="flex items-center gap-2 mb-4">
-            {[0,1,2,3].map((i)=> (
-              <div key={i} className={`flex-1 h-1 rounded ${i <= passo ? 'bg-gradient-to-r from-[#34A853] via-[#FBBC04] to-[#4285F4]' : 'bg-gray-200'}`} />
-            ))}
-          </div>
-
-          {passo === 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-gray-600">Disciplina de Origem</label>
-                <select value={form.disciplina_origem_id} onChange={e=>setForm(f=>({...f, disciplina_origem_id:e.target.value}))} className="w-full border rounded p-2">
-                  <option value="">Selecione (opcional)</option>
-                  {disciplinas.map(d => <option key={d.id} value={d.id}>{d.nome}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs text-gray-600">Disciplina de Destino</label>
-                <select value={form.disciplina_destino_id} onChange={e=>setForm(f=>({...f, disciplina_destino_id:e.target.value}))} className="w-full border rounded p-2">
-                  <option value="">Selecione</option>
-                  {disciplinas.map(d => <option key={d.id} value={d.id}>{d.nome}</option>)}
-                </select>
-              </div>
-            </div>
-          )}
-
-          {passo === 1 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-gray-600">Data do Encaminhamento</label>
-                <input type="date" value={form.data_encaminhamento} onChange={e=>setForm(f=>({...f, data_encaminhamento:e.target.value}))} className="w-full border rounded p-2" />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-600">Status</label>
-                <select value={form.status} onChange={e=>setForm(f=>({...f, status:e.target.value}))} className="w-full border rounded p-2">
-                  {STATUS_OPCOES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              </div>
-            </div>
-          )}
-
-          {passo === 2 && (
-            <div>
-              <label className="block text-xs text-gray-600">Observação</label>
-              <textarea value={form.observacao} onChange={e=>setForm(f=>({...f, observacao:e.target.value}))} className="w-full border rounded p-2 h-24" />
-            </div>
-          )}
-
-          {passo === 3 && (
-            <div className="text-sm text-gray-800">
-              <div className="mb-2"><b>Destino:</b> {form.disciplina_destino_id ? disciplinaNome(form.disciplina_destino_id) : '-'}</div>
-              <div className="mb-2"><b>Origem:</b> {form.disciplina_origem_id ? disciplinaNome(form.disciplina_origem_id) : '-'}</div>
-              <div className="mb-2"><b>Data:</b> {form.data_encaminhamento}</div>
-              <div className="mb-2"><b>Status:</b> {STATUS_OPCOES.find(s=>s.value===form.status)?.label || form.status}</div>
-              <div className="mb-2"><b>Observação:</b> {form.observacao || '-'}</div>
-            </div>
-          )}
-
-          <div className="flex justify-between gap-2 mt-4">
-            <button onClick={()=>{ if (passo>0) setPasso(p=>p-1); else { setMostrandoWizard(false); setEditingId(null); } }} className="px-3 py-2 border rounded">{passo>0 ? 'Voltar' : 'Cancelar'}</button>
-            <div className="flex gap-2">
-              {passo < 3 && (
-                <button disabled={!podeAvancar} onClick={()=> setPasso(p=>p+1)} className={`px-3 py-2 rounded text-white ${podeAvancar ? 'bg-[#0095DA] hover:brightness-110' : 'bg-gray-300 cursor-not-allowed'}`}>Avançar</button>
-              )}
-              {passo === 3 && (
-                <button onClick={salvar} className="px-3 py-2 rounded text-white bg-[#0095DA] hover:brightness-110">{editingId ? 'Atualizar' : 'Salvar'}</button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
       {carregando && <div className="text-gray-500">Carregando...</div>}
-      {!carregando && itens.length === 0 && !mostrandoWizard && (
+      {!carregando && itens.length === 0 && (
         <div className="text-gray-600">Nenhum encaminhamento.</div>
       )}
       {itens.length > 0 && (
@@ -274,6 +200,89 @@ export default function EncaminhamentosPaciente({ pacienteId }) {
           </table>
         </div>
       )}
+
+      {/* Modal de Criação/Edição */}
+      <Modal 
+        isOpen={mostrandoWizard} 
+        onClose={() => { 
+          setMostrandoWizard(false); 
+          setEditingId(null); 
+          setPasso(0);
+        }}
+        size="lg"
+      >
+        <div className="p-4">
+          <h4 className="text-lg font-semibold text-gray-800 mb-3">{editingId ? 'Editar Encaminhamento' : 'Novo Encaminhamento'}</h4>
+          <div className="flex items-center gap-2 mb-4">
+            {[0,1,2,3].map((i)=> (
+              <div key={i} className={`flex-1 h-1 rounded ${i <= passo ? 'bg-gradient-to-r from-[#34A853] via-[#FBBC04] to-[#4285F4]' : 'bg-gray-200'}`} />
+            ))}
+          </div>
+
+          {passo === 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Disciplina de Origem</label>
+                <select value={form.disciplina_origem_id} onChange={e=>setForm(f=>({...f, disciplina_origem_id:e.target.value}))} className="w-full border rounded p-2">
+                  <option value="">Selecione (opcional)</option>
+                  {disciplinas.map(d => <option key={d.id} value={d.id}>{d.nome}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Disciplina de Destino</label>
+                <select value={form.disciplina_destino_id} onChange={e=>setForm(f=>({...f, disciplina_destino_id:e.target.value}))} className="w-full border rounded p-2">
+                  <option value="">Selecione</option>
+                  {disciplinas.map(d => <option key={d.id} value={d.id}>{d.nome}</option>)}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {passo === 1 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Data do Encaminhamento</label>
+                <input type="date" value={form.data_encaminhamento} onChange={e=>setForm(f=>({...f, data_encaminhamento:e.target.value}))} className="w-full border rounded p-2" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Status</label>
+                <select value={form.status} onChange={e=>setForm(f=>({...f, status:e.target.value}))} className="w-full border rounded p-2">
+                  {STATUS_OPCOES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {passo === 2 && (
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">Observação</label>
+              <textarea value={form.observacao} onChange={e=>setForm(f=>({...f, observacao:e.target.value}))} className="w-full border rounded p-2 h-24" />
+            </div>
+          )}
+
+          {passo === 3 && (
+            <div className="text-sm text-gray-800">
+              <div className="mb-2"><b>Destino:</b> {form.disciplina_destino_id ? disciplinaNome(form.disciplina_destino_id) : '-'}</div>
+              <div className="mb-2"><b>Origem:</b> {form.disciplina_origem_id ? disciplinaNome(form.disciplina_origem_id) : '-'}</div>
+              <div className="mb-2"><b>Data:</b> {form.data_encaminhamento}</div>
+              <div className="mb-2"><b>Status:</b> {STATUS_OPCOES.find(s=>s.value===form.status)?.label || form.status}</div>
+              <div className="mb-2"><b>Observação:</b> {form.observacao || '-'}</div>
+            </div>
+          )}
+
+          <div className="flex justify-between gap-2 mt-4">
+            <button onClick={()=>{ if (passo>0) setPasso(p=>p-1); else { setMostrandoWizard(false); setEditingId(null); setPasso(0); } }} className="px-4 py-2 border rounded-full hover:bg-gray-100">{passo>0 ? 'Voltar' : 'Cancelar'}</button>
+            <div className="flex gap-2">
+              {passo < 3 && (
+                <button disabled={!podeAvancar} onClick={()=> setPasso(p=>p+1)} className={`px-4 py-2 rounded-full text-white ${podeAvancar ? 'bg-[#0095DA] hover:brightness-110' : 'bg-gray-300 cursor-not-allowed'}`}>Avançar</button>
+              )}
+              {passo === 3 && (
+                <button onClick={salvar} className="px-4 py-2 rounded-full text-white bg-[#0095DA] hover:brightness-110">{editingId ? 'Atualizar' : 'Salvar'}</button>
+              )}
+            </div>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

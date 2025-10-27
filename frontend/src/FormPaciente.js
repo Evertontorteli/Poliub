@@ -748,16 +748,6 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao, onDirtyCh
         </form>
       )}
 
-      {/* Aba Tratamento */}
-      {abaAtiva === 'encaminhamentos' && pacienteEditando && (
-        <div className="p-2">
-          <h2 className="text-2xl font-bold mb-4 text-gray-800">Encaminhamentos</h2>
-          <div className="border rounded-lg p-4 bg-white">
-            <p className="text-gray-600">Em breve: cadastro e acompanhamento de encaminhamentos entre disciplinas para este paciente.</p>
-          </div>
-        </div>
-      )}
-
       {/* Aba Encaminhamentos */}
       {abaAtiva === 'encaminhamentos' && pacienteEditando && (
         <EncaminhamentosPaciente pacienteId={pacienteEditando.id} />
@@ -835,7 +825,21 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao, onDirtyCh
 
           {/* Modal de seleção de modelo e preenchimento */}
           {showSelectModelo && (
-            <Modal isOpen={showSelectModelo} onClose={() => {}} shouldCloseOnOverlayClick={false} shouldCloseOnEsc={false} size="md">
+            <Modal 
+              isOpen={showSelectModelo} 
+              onClose={() => { 
+                setShowSelectModelo(false); 
+                setPreenchimentoEditandoId(null);
+                setSelectedModelo(null);
+                setSelectedModeloId(null);
+                setModeloEscolhidoId('');
+                setPerguntasAnamnese([]);
+                setRespostas({});
+              }} 
+              shouldCloseOnOverlayClick={false} 
+              shouldCloseOnEsc={false} 
+              size="md"
+            >
               <div className="p-2">
                 <h3 className="text-lg font-semibold text-gray-800 mb-3">Selecionar modelo</h3>
                 <div className="group mb-3">
