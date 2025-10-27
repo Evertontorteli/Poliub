@@ -6,7 +6,7 @@ import { useAuth } from './context/AuthContext';
 import PaginaTratamento from './pages/PaginaTratamento';
 import EncaminhamentosPaciente from './components/EncaminhamentosPaciente';
 import Modal from './components/Modal';
-import { FileText, Pencil, Trash } from 'lucide-react';
+import { FileText, Pencil, Trash, Printer } from 'lucide-react';
 import 'react-toastify/dist/ReactToastify.css';
 
 function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao, onDirtyChange }) {
@@ -786,6 +786,12 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao, onDirtyCh
                   <div className="ml-3 shrink-0 flex items-center gap-3">
                     <button className="p-2 rounded hover:bg-blue-100 text-blue-800" title="Abrir" onClick={() => abrirDetalhePreenchimento(a.id)}>
                       <FileText size={18} />
+                    </button>
+                    <button className="p-2 rounded hover:bg-green-100 text-green-700" title="Imprimir" onClick={() => {
+                      // TODO: Implementar impressão da anamnese
+                      toast.info('Função de impressão em desenvolvimento');
+                    }}>
+                      <Printer size={18} />
                     </button>
                     <button className="p-2 rounded hover:bg-blue-100 text-blue-800" title="Editar" onClick={async () => {
                       // carrega e abre modal de edição reaproveitando o modal de preenchimento
