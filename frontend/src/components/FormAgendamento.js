@@ -137,7 +137,7 @@ export default function FormAgendamento({ onNovoAgendamento, agendamentoEditando
   }, [role, tipoAtendimento, disciplinaId, disciplinaInfoBase, solWin.enabled, solicitacaoInfo]);
 
   function handleTipoClick(t) {
-    if (t === 'Solicitar' && solWin.enabled && solicitarBloqueado) {
+    if (t === 'Solicitar' && solWin.enabled && disciplinaId && solicitarBloqueado) {
       const msg = solicitacaoInfo
         ? `Solicitar indisponível para o próximo encontro (${solicitacaoInfo.nextLabel}). Prazo encerrou em ${solicitacaoInfo.deadlineLabel}.`
         : `Solicitar indisponível. Antecedência mínima: ${solWin.windowHours}h.`;
@@ -394,7 +394,7 @@ async function handleSubmit(e) {
         <h2 className="text-2xl font-bold mb-6 text-[#0095DA]">
           Agendar Paciente
         </h2>
-        {((tipoAtendimento === 'Solicitar' && solWin.enabled) || (['Novo','Retorno'].includes(tipoAtendimento) && disciplinaInfoBase)) && (
+        {((tipoAtendimento === 'Solicitar' && solWin.enabled && solicitacaoInfo) || (['Novo','Retorno'].includes(tipoAtendimento) && disciplinaInfoBase)) && (
           <div className={`mb-3 p-2 rounded-lg border text-sm ${showSolicitarBlocked ? 'bg-yellow-50 border-yellow-300 text-yellow-800' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
             {tipoAtendimento === 'Solicitar' && solWin.enabled && solicitacaoInfo ? (
               <>
@@ -414,7 +414,7 @@ async function handleSubmit(e) {
               key={t}
               type="button"
               onClick={() => handleTipoClick(t)}
-              className={`px-4 py-1 rounded-full font-semibold transition
+              className={`px-3 py-1 md:px-4 text-sm md:text-base rounded-full transition
                 ${tipoAtendimento === t
                   ? 'bg-[#D9E0FF] text-gray-800'
                   : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}`}
@@ -460,7 +460,7 @@ async function handleSubmit(e) {
                     className={`absolute left-0 top-0 h-full w-1 ${cardColors[idx % cardColors.length]} rounded-l-xl`}
                     aria-hidden="true"
                   />
-                  <div className="font-bold text-sm text-gray-600 mb-1 text-left line-clamp-2" title={d.nome}>{d.nome}</div>
+                  <div className="font-bold text-xs text-gray-600 mb-1 text-left line-clamp-2" title={d.nome}>{d.nome}</div>
                   <div className="text-xs text-gray-600 whitespace-normal break-words flex items-center gap-2" title={`${d.periodo_nome} ${d.turno}${d.dia_semana ? ` • ${d.dia_semana}` : ''}`}>
                     <span>{d.periodo_nome} {d.turno}</span>
                     {d.dia_semana ? (
@@ -561,29 +561,18 @@ async function handleSubmit(e) {
           </div>
         )}
 
-        {/* Data / Hora */}
-        <label className="block mb-2 font-medium text-base md:text-lg">
-          Data e Hora do Agendamento
-        </label>
-        <div className="mb-6 flex items-center gap-3">
-          <div className="group flex-1 min-w-0">
-            <input
-              type="date"
-              className="w-full border rounded-full px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-              value={data}
-              onChange={e => setData(e.target.value)}
-              required
-            />
-          </div>
-          <div className="group w-28 sm:w-32 md:w-40">
-            <input
-              type="time"
-              className="w-full border rounded-full px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-              value={hora}
-              onChange={e => setHora(e.target.value)}
-              required
-            />
-          </div>
+        {/* Data */}
+        <div className="mb-6 group">
+          <label className="block mb-2 font-medium text-base md:text-lg transition-colors group-focus-within:text-blue-600">
+            Data do Agendamento
+          </label>
+          <input
+            type="date"
+            className="w-auto border rounded-full px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            value={data}
+            onChange={e => setData(e.target.value)}
+            required
+          />
         </div>
 
         {/* Operador / Auxiliar */}
@@ -631,14 +620,7 @@ async function handleSubmit(e) {
         </div>
 
         {/* Botões */}
-        <div className="flex gap-4 mt-8">
-          <button
-            type="submit"
-            disabled={saving}
-            className={`font-bold px-6 py-2 rounded-full text-white ${saving ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#0095DA] hover:brightness-110'}`}
-          >
-            {saving ? 'Agendando…' : (tipoAtendimento === 'Solicitar' ? 'Solicitar para Recepção' : 'Agendar Paciente')}
-          </button>
+        <div className="flex gap-4 mt-8 justify-end">
           {agendamentoEditando && (
             <button
               type="button"
@@ -648,6 +630,13 @@ async function handleSubmit(e) {
               Cancelar
             </button>
           )}
+          <button
+            type="submit"
+            disabled={saving}
+            className={`font-bold px-6 py-2 rounded-full text-white ${saving ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#0095DA] hover:brightness-110'}`}
+          >
+            {saving ? 'Agendando…' : (tipoAtendimento === 'Solicitar' ? 'Solicitar para Recepção' : 'Agendar Paciente')}
+          </button>
         </div>
 
         {mensagem && (
