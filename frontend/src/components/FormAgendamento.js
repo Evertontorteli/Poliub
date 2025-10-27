@@ -416,7 +416,7 @@ async function handleSubmit(e) {
               onClick={() => handleTipoClick(t)}
               className={`px-3 py-1 md:px-4 text-sm md:text-base rounded-full transition
                 ${tipoAtendimento === t
-                  ? 'bg-[#D9E0FF] text-gray-800'
+                  ? 'bg-[#C9E2FC] text-gray-800'
                   : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}`}
             >
               {t === 'Solicitar' ? 'Solicitar para Recepção' : t}
@@ -561,18 +561,29 @@ async function handleSubmit(e) {
           </div>
         )}
 
-        {/* Data */}
-        <div className="mb-6 group">
-          <label className="block mb-2 font-medium text-base md:text-lg transition-colors group-focus-within:text-blue-600">
-            Data do Agendamento
-          </label>
-          <input
-            type="date"
-            className="w-auto border rounded-full px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-            value={data}
-            onChange={e => setData(e.target.value)}
-            required
-          />
+        {/* Data / Hora */}
+        <label className="block mb-2 font-medium text-base md:text-lg">
+          Data e Hora do Agendamento
+        </label>
+        <div className="mb-6 flex items-center gap-3">
+          <div className="group">
+            <input
+              type="date"
+              className="w-[180px] border rounded-full px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+              value={data}
+              onChange={e => setData(e.target.value)}
+              required
+            />
+          </div>
+          <div className="group">
+            <input
+              type="time"
+              className="border rounded-full px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+              value={hora}
+              onChange={e => setHora(e.target.value)}
+              required
+            />
+          </div>
         </div>
 
         {/* Operador / Auxiliar */}
