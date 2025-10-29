@@ -557,109 +557,112 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao, onDirtyCh
               </div>
 
               {/* Tipo de paciente / Nº Prontuário / Nº Gaveta - alinhados à direita */}
-              <div className="w-full md:flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="group">
-              <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
-                Tipo de paciente
-              </label>
-              <div className="relative" ref={dropdownRef}>
-                <button
-                  type="button"
-                  onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="w-full border rounded px-3 py-2 flex items-center justify-between bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className={`w-3 h-3 rounded-full flex-shrink-0 ${
-                      formData.tipo_paciente === 'NORMAL' 
-                        ? 'bg-blue-500' 
-                        : formData.tipo_paciente === 'PEDIATRICO'
-                        ? 'bg-yellow-500'
-                        : 'bg-green-500'
-                    }`} />
-                    <span>
-                      {formData.tipo_paciente === 'NORMAL' ? 'Normal' : 
-                       formData.tipo_paciente === 'PEDIATRICO' ? 'Pediátrico' : 
-                       'Geriátrico'}
-                    </span>
+              <div className="w-full md:flex-1">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="group">
+                    <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
+                      Tipo de paciente
+                    </label>
+                    <div className="relative" ref={dropdownRef}>
+                      <button
+                        type="button"
+                        onClick={() => setDropdownOpen(!dropdownOpen)}
+                        className="w-full border rounded px-3 py-2 flex items-center justify-between bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className={`w-3 h-3 rounded-full flex-shrink-0 ${
+                            formData.tipo_paciente === 'NORMAL' 
+                              ? 'bg-blue-500' 
+                              : formData.tipo_paciente === 'PEDIATRICO'
+                              ? 'bg-yellow-500'
+                              : 'bg-green-500'
+                          }`} />
+                          <span>
+                            {formData.tipo_paciente === 'NORMAL' ? 'Normal' : 
+                             formData.tipo_paciente === 'PEDIATRICO' ? 'Pediátrico' : 
+                             'Geriátrico'}
+                          </span>
+                        </div>
+                        <ChevronDown size={20} className={`transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                      
+                      {dropdownOpen && (
+                        <div className="absolute z-50 w-full mt-1 bg-white border rounded shadow-lg">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData(fd => ({ ...fd, tipo_paciente: 'NORMAL' }));
+                              setDropdownOpen(false);
+                              onDirtyChange?.(true);
+                            }}
+                            className="w-full px-3 py-2 flex items-center gap-2 hover:bg-gray-100 transition text-left"
+                          >
+                            <span className="w-3 h-3 rounded-full bg-blue-500 flex-shrink-0" />
+                            <span>Normal</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData(fd => ({ ...fd, tipo_paciente: 'PEDIATRICO' }));
+                              setDropdownOpen(false);
+                              onDirtyChange?.(true);
+                            }}
+                            className="w-full px-3 py-2 flex items-center gap-2 hover:bg-gray-100 transition text-left"
+                          >
+                            <span className="w-3 h-3 rounded-full bg-yellow-500 flex-shrink-0" />
+                            <span>Pediátrico</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData(fd => ({ ...fd, tipo_paciente: 'GERIATRICO' }));
+                              setDropdownOpen(false);
+                              onDirtyChange?.(true);
+                            }}
+                            className="w-full px-3 py-2 flex items-center gap-2 hover:bg-gray-100 transition text-left"
+                          >
+                            <span className="w-3 h-3 rounded-full bg-green-500 flex-shrink-0" />
+                            <span>Geriátrico</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <ChevronDown size={20} className={`transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
-                
-                {dropdownOpen && (
-                  <div className="absolute z-50 w-full mt-1 bg-white border rounded shadow-lg">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFormData(fd => ({ ...fd, tipo_paciente: 'NORMAL' }));
-                        setDropdownOpen(false);
-                        onDirtyChange?.(true);
-                      }}
-                      className="w-full px-3 py-2 flex items-center gap-2 hover:bg-gray-100 transition text-left"
-                    >
-                      <span className="w-3 h-3 rounded-full bg-blue-500 flex-shrink-0" />
-                      <span>Normal</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFormData(fd => ({ ...fd, tipo_paciente: 'PEDIATRICO' }));
-                        setDropdownOpen(false);
-                        onDirtyChange?.(true);
-                      }}
-                      className="w-full px-3 py-2 flex items-center gap-2 hover:bg-gray-100 transition text-left"
-                    >
-                      <span className="w-3 h-3 rounded-full bg-yellow-500 flex-shrink-0" />
-                      <span>Pediátrico</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFormData(fd => ({ ...fd, tipo_paciente: 'GERIATRICO' }));
-                        setDropdownOpen(false);
-                        onDirtyChange?.(true);
-                      }}
-                      className="w-full px-3 py-2 flex items-center gap-2 hover:bg-gray-100 transition text-left"
-                    >
-                      <span className="w-3 h-3 rounded-full bg-green-500 flex-shrink-0" />
-                      <span>Geriátrico</span>
-                    </button>
-                  </div>
+                  {!isAluno && (
+                    <div className="group">
+                      <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
+                        Nº Prontuário <small>(opcional)</small>
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={8}
+                        value={numeroProntuario}
+                      onChange={e => { setNumeroProntuario(e.target.value); onDirtyChange?.(true); }}
+                        className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                      />
+                    </div>
+                  )}
+                  {!isAluno && (
+                    <div className="group">
+                      <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
+                        Nº Gaveta <small>(opcional)</small>
+                      </label>
+                      <input
+                        type="text"
+                        name="numero_gaveta"
+                        value={formData.numero_gaveta}
+                        onChange={(e) => { handleChange(e); onDirtyChange?.(true); }}
+                        className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                      />
+                    </div>
+                  )}
+                </div>
+                {/* Aviso para pediátrico/geriátrico - largura cheia abaixo dos campos */}
+                {formData.tipo_paciente !== 'NORMAL' && (
+                  <p className="text-yellow-700 bg-yellow-50 border border-yellow-200 rounded mt-4 px-3 py-2 text-sm">
+                    Para pacientes pediátricos e geriátricos, preencha os dados do responsável.
+                  </p>
                 )}
-              </div>
-              {formData.tipo_paciente !== 'NORMAL' && (
-                <p className="text-yellow-700 bg-yellow-50 border border-yellow-200 rounded mt-2 px-3 py-2 text-sm">
-                  Para pacientes pediátricos e geriátricos, preencha os dados do responsável.
-                </p>
-              )}
-            </div>
-            {!isAluno && (
-              <div className="group">
-                <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
-                  Nº Prontuário <small>(opcional)</small>
-                </label>
-                <input
-                  type="text"
-                  maxLength={8}
-                  value={numeroProntuario}
-                onChange={e => { setNumeroProntuario(e.target.value); onDirtyChange?.(true); }}
-                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                />
-              </div>
-            )}
-            {!isAluno && (
-              <div className="group">
-                <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
-                  Nº Gaveta <small>(opcional)</small>
-                </label>
-                <input
-                  type="text"
-                  name="numero_gaveta"
-                  value={formData.numero_gaveta}
-                  onChange={(e) => { handleChange(e); onDirtyChange?.(true); }}
-                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                />
-              </div>
-            )}
               </div>
             </div>
           </div>
