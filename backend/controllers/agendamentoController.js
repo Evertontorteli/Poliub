@@ -3,6 +3,7 @@
 const Agendamento = require('../models/agendamentoModel');
 const db = require('../database'); // getConnection()
 const Log = require('../models/logModel.js');
+const AppSettings = require('../models/appSettingsModel');
 // 6) CANCELAR AGENDAMENTO (status="Cancelado")
 exports.cancelarAgendamento = async (req, res) => {
   const { id } = req.params;
@@ -246,6 +247,47 @@ exports.criarAgendamento = async (req, res) => {
       return res.status(400).json({
         error: 'Não é possível realizar agendamentos para datas anteriores à data atual.'
       });
+    }
+
+    // Validação de bloqueio de agendamento no mesmo dia da disciplina
+    const bloqueioConfig = await AppSettings.get('bloquear_agendamento_mesmo_dia');
+    if (bloqueioConfig?.enabled && disciplina_id && data) {
+      const conn = await db.getConnection();
+      try {
+        const [discRows] = await conn.query(
+          'SELECT dia_semana FROM disciplinas WHERE id = ?',
+          [disciplina_id]
+        );
+        if (discRows[0]?.dia_semana) {
+          const diaSemanaDisc = String(discRows[0].dia_semana).toLowerCase().trim();
+          
+          // Mapeia o dia da semana da data do agendamento
+          const diasSemana = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
+          const diaAgendamento = diasSemana[dataAgendamento.getDay()].toLowerCase();
+          
+          // Normaliza para comparação
+          const normalizarDia = (d) => {
+            return d.replace(/[áàâã]/g, 'a')
+                    .replace(/[éêë]/g, 'e')
+                    .replace(/[íîï]/g, 'i')
+                    .replace(/[óôõö]/g, 'o')
+                    .replace(/[úûü]/g, 'u')
+                    .replace(/ç/g, 'c');
+          };
+          
+          const diaNormalizado = normalizarDia(diaAgendamento);
+          const discNormalizado = normalizarDia(diaSemanaDisc);
+          
+          if (diaNormalizado === discNormalizado) {
+            conn.release();
+            return res.status(400).json({
+              error: 'Não é possível agendar pacientes no mesmo dia de atendimento da disciplina. Por favor, escolha outra data.'
+            });
+          }
+        }
+      } finally {
+        conn.release();
+      }
     }
 
     // → SE FOR RECEPCAO: sem restrição extra

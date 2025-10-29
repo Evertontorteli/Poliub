@@ -1009,9 +1009,11 @@ function ManutencaoSistema() {
   const [selected, setSelected] = useState('agendamento');
   const readyRef = useRef(false);
   const debounceRef = useRef(null);
-  // Parâmetro fictício (somente visual)
-  const [fakeEnabled, setFakeEnabled] = useState(false);
-  const [fakeLevel, setFakeLevel] = useState('baixo');
+  
+  // Bloqueio de agendamento no mesmo dia
+  const [bloquearMesmoDia, setBloquearMesmoDia] = useState(false);
+  const readyBloqueioRef = useRef(false);
+  const debounceBloqueioRef = useRef(null);
 
   useEffect(() => {
     let alive = true;
@@ -1028,6 +1030,19 @@ function ManutencaoSistema() {
     return () => { alive = false; };
   }, []);
 
+  // Carrega configuração de bloqueio de mesmo dia
+  useEffect(() => {
+    let alive = true;
+    axios.get('/api/settings/bloquear-mesmo-dia')
+      .then(({ data }) => {
+        if (!alive) return;
+        setBloquearMesmoDia(!!data?.enabled);
+        readyBloqueioRef.current = true;
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
   async function salvar() {
     if (saving) return;
     setSaving(true);
@@ -1040,6 +1055,14 @@ function ManutencaoSistema() {
     }
   }
 
+  async function salvarBloqueio() {
+    try {
+      await axios.put('/api/settings/bloquear-mesmo-dia', { enabled: bloquearMesmoDia });
+    } catch (_) {
+      // noop
+    }
+  }
+
   // Auto-salvar ao alterar toggle/horas (debounce 500ms)
   useEffect(() => {
     if (!readyRef.current) return;
@@ -1047,6 +1070,14 @@ function ManutencaoSistema() {
     debounceRef.current = setTimeout(() => { salvar(); }, 500);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [enabled, windowHours]);
+
+  // Auto-salvar bloqueio de mesmo dia
+  useEffect(() => {
+    if (!readyBloqueioRef.current) return;
+    if (debounceBloqueioRef.current) clearTimeout(debounceBloqueioRef.current);
+    debounceBloqueioRef.current = setTimeout(() => { salvarBloqueio(); }, 500);
+    return () => { if (debounceBloqueioRef.current) clearTimeout(debounceBloqueioRef.current); };
+  }, [bloquearMesmoDia]);
 
   return (
     <div className="mt-2 border rounded-lg bg-white flex">
@@ -1062,13 +1093,13 @@ function ManutencaoSistema() {
           <span className="text-sm font-medium">Solicitação de paciente</span>
         </button>
         <button
-          className={`w-full mt-2 px-3 py-2 rounded-xl transition flex items-center gap-3 ${selected==='ficticio' ? 'bg-[#D3E4FE] text-[#23263A]' : 'text-[#23263A] hover:bg-gray-100'}`}
-          onClick={() => setSelected('ficticio')}
-          aria-label="Parâmetro fictício"
-          title="Parâmetro fictício"
+          className={`w-full mt-2 px-3 py-2 rounded-xl transition flex items-center gap-3 ${selected==='bloqueio' ? 'bg-[#D3E4FE] text-[#23263A]' : 'text-[#23263A] hover:bg-gray-100'}`}
+          onClick={() => setSelected('bloqueio')}
+          aria-label="Bloqueio de agendamento"
+          title="Bloqueio de agendamento"
         >
           <Settings size={20} />
-          <span className="text-sm font-medium">Parâmetro fictício</span>
+          <span className="text-sm font-medium">Bloqueio mesmo dia</span>
         </button>
       </div>
 
@@ -1115,35 +1146,25 @@ function ManutencaoSistema() {
           </div>
         )}
 
-        {selected === 'ficticio' && (
+        {selected === 'bloqueio' && (
           <div className="md:grid md:grid-cols-2 md:gap-6">
             <div>
-              <div className="text-sm font-medium text-gray-900">Parâmetro fictício (exemplo)</div>
+              <div className="text-sm font-medium text-gray-900">Bloqueio de agendamento no mesmo dia</div>
               <p className="text-sm text-gray-600 mt-1">
-                Este bloco é apenas para demonstrar o layout em linhas separadas. Aqui você poderá
-                adicionar novas opções futuramente.
+                Quando habilitado, impede que usuários agendem pacientes no mesmo dia de atendimento da disciplina.
+                Por exemplo, se a disciplina atende às Segundas-feiras, não será possível criar agendamentos para Segundas-feiras.
               </p>
             </div>
             <div className="mt-3 md:mt-0 flex flex-col items-start md:items-end gap-3">
               <label className="inline-flex items-center cursor-pointer select-none">
-                <input type="checkbox" className="sr-only peer" checked={fakeEnabled} onChange={e=>setFakeEnabled(e.target.checked)} />
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={bloquearMesmoDia} 
+                  onChange={e=>setBloquearMesmoDia(e.target.checked)} 
+                />
                 <div className="w-11 h-6 bg-gray-300 rounded-full relative transition peer-checked:bg-[#0095DA] after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:w-5 after:h-5 after:bg-white after:rounded-full after:shadow after:transition peer-checked:after:translate-x-5" />
-                <span className="ml-3 text-sm text-gray-800">Habilitar (fictício)</span>
               </label>
-              <div className="flex items-end gap-3 w-full md:w-auto">
-                <div className="group">
-                  <label className="block text-xs text-gray-600 transition-colors group-focus-within:text-blue-600">Nível</label>
-                  <select
-                    className="border rounded p-2 w-36 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                    value={fakeLevel}
-                    onChange={e=>setFakeLevel(e.target.value)}
-                  >
-                    <option value="baixo">Baixo</option>
-                    <option value="medio">Médio</option>
-                    <option value="alto">Alto</option>
-                  </select>
-                </div>
-              </div>
             </div>
           </div>
         )}

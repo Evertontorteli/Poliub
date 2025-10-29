@@ -11,6 +11,10 @@ router.put('/feedback-prompt', verificaToken, apenasRecepcao, ctrl.putFeedbackPr
 router.get('/solicitacao-window', verificaToken, ctrl.getSolicitacaoWindow);
 router.put('/solicitacao-window', verificaToken, apenasRecepcao, ctrl.putSolicitacaoWindow);
 
+// Bloqueio de agendamento no mesmo dia
+router.get('/bloquear-mesmo-dia', verificaToken, ctrl.getBloquearMesmoDia);
+router.put('/bloquear-mesmo-dia', verificaToken, apenasRecepcao, ctrl.putBloquearMesmoDia);
+
 module.exports = router;
 
 

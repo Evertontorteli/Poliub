@@ -51,7 +51,31 @@ async function putSolicitacaoWindow(req, res) {
   }
 }
 
+// GET configuração de bloqueio de agendamento no mesmo dia
+async function getBloquearMesmoDia(req, res) {
+  try {
+    const config = await AppSettings.get('bloquear_agendamento_mesmo_dia');
+    res.json(config || { enabled: false });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+}
+
+// PUT configuração de bloqueio de agendamento no mesmo dia
+async function putBloquearMesmoDia(req, res) {
+  try {
+    const { enabled } = req.body || {};
+    const payload = { enabled: !!enabled };
+    await AppSettings.set('bloquear_agendamento_mesmo_dia', payload);
+    res.json(payload);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+}
+
 module.exports.getSolicitacaoWindow = getSolicitacaoWindow;
 module.exports.putSolicitacaoWindow = putSolicitacaoWindow;
+module.exports.getBloquearMesmoDia = getBloquearMesmoDia;
+module.exports.putBloquearMesmoDia = putBloquearMesmoDia;
 
 
