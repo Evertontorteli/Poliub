@@ -18,10 +18,13 @@ const Aluno = {
         a.cod_esterilizacao,
         a.periodo_id,
         p.nome     AS periodo_nome,
-        p.turno    AS periodo_turno
+        p.turno    AS periodo_turno,
+        b.conteudo AS box
       FROM alunos a
       LEFT JOIN periodos p 
         ON a.periodo_id = p.id
+      LEFT JOIN boxes b
+        ON a.id = b.aluno_id
       ORDER BY a.nome
     `);
     conn.release();

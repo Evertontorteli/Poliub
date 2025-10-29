@@ -32,6 +32,7 @@ export default function TelaAlunos() {
       const url = role === "recepcao" ? "/api/alunos" : "/api/alunos/me";
       const res = await axios.get(url, { headers });
       const lista = Array.isArray(res.data) ? res.data : [res.data];
+      console.log('DEBUG Alunos - Exemplo (Debora):', lista.find(a => a.ra === '232490193'));
       // Evita N+1 requisições: não buscar box individualmente para cada aluno (melhora muito no mobile)
       setAlunos(lista);
     } catch (err) {
