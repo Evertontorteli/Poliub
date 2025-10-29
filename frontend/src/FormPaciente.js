@@ -478,7 +478,7 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao, onDirtyCh
               </select>
               {formData.tipo_paciente !== 'NORMAL' && (
                 <p className="text-yellow-700 bg-yellow-50 border border-yellow-200 rounded mt-2 px-3 py-2 text-sm">
-                  Para pacientes pediátricos e geriátricos o telefone é opcional.
+                  Para pacientes pediátricos e geriátricos, preencha os dados do responsável.
                 </p>
               )}
             </div>
@@ -528,13 +528,7 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao, onDirtyCh
             </div>
             <div className="group md:col-span-1">
               <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600 whitespace-nowrap">
-                {formData.tipo_paciente === 'NORMAL' ? (
-                  'Telefone'
-                ) : (
-                  <>
-                    Telefone <small>(opcional)</small>
-                  </>
-                )}
+                Telefone {formData.tipo_paciente === 'NORMAL' && <small>(opcional)</small>}
               </label>
               <input
                 type="tel"
@@ -553,7 +547,7 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao, onDirtyCh
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="group">
                   <label className={`block mb-2 font-medium transition-colors group-focus-within:text-blue-600 text-gray-700`}>
-                    Nome do responsável <small>(opcional)</small>
+                    Nome do responsável
                   </label>
                   <input
                     type="text"
@@ -565,7 +559,7 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao, onDirtyCh
                 </div>
                 <div className="group">
                   <label className={`block mb-2 font-medium transition-colors group-focus-within:text-blue-600 text-gray-700`}>
-                    Telefone do responsável <small>(opcional)</small>
+                    Telefone do responsável
                   </label>
                   <input
                     type="tel"
