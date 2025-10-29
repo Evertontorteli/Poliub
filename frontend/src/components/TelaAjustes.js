@@ -1151,8 +1151,9 @@ function ManutencaoSistema() {
             <div>
               <div className="text-sm font-medium text-gray-900">Bloqueio de agendamento no mesmo dia</div>
               <p className="text-sm text-gray-600 mt-1">
-                Quando habilitado, impede que usuários agendem pacientes no mesmo dia de atendimento da disciplina.
-                Por exemplo, se a disciplina atende às Segundas-feiras, não será possível criar agendamentos para Segundas-feiras.
+                Quando habilitado, impede que usuários agendem pacientes para <strong>hoje</strong> se hoje for dia de atendimento da disciplina.
+                Por exemplo, se hoje é Segunda-feira e a disciplina atende às Segundas, não será possível criar agendamentos para hoje.
+                Agendamentos para outras Segundas-feiras (futuras) continuam permitidos.
               </p>
             </div>
             <div className="mt-3 md:mt-0 flex flex-col items-start md:items-end gap-3">
