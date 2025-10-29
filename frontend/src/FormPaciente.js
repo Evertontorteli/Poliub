@@ -1,12 +1,12 @@
 // src/components/FormPaciente.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { useAuth } from './context/AuthContext';
 import PaginaTratamento from './pages/PaginaTratamento';
 import EncaminhamentosPaciente from './components/EncaminhamentosPaciente';
 import Modal from './components/Modal';
-import { FileText, Pencil, Trash, Printer } from 'lucide-react';
+import { FileText, Pencil, Trash, Printer, ChevronDown } from 'lucide-react';
 import 'react-toastify/dist/ReactToastify.css';
 
 function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao, onDirtyChange }) {
@@ -28,7 +28,9 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao, onDirtyCh
     idade: '',
     endereco: '',
     numero: '',
+    bairro: '',
     cidade: '',
+    uf: '',
     observacao: '',
     responsavel_nome: '',
     responsavel_telefone: ''
@@ -51,6 +53,13 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao, onDirtyCh
   const [confirmRemoverId, setConfirmRemoverId] = useState(null);
   const [preenchimentoEditandoId, setPreenchimentoEditandoId] = useState(null);
   const cardColors = ['#5956D6', '#2B8FF2', '#ECAD21', '#03A400', '#DA5D5C', '#926AFF', '#568BEF', '#ECAD21', '#FF7FAF', '#926AFF', '#009AF3'];
+  
+  // Estado para dropdown customizado de tipo de paciente
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  
+  // Estado para erro de CEP
+  const [cepErro, setCepErro] = useState(false);
 
   useEffect(() => {
     if (pacienteEditando) {
@@ -69,7 +78,9 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao, onDirtyCh
         idade: pacienteEditando.idade || '',
         endereco: pacienteEditando.endereco || '',
         numero: pacienteEditando.numero || '',
+        bairro: pacienteEditando.bairro || '',
         cidade: pacienteEditando.cidade || '',
+        uf: pacienteEditando.uf || '',
         observacao: pacienteEditando.observacao || '',
         responsavel_nome: pacienteEditando.responsavel_nome || '',
         responsavel_telefone: formatarTelefone(pacienteEditando.responsavel_telefone || '')
@@ -83,6 +94,17 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao, onDirtyCh
     }
     setMensagemErro('');
   }, [pacienteEditando]);
+
+  // Fecha dropdown ao clicar fora
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Carrega modelos quando abre aba Anamnese
   useEffect(() => {
@@ -227,7 +249,9 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao, onDirtyCh
       idade: '',
       endereco: '',
       numero: '',
+      bairro: '',
       cidade: '',
+      uf: '',
       observacao: '',
       responsavel_nome: '',
       responsavel_telefone: ''
@@ -282,19 +306,49 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao, onDirtyCh
   async function handleCepBlur() {
     const cepLimpo = formData.cep.replace(/\D/g, '');
     if (cepLimpo.length !== 8) return;
+    
+    setCepErro(false); // Remove erro antes de buscar
+    
     try {
       const { data } = await axios.get(
         `https://viacep.com.br/ws/${cepLimpo}/json/`
       );
       if (!data.erro) {
+        // Prepara o complemento para adicionar nas observações
+        let novaObservacao = formData.observacao;
+        if (data.complemento && data.complemento.trim()) {
+          const complementoTexto = `Complemento: ${data.complemento}`;
+          // Verifica se o complemento já existe nas observações
+          if (!formData.observacao.includes(complementoTexto)) {
+            // Se já tem observação, adiciona o complemento em nova linha
+            novaObservacao = formData.observacao 
+              ? `${formData.observacao}\n${complementoTexto}`
+              : complementoTexto;
+          }
+        }
+        
         setFormData(fd => ({
           ...fd,
           endereco: data.logradouro || '',
-          cidade: data.localidade || ''
+          bairro: data.bairro || '',
+          cidade: data.localidade || '',
+          uf: data.uf || '',
+          observacao: novaObservacao
         }));
+        
+        setCepErro(false);
+        
+        // Notifica o usuário
+        if (data.logradouro || data.bairro || data.localidade) {
+          toast.success('Endereço preenchido automaticamente!', { autoClose: 2000 });
+        }
+      } else {
+        setCepErro(true);
+        toast.error('CEP não encontrado.');
       }
-    } catch {
-      /* ignora */
+    } catch (error) {
+      setCepErro(true);
+      toast.error('Erro ao buscar CEP. Verifique sua conexão.');
     }
   }
 
@@ -302,6 +356,27 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao, onDirtyCh
     const { name, value } = e.target;
     setFormData(fd => ({ ...fd, [name]: value }));
     onDirtyChange?.(true);
+    
+    // Remove erro do CEP quando o usuário começa a digitar novamente
+    if (name === 'cep' && cepErro) {
+      setCepErro(false);
+    }
+  };
+
+  // Função para navegar entre campos com Enter
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+      e.preventDefault();
+      const form = e.target.form;
+      const formElements = Array.from(form.elements).filter(
+        el => !el.disabled && el.type !== 'hidden' && el.tabIndex >= 0
+      );
+      const currentIndex = formElements.indexOf(e.target);
+      const nextElement = formElements[currentIndex + 1];
+      if (nextElement) {
+        nextElement.focus();
+      }
+    }
   };
 
   const handleDateChange = e => {
@@ -375,7 +450,9 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao, onDirtyCh
       idade: isAluno ? null : (formData.idade || null),
       endereco: isAluno ? null : (formData.endereco || null),
       numero: isAluno ? null : (formData.numero || null),
+      bairro: isAluno ? null : (formData.bairro || null),
       cidade: formData.cidade || null,
+      uf: isAluno ? null : (formData.uf || null),
       observacao: isAluno ? null : (formData.observacao || null),
       tipo_paciente: formData.tipo_paciente || 'NORMAL',
       responsavel_nome: formData.responsavel_nome || null,
@@ -455,27 +532,100 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao, onDirtyCh
 
       {/* Conteúdo das abas */}
       {abaAtiva === 'dados' && (
-        <form onSubmit={handleSubmit} autoComplete="off">
-          <h2 className="text-2xl font-bold mb-6 text-[#0095DA]">
-            {pacienteEditando ? 'Editar Paciente' : 'Novo Paciente'}
-          </h2>
+        <form onSubmit={handleSubmit} autoComplete="off" onKeyDown={handleKeyDown}>
+          {/* Header com Avatar, Título e Campos */}
+          <div className="mb-6 pb-6 border-b border-gray-200">
+            <div className="flex flex-col md:flex-row items-start gap-6">
+              {/* Avatar e Título */}
+              <div className="flex items-center gap-4 flex-shrink-0">
+                <img
+                  src={
+                    pacienteEditando?.avatar_url ||
+                    `https://ui-avatars.com/api/?name=${encodeURIComponent(nome || 'Paciente')}&background=0095DA&color=fff&size=80`
+                  }
+                  alt={nome || 'Paciente'}
+                  className="w-20 h-20 rounded-full border-2 border-[#0095DA] object-cover flex-shrink-0"
+                />
+                <div>
+                  <h2 className="text-2xl font-bold text-[#0095DA]">
+                    {pacienteEditando ? 'Editar Paciente' : 'Novo Paciente'}
+                  </h2>
+                  {pacienteEditando && nome && (
+                    <p className="text-gray-600 text-lg font-light mt-1">{nome}</p>
+                  )}
+                </div>
+              </div>
 
-          {/* Tipo de paciente / Nº Prontuário / Nº Gaveta - na mesma linha */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              {/* Tipo de paciente / Nº Prontuário / Nº Gaveta - alinhados à direita */}
+              <div className="w-full md:flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="group">
               <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
                 Tipo de paciente
               </label>
-              <select
-                name="tipo_paciente"
-                value={formData.tipo_paciente}
-                onChange={(e) => { handleChange(e); onDirtyChange?.(true); }}
-                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-              >
-                <option value="NORMAL">Normal</option>
-                <option value="PEDIATRICO">Pediátrico</option>
-                <option value="GERIATRICO">Geriátrico</option>
-              </select>
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className="w-full border rounded px-3 py-2 flex items-center justify-between bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className={`w-3 h-3 rounded-full flex-shrink-0 ${
+                      formData.tipo_paciente === 'NORMAL' 
+                        ? 'bg-blue-500' 
+                        : formData.tipo_paciente === 'PEDIATRICO'
+                        ? 'bg-yellow-500'
+                        : 'bg-green-500'
+                    }`} />
+                    <span>
+                      {formData.tipo_paciente === 'NORMAL' ? 'Normal' : 
+                       formData.tipo_paciente === 'PEDIATRICO' ? 'Pediátrico' : 
+                       'Geriátrico'}
+                    </span>
+                  </div>
+                  <ChevronDown size={20} className={`transition-transform ${dropdownOpen ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {dropdownOpen && (
+                  <div className="absolute z-50 w-full mt-1 bg-white border rounded shadow-lg">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData(fd => ({ ...fd, tipo_paciente: 'NORMAL' }));
+                        setDropdownOpen(false);
+                        onDirtyChange?.(true);
+                      }}
+                      className="w-full px-3 py-2 flex items-center gap-2 hover:bg-gray-100 transition text-left"
+                    >
+                      <span className="w-3 h-3 rounded-full bg-blue-500 flex-shrink-0" />
+                      <span>Normal</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData(fd => ({ ...fd, tipo_paciente: 'PEDIATRICO' }));
+                        setDropdownOpen(false);
+                        onDirtyChange?.(true);
+                      }}
+                      className="w-full px-3 py-2 flex items-center gap-2 hover:bg-gray-100 transition text-left"
+                    >
+                      <span className="w-3 h-3 rounded-full bg-yellow-500 flex-shrink-0" />
+                      <span>Pediátrico</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormData(fd => ({ ...fd, tipo_paciente: 'GERIATRICO' }));
+                        setDropdownOpen(false);
+                        onDirtyChange?.(true);
+                      }}
+                      className="w-full px-3 py-2 flex items-center gap-2 hover:bg-gray-100 transition text-left"
+                    >
+                      <span className="w-3 h-3 rounded-full bg-green-500 flex-shrink-0" />
+                      <span>Geriátrico</span>
+                    </button>
+                  </div>
+                )}
+              </div>
               {formData.tipo_paciente !== 'NORMAL' && (
                 <p className="text-yellow-700 bg-yellow-50 border border-yellow-200 rounded mt-2 px-3 py-2 text-sm">
                   Para pacientes pediátricos e geriátricos, preencha os dados do responsável.
@@ -485,7 +635,7 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao, onDirtyCh
             {!isAluno && (
               <div className="group">
                 <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
-                  Número do Prontuário <small>(opcional)</small>
+                  Nº Prontuário <small>(opcional)</small>
                 </label>
                 <input
                   type="text"
@@ -510,6 +660,8 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao, onDirtyCh
                 />
               </div>
             )}
+              </div>
+            </div>
           </div>
 
           {/* Nome e Telefone na mesma linha */}
@@ -658,7 +810,11 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao, onDirtyCh
                     onChange={handleChange}
                     onBlur={handleCepBlur}
                     placeholder="00000-000"
-                    className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                    className={`w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 ${
+                      cepErro 
+                        ? 'border-red-500 focus:ring-red-300' 
+                        : 'focus:ring-blue-300'
+                    }`}
                   />
                 </div>
                 <div className="group md:col-span-3">
@@ -686,18 +842,46 @@ function FormPaciente({ onNovoPaciente, pacienteEditando, onFimEdicao, onDirtyCh
                   />
                 </div>
               </div>
-              {/* Cidade */}
-              <div className="group mb-6">
-                <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
-                  Cidade <small>(opcional)</small>
-                </label>
-                <input
-                  type="text"
-                  name="cidade"
-                  value={formData.cidade}
-                  onChange={handleChange}
-                  className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
-                />
+              {/* Bairro, Cidade e UF */}
+              <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
+                <div className="group md:col-span-2">
+                  <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
+                    Bairro <small>(opcional)</small>
+                  </label>
+                  <input
+                    type="text"
+                    name="bairro"
+                    value={formData.bairro}
+                    onChange={handleChange}
+                    className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  />
+                </div>
+                <div className="group md:col-span-3">
+                  <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
+                    Cidade <small>(opcional)</small>
+                  </label>
+                  <input
+                    type="text"
+                    name="cidade"
+                    value={formData.cidade}
+                    onChange={handleChange}
+                    className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  />
+                </div>
+                <div className="group md:col-span-1">
+                  <label className="block mb-2 font-medium text-gray-700 transition-colors group-focus-within:text-blue-600">
+                    UF <small>(opcional)</small>
+                  </label>
+                  <input
+                    type="text"
+                    name="uf"
+                    value={formData.uf}
+                    onChange={handleChange}
+                    maxLength={2}
+                    placeholder="SP"
+                    className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 uppercase"
+                  />
+                </div>
               </div>
               {/* Observações */}
               <div className="mb-6 group">

@@ -16,6 +16,9 @@ async function ensureSchema() {
     const hasTipo = cols.some(c => c.COLUMN_NAME === 'tipo_paciente');
     const hasRespNome = cols.some(c => c.COLUMN_NAME === 'responsavel_nome');
     const hasRespTelefone = cols.some(c => c.COLUMN_NAME === 'responsavel_telefone');
+    const hasCep = cols.some(c => c.COLUMN_NAME === 'cep');
+    const hasBairro = cols.some(c => c.COLUMN_NAME === 'bairro');
+    const hasUf = cols.some(c => c.COLUMN_NAME === 'uf');
     const telefoneCol = cols.find(c => c.COLUMN_NAME === 'telefone');
 
     if (!hasTipo) {
@@ -31,6 +34,21 @@ async function ensureSchema() {
     if (!hasRespTelefone) {
       await conn.query(
         'ALTER TABLE pacientes ADD COLUMN responsavel_telefone VARCHAR(20) NULL'
+      );
+    }
+    if (!hasCep) {
+      await conn.query(
+        'ALTER TABLE pacientes ADD COLUMN cep VARCHAR(10) NULL'
+      );
+    }
+    if (!hasBairro) {
+      await conn.query(
+        'ALTER TABLE pacientes ADD COLUMN bairro VARCHAR(100) NULL'
+      );
+    }
+    if (!hasUf) {
+      await conn.query(
+        'ALTER TABLE pacientes ADD COLUMN uf VARCHAR(2) NULL'
       );
     }
     if (telefoneCol && telefoneCol.IS_NULLABLE === 'NO') {
@@ -89,8 +107,8 @@ const Paciente = {
     try {
       const [result] = await conn.query(
         `INSERT INTO pacientes 
-        (nome, telefone, numero_prontuario, numero_gaveta, rg, cpf, data_nascimento, idade, cidade, endereco, numero, observacao, tipo_paciente, responsavel_nome, responsavel_telefone)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        (nome, telefone, numero_prontuario, numero_gaveta, rg, cpf, data_nascimento, idade, cep, endereco, numero, bairro, cidade, uf, observacao, tipo_paciente, responsavel_nome, responsavel_telefone)
+      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
         [
           dados.nome,
           dados.telefone || null,
@@ -100,9 +118,12 @@ const Paciente = {
           dados.cpf || null,
           dados.data_nascimento || null,
           dados.idade || null,
-          dados.cidade || null,
+          dados.cep || null,
           dados.endereco || null,
           dados.numero || null,
+          dados.bairro || null,
+          dados.cidade || null,
+          dados.uf || null,
           dados.observacao || null,
           dados.tipo_paciente || 'NORMAL',
           dados.responsavel_nome || null,
@@ -122,7 +143,7 @@ const Paciente = {
       const [result] = await conn.query(
         `UPDATE pacientes SET
          nome = ?, telefone = ?, numero_prontuario = ?, numero_gaveta = ?, rg = ?, cpf = ?,
-         data_nascimento = ?, idade = ?, cidade = ?, endereco = ?, numero = ?, observacao = ?,
+         data_nascimento = ?, idade = ?, cep = ?, endereco = ?, numero = ?, bairro = ?, cidade = ?, uf = ?, observacao = ?,
          tipo_paciente = ?, responsavel_nome = ?, responsavel_telefone = ?
        WHERE id = ?`,
         [
@@ -134,9 +155,12 @@ const Paciente = {
           dados.cpf || null,
           dados.data_nascimento || null,
           dados.idade || null,
-          dados.cidade || null,
+          dados.cep || null,
           dados.endereco || null,
           dados.numero || null,
+          dados.bairro || null,
+          dados.cidade || null,
+          dados.uf || null,
           dados.observacao || null,
           dados.tipo_paciente || 'NORMAL',
           dados.responsavel_nome || null,

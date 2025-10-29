@@ -130,44 +130,66 @@ exports.listarPacientes = async (req, res) => {
 };
 
 exports.criarPaciente = async (req, res) => {
-  const { nome, telefone, numero_prontuario } = req.body;
+  const {
+    nome, telefone, numero_prontuario, numero_gaveta, rg, cpf,
+    data_nascimento, idade, cep, endereco, numero, bairro, cidade, uf, observacao,
+    tipo_paciente, responsavel_nome, responsavel_telefone
+  } = req.body;
+  
   try {
-    const conn = await getConnection();
-    const [insertResult] = await conn.query(
-      'INSERT INTO pacientes (nome, telefone, numero_prontuario) VALUES (?, ?, ?)',
-      [nome, telefone, numero_prontuario || null]
-    );
+    const result = await Paciente.inserir({
+      nome,
+      telefone,
+      numero_prontuario,
+      numero_gaveta,
+      rg,
+      cpf,
+      data_nascimento,
+      idade,
+      cep,
+      endereco,
+      numero,
+      bairro,
+      cidade,
+      uf,
+      observacao,
+      tipo_paciente,
+      responsavel_nome,
+      responsavel_telefone
+    });
+
     // LOG de criação:
     await Log.criar({
       usuario_id: req.user.id,
       usuario_nome: req.user.nome,
       acao: 'criou',
       entidade: 'paciente',
-      entidade_id: insertResult.insertId,
-      detalhes: {
+      entidade_id: result.insertId,
+      detalhes: JSON.stringify({
         nome, telefone, numero_prontuario, numero_gaveta, rg, cpf,
-        data_nascimento, idade, cidade, endereco, numero, observacao
-      }
+        data_nascimento, idade, cep, endereco, numero, bairro, cidade, uf, observacao,
+        tipo_paciente, responsavel_nome, responsavel_telefone
+      })
     });
 
-    conn.release();
     res.status(201).json({
-      id: insertResult.insertId,
+      id: result.insertId,
       nome,
       telefone,
       numero_prontuario: numero_prontuario || null
     });
   } catch (err) {
-    res.status(500).json({ error: 'Erro ao criar paciente', details: err });
+    console.error('Erro ao criar paciente:', err);
+    res.status(500).json({ error: 'Erro ao criar paciente', details: err.message });
   }
 };
 
 exports.atualizarPaciente = async (req, res) => {
-  const { id } = req.params; // declare antes de usar
+  const { id } = req.params;
   const {
     nome, telefone, numero_prontuario,
     numero_gaveta, rg, cpf, data_nascimento,
-    idade, cidade, endereco, numero, observacao,
+    idade, cep, endereco, numero, bairro, cidade, uf, observacao,
     tipo_paciente, responsavel_nome, responsavel_telefone
   } = req.body;
 
@@ -214,7 +236,7 @@ exports.atualizarPaciente = async (req, res) => {
     await conn.query(
       `UPDATE pacientes SET
          nome = ?, telefone = ?, numero_prontuario = ?, numero_gaveta = ?, rg = ?, cpf = ?,
-         data_nascimento = ?, idade = ?, cidade = ?, endereco = ?, numero = ?, observacao = ?,
+         data_nascimento = ?, idade = ?, cep = ?, endereco = ?, numero = ?, bairro = ?, cidade = ?, uf = ?, observacao = ?,
          tipo_paciente = ?, responsavel_nome = ?, responsavel_telefone = ?
        WHERE id = ?`,
       [
@@ -226,9 +248,12 @@ exports.atualizarPaciente = async (req, res) => {
         cpf || null,
         data_nascimento || null,
         idade || null,
-        cidade || null,
+        cep || null,
         endereco || null,
         numero || null,
+        bairro || null,
+        cidade || null,
+        uf || null,
         observacao || null,
         (tipo || 'NORMAL'),
         responsavel_nome || null,
