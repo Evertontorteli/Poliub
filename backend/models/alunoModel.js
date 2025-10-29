@@ -58,7 +58,7 @@ const Aluno = {
   },
 
   /**
-   * Busca um aluno por ID (incluindo pin)
+   * Busca um aluno por ID (incluindo pin e box)
    */
   buscarPorId: async (id) => {
     const conn = await pool.getConnection();
@@ -74,9 +74,11 @@ const Aluno = {
        a.periodo_id,
        a.session_token,             
        p.nome AS periodo_nome,
-       p.turno AS periodo_turno
+       p.turno AS periodo_turno,
+       b.conteudo AS box
      FROM alunos a
      LEFT JOIN periodos p ON a.periodo_id = p.id
+     LEFT JOIN boxes b ON a.id = b.aluno_id
      WHERE a.id = ?`,
       [id]
     );

@@ -89,24 +89,37 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
       setPeriodoId(String(alunoEditando.periodo_id || ''));
       setUsuario(alunoEditando.usuario || '');
       setRole(alunoEditando.role || 'aluno');
-      setPin(alunoEditando.pin || '');  // carrega o PIN existente
-      // preencher senha com o valor vindo do backend
+      setPin(alunoEditando.pin || '');
       setSenha(alunoEditando.senha || '');
       setShowSenha(false);
-      axios.get(`/api/boxes/${alunoEditando.id}`, { headers })
-        .then(res => {
-          if (res.data.length) {
-            setBox(String(res.data[0].conteudo).slice(0, 3));
-            setBoxId(res.data[0].id);
-          } else {
-            setBox(''); setBoxId(null);
-          }
-        })
-        .catch(() => { setBox(''); setBoxId(null); });
+      setCodEsterilizacao(alunoEditando.cod_esterilizacao || '');
+      
+      // Se o box já vem no objeto alunoEditando (da lista), usa direto
+      if (alunoEditando.box) {
+        setBox(String(alunoEditando.box).slice(0, 3));
+        // Buscar o boxId se necessário
+        axios.get(`/api/boxes/${alunoEditando.id}`, { headers })
+          .then(res => {
+            if (res.data.length) setBoxId(res.data[0].id);
+          })
+          .catch(() => {});
+      } else {
+        // Fallback: buscar box se não veio no objeto
+        axios.get(`/api/boxes/${alunoEditando.id}`, { headers })
+          .then(res => {
+            if (res.data.length) {
+              setBox(String(res.data[0].conteudo).slice(0, 3));
+              setBoxId(res.data[0].id);
+            } else {
+              setBox(''); setBoxId(null);
+            }
+          })
+          .catch(() => { setBox(''); setBoxId(null); });
+      }
     } else {
       setNome(''); setRa(''); setBox(''); setBoxId(null);
       setPeriodoId(''); setUsuario(''); setSenha(''); setShowSenha(false);
-      setRole('aluno'); setMensagem('');
+      setRole('aluno'); setMensagem(''); setCodEsterilizacao('');
     }
   }, [alunoEditando, token]);
 
