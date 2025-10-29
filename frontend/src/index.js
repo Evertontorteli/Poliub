@@ -63,6 +63,9 @@ root.render(
       closeOnClick
       pauseOnHover
       draggable={false}
+      newestOnTop
+      limit={3}
+      hideProgressBar={false}
     />
     <App />
   </>

@@ -410,31 +410,33 @@ export default function DashboardAluno() {
                 <div className="text-gray-600">
                   <span className="text-xs md:text-sm">Paciente:</span> {a.pacienteNome}
                 </div>
-                {(a.pacienteCidade || a.cidade || a.paciente_cidade) && (
-                  <div className="text-gray-600 mt-0.5 flex items-center justify-between gap-2 min-w-0">
-                    <span className="text-xs md:text-sm flex-1 min-w-0 truncate">Cidade: {a.pacienteCidade || a.cidade || a.paciente_cidade}</span>
-                    <span className="flex items-center gap-2 flex-shrink-0">
-                      {a.telefone ? (
-                        <>
-                          <a href={`tel:${a.telefone.replace(/\D/g, '')}`} className="hover:underline whitespace-nowrap" title="Ligar">
-                            {formatPhoneBR(a.telefone)}
-                          </a>
-                          <a
-                            href={`https://wa.me/55${a.telefone.replace(/\D/g, '')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title="Falar no WhatsApp"
-                            className="inline-flex text-green-500 hover:text-green-700"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M20.52 3.48A12 12 0 0 0 12 0C5.38 0 0 5.42 0 12.11a12 12 0 0 0 1.65 6.09L0 24l6.13-1.6A12.07 12.07 0 0 0 12 24c6.63 0 12-5.43 12-12.09a12.1 12.1 0 0 0-3.48-8.43Zm-8.52 18.09a10.03 10.03 0 0 1-5.15-1.4l-.37-.21-3.64 .95.97-3.56-.24-.36A10.04 10.04 0 0 1 2 12.11C2 6.54 6.48 2 12 2c5.53 0 10 4.54 10 10.11 0 5.57-4.47 10.06-10 10.06Zm5.43-7.52c-.3-.15-1.76-.86-2.03-.96-.27-.1-.47-.15-.67 .15-.2 .3-.77 .96-.94 1.16-.17 .2-.35 .22-.65 .07a8.1 8.1 0 0 1-2.37-1.46 9.06 9.06 0 0 1-1.68-2.09c-.17-.29-.02-.44 .13-.59 .13-.14 .3-.36 .45-.54 .15-.18 .2-.3 .3-.5 .1-.2 .05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.5-.5-.67-.51-.17-.01-.36-.01-.55-.01-.19  0-.5 .07-.77 .36-.27 .29-1.03 1.01-1.03 2.47 0 1.46 1.06 2.87 1.21 3.08 .15 .21 2.09 3.18 5.24 4.34 .73 .25 1.29 .4 1.73 .5 .72 .15 1.38 .13 1.9 .08 .58-.07 1.76-.72 2.01-1.42 .25-.7 .25-1.3 .18-1.43-.06-.13-.24-.21-.54-.36Z" />
-                            </svg>
-                          </a>
-                        </>
-                      ) : <span className="text-gray-400">—</span>}
-                    </span>
-                  </div>
-                )}
+                <div className="text-gray-600 mt-0.5 flex items-center justify-between gap-2 min-w-0">
+                  <span className="text-xs md:text-sm flex-1 min-w-0 truncate">
+                    Cidade: {(a.pacienteCidade || a.cidade || a.paciente_cidade) || '—'}
+                  </span>
+                  <span className="flex items-center gap-2 flex-shrink-0 ml-auto">
+                    {a.telefone ? (
+                      <>
+                        <a href={`tel:${a.telefone.replace(/\D/g, '')}`} className="hover:underline whitespace-nowrap" title="Ligar">
+                          {formatPhoneBR(a.telefone)}
+                        </a>
+                        <a
+                          href={`https://wa.me/55${a.telefone.replace(/\D/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Falar no WhatsApp"
+                          className="inline-flex text-green-500 hover:text-green-700"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M20.52 3.48A12 12 0 0 0 12 0C5.38 0 0 5.42 0 12.11a12 12 0 0 0 1.65 6.09L0 24l6.13-1.6A12.07 12.07 0 0 0 12 24c6.63 0 12-5.43 12-12.09a12.1 12.1 0 0 0-3.48-8.43Zm-8.52 18.09a10.03 10.03 0 0 1-5.15-1.4l-.37-.21-3.64 .95.97-3.56-.24-.36A10.04 10.04 0 0 1 2 12.11C2 6.54 6.48 2 12 2c5.53 0 10 4.54 10 10.11 0 5.57-4.47 10.06-10 10.06Zm5.43-7.52c-.3-.15-1.76-.86-2.03-.96-.27-.1-.47-.15-.67 .15-.2 .3-.77 .96-.94 1.16-.17 .2-.35 .22-.65 .07a8.1 8.1 0 0 1-2.37-1.46 9.06 9.06 0 0 1-1.68-2.09c-.17-.29-.02-.44 .13-.59 .13-.14 .3-.36 .45-.54 .15-.18 .2-.3 .3-.5 .1-.2 .05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.5-.5-.67-.51-.17-.01-.36-.01-.55-.01-.19  0-.5 .07-.77 .36-.27 .29-1.03 1.01-1.03 2.47 0 1.46 1.06 2.87 1.21 3.08 .15 .21 2.09 3.18 5.24 4.34 .73 .25 1.29 .4 1.73 .5 .72 .15 1.38 .13 1.9 .08 .58-.07 1.76-.72 2.01-1.42 .25-.7 .25-1.3 .18-1.43-.06-.13-.24-.21-.54-.36Z" />
+                          </svg>
+                        </a>
+                      </>
+                    ) : (
+                      <span className="text-gray-400">—</span>
+                    )}
+                  </span>
+                </div>
                 <div className="text-gray-600 mt-1 flex justify-between items-center">
                   <span className={`bg-white border ${weekdayBadgeClasses(a.data)} rounded-full px-2 py-0.5 whitespace-nowrap text-xs md:text-sm`}>
                     {formatWeekdayShortPt(a.data)}
@@ -506,31 +508,33 @@ export default function DashboardAluno() {
                 <div className="text-gray-600">
                   <span className="text-xs md:text-sm">Paciente:</span> {a.pacienteNome}
                 </div>
-                {(a.pacienteCidade || a.cidade || a.paciente_cidade) && (
-                  <div className="text-gray-600 mt-0.5 flex items-center justify-between gap-2 min-w-0">
-                    <span className="text-xs md:text-sm flex-1 min-w-0 truncate">Cidade: {a.pacienteCidade || a.cidade || a.paciente_cidade}</span>
-                    <span className="flex items-center gap-2 flex-shrink-0">
-                      {a.telefone ? (
-                        <>
-                          <a href={`tel:${a.telefone.replace(/\D/g, '')}`} className="hover:underline whitespace-nowrap" title="Ligar">
-                            {formatPhoneBR(a.telefone)}
-                          </a>
-                          <a
-                            href={`https://wa.me/55${a.telefone.replace(/\D/g, '')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title="Falar no WhatsApp"
-                            className="inline-flex text-green-500 hover:text-green-700"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M20.52 3.48A12 12 0 0 0 12 0C5.38 0 0 5.42 0 12.11a12 12 0 0 0 1.65 6.09L0 24l6.13-1.6A12.07 12.07 0 0 0 12 24c6.63 0 12-5.43 12-12.09a12.1 12.1 0 0 0-3.48-8.43Zm-8.52 18.09a10.03 10.03 0 0 1-5.15-1.4l-.37-.21-3.64 .95.97-3.56-.24-.36A10.04 10.04 0 0 1 2 12.11C2 6.54 6.48 2 12 2c5.53 0 10 4.54 10 10.11 0 5.57-4.47 10.06-10 10.06Zm5.43-7.52c-.3-.15-1.76-.86-2.03-.96-.27-.1-.47-.15-.67 .15-.2 .3-.77 .96-.94 1.16-.17 .2-.35 .22-.65 .07a8.1 8.1 0 0 1-2.37-1.46 9.06 9.06 0 0 1-1.68-2.09c-.17-.29-.02-.44 .13-.59 .13-.14 .3-.36 .45-.54 .15-.18 .2-.3 .3-.5 .1-.2 .05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.5-.5-.67-.51-.17-.01-.36-.01-.55-.01-.19  0-.5 .07-.77 .36-.27 .29-1.03 1.01-1.03 2.47 0 1.46 1.06 2.87 1.21 3.08 .15 .21 2.09 3.18 5.24 4.34 .73 .25 1.29 .4 1.73 .5 .72 .15 1.38 .13 1.9 .08 .58-.07 1.76-.72 2.01-1.42 .25-.7 .25-1.3 .18-1.43-.06-.13-.24-.21-.54-.36Z" />
-                            </svg>
-                          </a>
-                        </>
-                      ) : <span className="text-gray-400">—</span>}
-                    </span>
-                  </div>
-                )}
+                <div className="text-gray-600 mt-0.5 flex items-center justify-between gap-2 min-w-0">
+                  <span className="text-xs md:text-sm flex-1 min-w-0 truncate">
+                    Cidade: {(a.pacienteCidade || a.cidade || a.paciente_cidade) || '—'}
+                  </span>
+                  <span className="flex items-center gap-2 flex-shrink-0 ml-auto">
+                    {a.telefone ? (
+                      <>
+                        <a href={`tel:${a.telefone.replace(/\D/g, '')}`} className="hover:underline whitespace-nowrap" title="Ligar">
+                          {formatPhoneBR(a.telefone)}
+                        </a>
+                        <a
+                          href={`https://wa.me/55${a.telefone.replace(/\D/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Falar no WhatsApp"
+                          className="inline-flex text-green-500 hover:text-green-700"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M20.52 3.48A12 12 0 0 0 12 0C5.38 0 0 5.42 0 12.11a12 12 0 0 0 1.65 6.09L0 24l6.13-1.6A12.07 12.07 0 0 0 12 24c6.63 0 12-5.43 12-12.09a12.1 12.1 0 0 0-3.48-8.43Zm-8.52 18.09a10.03 10.03 0 0 1-5.15-1.4l-.37-.21-3.64 .95.97-3.56-.24-.36A10.04 10.04 0 0 1 2 12.11C2 6.54 6.48 2 12 2c5.53 0 10 4.54 10 10.11 0 5.57-4.47 10.06-10 10.06Zm5.43-7.52c-.3-.15-1.76-.86-2.03-.96-.27-.1-.47-.15-.67 .15-.2 .3-.77 .96-.94 1.16-.17 .2-.35 .22-.65 .07a8.1 8.1 0 0 1-2.37-1.46 9.06 9.06 0 0 1-1.68-2.09c-.17-.29-.02-.44 .13-.59 .13-.14 .3-.36 .45-.54 .15-.18 .2-.3 .3-.5 .1-.2 .05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.5-.5-.67-.51-.17-.01-.36-.01-.55-.01-.19  0-.5 .07-.77 .36-.27 .29-1.03 1.01-1.03 2.47 0 1.46 1.06 2.87 1.21 3.08 .15 .21 2.09 3.18 5.24 4.34 .73 .25 1.29 .4 1.73 .5 .72 .15 1.38 .13 1.9 .08 .58-.07 1.76-.72 2.01-1.42 .25-.7 .25-1.3 .18-1.43-.06-.13-.24-.21-.54-.36Z" />
+                          </svg>
+                        </a>
+                      </>
+                    ) : (
+                      <span className="text-gray-400">—</span>
+                    )}
+                  </span>
+                </div>
                 <div className="text-gray-600 mt-1 flex justify-between items-center">
                   <span className={`bg-white border ${weekdayBadgeClasses(a.data)} rounded-full px-2 py-0.5 whitespace-nowrap text-xs md:text-sm`}>
                     {formatWeekdayShortPt(a.data)}

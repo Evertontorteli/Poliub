@@ -1,5 +1,5 @@
 // src/context/AuthContext.js
-import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from "react";
 import axios from "axios";
 import { toast } from 'react-toastify';
 
@@ -50,13 +50,29 @@ export function AuthProvider({ children }) {
     if (!expSec) return; // sem exp legível
     const msLeft = expSec * 1000 - Date.now();
     if (msLeft <= 0) {
-      toast.error("Sua sessão expirou. Faça login novamente.");
-      logout();
+      if (!toast.isActive('token-expired')) {
+        toast.error("Sua sessão expirou. Faça login novamente.", {
+          toastId: 'token-expired',
+          autoClose: 4000,
+          onClose: () => {
+            logout();
+            window.location.href = '/#/login';
+          }
+        });
+      }
       return;
     }
     tokenExpiryTimerRef.current = setTimeout(() => {
-      toast.error("Sua sessão expirou. Faça login novamente.");
-      logout();
+      if (!toast.isActive('token-expired')) {
+        toast.error("Sua sessão expirou. Faça login novamente.", {
+          toastId: 'token-expired',
+          autoClose: 4000,
+          onClose: () => {
+            logout();
+            window.location.href = '/#/login';
+          }
+        });
+      }
     }, msLeft);
   }
 
@@ -94,14 +110,14 @@ export function AuthProvider({ children }) {
   /**
    * Faz logout: limpa state e localStorage
    */
-  function logout() {
+  const logout = useCallback(() => {
     clearTokenExpiryTimer();
     setUser(null);
     localStorage.removeItem("user");
     localStorage.removeItem("role");
     localStorage.removeItem("token");
     delete axios.defaults.headers.common["Authorization"];
-  }
+  }, []);
 
   // NOVO: Intercepta erros do axios para pegar sessão invalidada
   useEffect(() => {
@@ -115,17 +131,24 @@ export function AuthProvider({ children }) {
           error.response.data &&
           error.response.data.code === "SESSION_INVALIDATED"
         ) {
-          // Mensagem para o usuário antes do logout automático
-          toast.error("Sua sessão foi encerrada porque sua conta foi acessada em outro dispositivo ou navegador.");
-          setTimeout(() => logout(), 7000);
-          // Opcional: pode redirecionar para login, ex: window.location.href = "/login";
+          // Previne múltiplos toasts - verifica se já há um toast ativo
+          if (!toast.isActive('session-invalidated')) {
+            toast.error("Sua sessão foi encerrada porque sua conta foi acessada em outro dispositivo ou navegador.", {
+              toastId: 'session-invalidated',
+              autoClose: 6000,
+              onClose: () => {
+                logout();
+                window.location.href = '/#/login';
+              }
+            });
+          }
         }
         return Promise.reject(error);
       }
     );
     // Remove interceptor ao desmontar
     return () => axios.interceptors.response.eject(interceptor);
-  }, []); // Executa uma vez só ao montar
+  }, [logout]); // Adiciona logout como dependência
 
   return (
     <AuthContext.Provider value={{ user, setUser, login, logout }}>
