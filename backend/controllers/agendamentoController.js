@@ -441,40 +441,38 @@ exports.criarAgendamento = async (req, res) => {
         }
       });
 
-      // Notificação
-      if (solicitado_por_recepcao) {
-        const conn2 = await db.getConnection();
-        try {
-          const [agRows] = await conn2.execute(`
-            SELECT 
-              ag.nome_paciente,
-              al.nome            AS nome_aluno,
-              ag.data,
-              ag.hora,
-              d.nome             AS disciplina_nome,
-              p.nome             AS periodo_nome,
-              p.turno            AS periodo_turno
-            FROM agendamentos ag
-            JOIN alunos      al ON ag.aluno_id      = al.id
-            JOIN disciplinas d  ON ag.disciplina_id = d.id
-            JOIN periodos    p  ON d.periodo_id     = p.id
-            WHERE ag.id = ?
-          `, [novoId]);
+      // Notificação para recepção quando aluno cria agendamento
+      const conn2 = await db.getConnection();
+      try {
+        const [agRows] = await conn2.execute(`
+          SELECT 
+            ag.nome_paciente,
+            al.nome            AS nome_aluno,
+            ag.data,
+            ag.hora,
+            d.nome             AS disciplina_nome,
+            p.nome             AS periodo_nome,
+            p.turno            AS periodo_turno
+          FROM agendamentos ag
+          JOIN alunos      al ON ag.aluno_id      = al.id
+          JOIN disciplinas d  ON ag.disciplina_id = d.id
+          JOIN periodos    p  ON d.periodo_id     = p.id
+          WHERE ag.id = ?
+        `, [novoId]);
 
-          const info = agRows[0] || {};
-          io.emit('novoAgendamentoRecepcao', {
-            id: novoId,
-            nome_aluno: info.nome_aluno,
-            nome_paciente: info.nome_paciente,
-            data: info.data,
-            hora: info.hora,
-            disciplina_nome: info.disciplina_nome,
-            periodo_nome: info.periodo_nome,
-            periodo_turno: info.periodo_turno
-          });
-        } finally {
-          conn2.release();
-        }
+        const info = agRows[0] || {};
+        io.emit('novoAgendamentoRecepcao', {
+          id: novoId,
+          nome_aluno: info.nome_aluno,
+          nome_paciente: info.nome_paciente,
+          data: info.data,
+          hora: info.hora,
+          disciplina_nome: info.disciplina_nome,
+          periodo_nome: info.periodo_nome,
+          periodo_turno: info.periodo_turno
+        });
+      } finally {
+        conn2.release();
       }
 
       return res.status(201).json({ id: novoId });

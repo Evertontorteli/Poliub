@@ -43,6 +43,7 @@ import { ToastContainer, toast } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import BackupConfig from './backup/BackupConfig'
 import FeedbackModal from './components/FeedbackModal'
+import { playNotificationSound } from './utils/notificationSound'
 
 
 function Dashboards() {
@@ -365,6 +366,11 @@ function LayoutInterno() {
       const disc = disciplina_nome ? ` (${disciplina_nome}${periodo ? ' — ' + periodo : ''})` : ''
 
       toast.success(`Novo agendamento de ${nome_aluno || 'aluno'}${paciente}${quando ? ' em ' + quando : ''}${disc}`)
+      
+      // Toca som de notificação apenas para usuários da recepção
+      if (user?.role === 'recepcao') {
+        playNotificationSound()
+      }
     })
 
     return () => {
