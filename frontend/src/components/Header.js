@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Search } from "lucide-react";
+import { Search, LogOut, User, MessageSquare } from "lucide-react";
 import SpotlightSearch from './SpotlightSearch';
 import PerfilModal from './PerfilModal'; // <=== ADICIONE ESTA LINHA
 import FeedbackModal from './FeedbackModal';
@@ -232,31 +232,35 @@ export default function Header({ onlineUsers = [] }) {
             <AvatarIcon />
           </button>
           {dropdownOpen && (
-            <ul className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-              <li className="px-4 py-2 text-gray-700 font-medium border-b border-gray-100">
-                {user?.nome || 'Usuário'}
+            <ul className="absolute right-0 mt-2 w-52 bg-white border border-gray-200 rounded-xl shadow-xl z-50 overflow-hidden">
+              <li className="px-4 py-3 border-b border-gray-100">
+                <div className="text-sm font-semibold text-gray-900">{user?.nome || 'Usuário'}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{user?.role === 'recepcao' ? 'Recepção' : 'Aluno'}</div>
               </li>
               <li>
                 <button
                   onClick={() => { setDropdownOpen(false); setShowFeedback(true); }}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700"
+                  className="w-full text-left px-4 py-2.5 hover:bg-gray-50 text-gray-700 text-sm flex items-center gap-2 transition-colors"
                 >
+                  <MessageSquare size={16} className="text-gray-500" />
                   Enviar feedback
                 </button>
               </li>
-              <li>
+              <li className="border-t border-gray-100">
                 <button
                   onClick={handleMeuPerfil}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-100 text-gray-700"
+                  className="w-full text-left px-4 py-2.5 hover:bg-gray-50 text-gray-700 text-sm flex items-center gap-2 transition-colors"
                 >
+                  <User size={16} className="text-gray-500" />
                   Meu Perfil
                 </button>
               </li>
-              <li>
+              <li className="border-t border-gray-100">
                 <button
                   onClick={handleLogout}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600"
+                  className="w-full text-left px-4 py-2.5 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2 transition-colors font-medium"
                 >
+                  <LogOut size={16} />
                   Sair
                 </button>
               </li>
