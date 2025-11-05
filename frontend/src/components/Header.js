@@ -151,7 +151,7 @@ export default function Header({ onlineUsers = [] }) {
             />
           )}
           {/* Avatares dos online (sobrepostos em mobile) */}
-          <div className="flex items-center md:gap-2">
+          <div className="flex items-center md:gap-2 relative">
             {firstShown.map((u, i) => (
               <img
                 key={u.id}
@@ -178,47 +178,45 @@ export default function Header({ onlineUsers = [] }) {
                 style={{ minWidth: isMobile ? '1.75rem' : '2rem', marginLeft: isMobile && firstShown.length > 0 ? -10 : 0, zIndex: 29 }}
               >{moreCount > 0 ? `+${moreCount}` : '+'}</button>
             )}
-          </div>
 
-          {/* Popover mostrar todos online */}
-          {showAllOnline && (
-            <div
-              ref={popoverRef}
-              className="absolute right-0 mt-4 bg-white border rounded-lg shadow-lg p-4 z-50 w-64 max-w-[95vw] md:w-72 flex flex-col gap-2 max-h-72 overflow-y-auto"
-              style={{
-                top: '2.2rem',
-                right: 0,
-                minWidth: '210px'
-              }}
-            >
-              {others.map((u, i) => (
-                <div 
-                  key={u.id} 
-                  className={`flex items-center gap-3 py-1 ${i < others.length - 1 ? 'border-b border-gray-200' : ''}`}
-                  style={i < others.length - 1 ? { borderBottomWidth: '1px' } : {}}
-                >
-                  <img
-                    src={
-                      u.avatar_url ||
-                      `https://ui-avatars.com/api/?name=${encodeURIComponent(u.nome)}&background=ffffff`
-                    }
-                    alt={u.nome}
-                    className="w-8 h-8 rounded-full object-cover"
-                    style={{
-                      border: `2px solid ${BORDER_COLORS[(i + 1) % BORDER_COLORS.length]}`
-                    }}
-                  />
-                  <span className="text-gray-800 text-xs break-all">{u.nome}</span>
-                </div>
-              ))}
-              <button
-                className="mt-3 px-3 py-1 bg-gray-200 rounded text-sm font-semibold hover:bg-gray-300"
-                onClick={() => setShowAllOnline(false)}
+            {/* Popover mostrar todos online */}
+            {showAllOnline && (
+              <div
+                ref={popoverRef}
+                className="absolute top-full right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-[60] w-52 flex flex-col max-h-72 overflow-hidden"
               >
-                Fechar
-              </button>
-            </div>
-          )}
+                <div className="overflow-y-auto flex flex-col">
+                  {others.map((u, i) => (
+                    <div 
+                      key={u.id} 
+                      className={`flex items-center gap-3 px-4 py-2.5 ${i < others.length - 1 ? 'border-b border-gray-100' : ''}`}
+                    >
+                      <img
+                        src={
+                          u.avatar_url ||
+                          `https://ui-avatars.com/api/?name=${encodeURIComponent(u.nome)}&background=ffffff`
+                        }
+                        alt={u.nome}
+                        className="w-8 h-8 rounded-full object-cover"
+                        style={{
+                          border: `2px solid ${BORDER_COLORS[(i + 1) % BORDER_COLORS.length]}`
+                        }}
+                      />
+                      <span className="text-gray-800 text-xs break-all">{u.nome}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="border-t border-gray-100">
+                  <button
+                    className="w-full text-center text-sm font-medium hover:bg-gray-50 transition-colors px-4 py-2.5"
+                    onClick={() => setShowAllOnline(false)}
+                  >
+                    Fechar
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Botão de perfil */}
