@@ -142,7 +142,7 @@ export default function Header({ onlineUsers = [] }) {
             <img
               src={
                 user.avatar_url ||
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(user.nome)}&background=ccc`
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(user.nome)}&background=ffffff`
               }
               alt={user.nome}
               title={user.nome}
@@ -157,7 +157,7 @@ export default function Header({ onlineUsers = [] }) {
                 key={u.id}
                 src={
                   u.avatar_url ||
-                  `https://ui-avatars.com/api/?name=${encodeURIComponent(u.nome)}&background=ccc`
+                  `https://ui-avatars.com/api/?name=${encodeURIComponent(u.nome)}&background=ffffff`
                 }
                 alt={u.nome}
                 title={u.nome}
@@ -192,11 +192,15 @@ export default function Header({ onlineUsers = [] }) {
               }}
             >
               {others.map((u, i) => (
-                <div key={u.id} className="flex items-center gap-3 py-1">
+                <div 
+                  key={u.id} 
+                  className={`flex items-center gap-3 py-1 ${i < others.length - 1 ? 'border-b border-gray-200' : ''}`}
+                  style={i < others.length - 1 ? { borderBottomWidth: '1px' } : {}}
+                >
                   <img
                     src={
                       u.avatar_url ||
-                      `https://ui-avatars.com/api/?name=${encodeURIComponent(u.nome)}&background=ccc`
+                      `https://ui-avatars.com/api/?name=${encodeURIComponent(u.nome)}&background=ffffff`
                     }
                     alt={u.nome}
                     className="w-8 h-8 rounded-full object-cover"
@@ -204,7 +208,7 @@ export default function Header({ onlineUsers = [] }) {
                       border: `2px solid ${BORDER_COLORS[(i + 1) % BORDER_COLORS.length]}`
                     }}
                   />
-                  <span className="text-gray-800 text-sm break-all">{u.nome}</span>
+                  <span className="text-gray-800 text-xs break-all">{u.nome}</span>
                 </div>
               ))}
               <button

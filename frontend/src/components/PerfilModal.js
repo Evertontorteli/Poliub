@@ -27,7 +27,7 @@ export default function PerfilModal({ aluno, onClose }) {
       {/* Modal flutuante */}
       <div
         ref={modalRef}
-        className="fixed top-4 right-4 z-50 bg-white shadow-2xl rounded-2xl p-6 w-[350px] max-w-full border flex flex-col gap-3 animate-fadeIn"
+        className="fixed top-4 right-4 z-50 bg-white shadow-2xl rounded-2xl p-6 min-w-[280px] max-w-[400px] w-auto border flex flex-col gap-3 animate-fadeIn"
       >
         <button
           className="absolute top-2 right-3 text-gray-500 hover:text-red-600 text-xl font-bold"
