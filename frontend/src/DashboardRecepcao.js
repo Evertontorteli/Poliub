@@ -4,9 +4,10 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Modal from "./components/Modal";
 import FormAgendamento from "./components/FormAgendamento";
+import FormPaciente from "./FormPaciente";
 import { useAuth } from "./context/AuthContext";
 import { toast } from 'react-toastify';
-import { Pencil, Trash, XCircle, Info } from 'lucide-react';
+import { Pencil, Trash, XCircle, Info, User } from 'lucide-react';
 
 
 export default function DashboardRecepcao() {
@@ -22,6 +23,8 @@ export default function DashboardRecepcao() {
   const [diaSemanaFiltro, setDiaSemanaFiltro] = useState("");
   const [mostrarModal, setMostrarModal] = useState(false);
   const [agendamentoEditando, setAgendamentoEditando] = useState(null);
+  const [mostrarModalPaciente, setMostrarModalPaciente] = useState(false);
+  const [pacienteEditando, setPacienteEditando] = useState(null);
   const [swipedId, setSwipedId] = useState(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelMotivo, setCancelMotivo] = useState('');
@@ -206,9 +209,11 @@ export default function DashboardRecepcao() {
     if (busca) params.set("busca", busca);
 
     params.set("applyWindow", "1");
-    navigate(`/print-agendamentos?${params.toString()}`, {
-      state: { disciplinaId, disciplinaNome, filtros, applyWindow: true },
-    });
+    
+    // Abre em uma nova aba/janela - usando HashRouter precisa do #
+    const baseUrl = window.location.origin + window.location.pathname;
+    const url = `${baseUrl}#/print-agendamentos?${params.toString()}`;
+    window.open(url, '_blank');
   };
 
   const handleDeletarAgendamento = (id, pacienteNome) => {
@@ -257,6 +262,32 @@ export default function DashboardRecepcao() {
   const handleCancelarEdicao = () => {
     setMostrarModal(false);
     setAgendamentoEditando(null);
+  };
+
+  const handleAbrirPaciente = async (pacienteId) => {
+    if (!pacienteId) return;
+    try {
+      const { data } = await axios.get(`/api/pacientes/${pacienteId}`);
+      setPacienteEditando(data);
+      setMostrarModalPaciente(true);
+    } catch (err) {
+      toast.error('Erro ao carregar dados do paciente.');
+      console.error('Erro ao buscar paciente:', err);
+    }
+  };
+
+  const handleSalvarPaciente = () => {
+    setMostrarModalPaciente(false);
+    setPacienteEditando(null);
+    // Recarrega os agendamentos para atualizar dados do paciente
+    if (disciplinaSelecionada) {
+      buscarAgendamentosDaDisciplina(disciplinaSelecionada);
+    }
+  };
+
+  const handleCancelarPaciente = () => {
+    setMostrarModalPaciente(false);
+    setPacienteEditando(null);
   };
 
   function Tooltip({ text }) {
@@ -572,17 +603,31 @@ export default function DashboardRecepcao() {
                       </td>
                       <td className="px-3 py-2 text-gray-500">{ag.auxiliarNome || '-'}</td>
                       <td className="px-3 py-2 text-gray-500">{disciplinaSelecionada.nome}</td>
-                      <td className="px-3 py-2 text-gray-800">{ag.pacienteNome || '-'}</td>
+                      <td className="px-3 py-2 text-gray-800">
+                        <div className="flex items-center gap-2">
+                          {ag.paciente_id && (
+                            <button
+                              onClick={() => handleAbrirPaciente(ag.paciente_id)}
+                              style={{ width: '24px', height: '24px', minWidth: '24px', minHeight: '24px', maxWidth: '24px', maxHeight: '24px' }}
+                              className="flex-shrink-0 rounded-full bg-blue-100 hover:bg-blue-200 text-blue-600 transition flex items-center justify-center"
+                              title="Abrir cadastro do paciente"
+                              aria-label="Abrir cadastro do paciente"
+                            >
+                              <User size={12} />
+                            </button>
+                          )}
+                          {ag.pacienteNome || '-'}
+                        </div>
+                      </td>
                       <td className="px-3 py-2 text-gray-500">
                         {ag.telefone ? (
-                          <>
-                            {ag.telefone}
+                          <div className="flex items-center gap-2">
                             <a
                               href={`https://wa.me/55${ag.telefone.replace(/\D/g, '')}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               title="Falar no WhatsApp"
-                              className="inline-flex ml-1 text-green-500 hover:text-green-700"
+                              className="inline-flex text-green-500 hover:text-green-700"
                             >
                               {/* SVG do WhatsApp */}
                               <svg
@@ -595,7 +640,8 @@ export default function DashboardRecepcao() {
                                 <path d="M20.52 3.48A12 12 0 0 0 12 0C5.38 0 0 5.42 0 12.11a12 12 0 0 0 1.65 6.09L0 24l6.13-1.6A12.07 12.07 0 0 0 12 24c6.63 0 12-5.43 12-12.09a12.1 12.1 0 0 0-3.48-8.43Zm-8.52 18.09a10.03 10.03 0 0 1-5.15-1.4l-.37-.21-3.64.95.97-3.56-.24-.36A10.04 10.04 0 0 1 2 12.11C2 6.54 6.48 2 12 2c5.53 0 10 4.54 10 10.11 0 5.57-4.47 10.06-10 10.06Zm5.43-7.52c-.3-.15-1.76-.86-2.03-.96-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.07a8.1 8.1 0 0 1-2.37-1.46 9.06 9.06 0 0 1-1.68-2.09c-.17-.29-.02-.44.13-.59.13-.14.3-.36.45-.54.15-.18.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.5-.5-.67-.51-.17-.01-.36-.01-.55-.01-.19 0-.5.07-.77.36-.27.29-1.03 1.01-1.03 2.47 0 1.46 1.06 2.87 1.21 3.08.15.21 2.09 3.18 5.24 4.34.73.25 1.29.4 1.73.5.72.15 1.38.13 1.9.08.58-.07 1.76-.72 2.01-1.42.25-.7.25-1.3.18-1.43-.06-.13-.24-.21-.54-.36Z" />
                               </svg>
                             </a>
-                          </>
+                            {ag.telefone}
+                          </div>
                         ) : '-'}
                       </td>
 
@@ -730,19 +776,33 @@ export default function DashboardRecepcao() {
                 <div><b>Operador:</b> <span className="text-gray-800">{ag.operadorNome || '-'}</span></div>
                 <div><b>Auxiliar:</b> <span className="text-gray-800">{ag.auxiliarNome || '-'}</span></div>
                 <div><b>Disciplina:</b> <span className="text-gray-800">{disciplinaSelecionada.nome}</span></div>
-                <div><b>Paciente:</b> <span className="text-gray-800">{ag.pacienteNome || '-'}</span></div>
+                <div><b>Paciente:</b> 
+                  <span className="text-gray-800 ml-1 flex items-center gap-2 inline-flex">
+                    {ag.paciente_id && (
+                      <button
+                        onClick={() => handleAbrirPaciente(ag.paciente_id)}
+                        style={{ width: '24px', height: '24px', minWidth: '24px', minHeight: '24px', maxWidth: '24px', maxHeight: '24px' }}
+                        className="flex-shrink-0 rounded-full bg-blue-100 hover:bg-blue-200 text-blue-600 transition inline-flex items-center justify-center"
+                        title="Abrir cadastro do paciente"
+                        aria-label="Abrir cadastro do paciente"
+                      >
+                        <User size={12} />
+                      </button>
+                    )}
+                    {ag.pacienteNome || '-'}
+                  </span>
+                </div>
                 <div>
                   <b>Telefone: </b>
-                  <span className="text-gray-700">
+                  <span className="text-gray-700 flex items-center gap-2 inline-flex">
                     {ag.telefone ? (
                       <>
-                        {ag.telefone}
                         <a
                           href={`https://wa.me/55${ag.telefone.replace(/\D/g, '')}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           title="Falar no WhatsApp"
-                          className="inline-flex ml-1 text-green-500 hover:text-green-700"
+                          className="inline-flex text-green-500 hover:text-green-700"
                         >
                           {/* SVG do WhatsApp */}
                           <svg
@@ -755,6 +815,7 @@ export default function DashboardRecepcao() {
                             <path d="M20.52 3.48A12 12 0 0 0 12 0C5.38 0 0 5.42 0 12.11a12 12 0 0 0 1.65 6.09L0 24l6.13-1.6A12.07 12.07 0 0 0 12 24c6.63 0 12-5.43 12-12.09a12.1 12.1 0 0 0-3.48-8.43Zm-8.52 18.09a10.03 10.03 0 0 1-5.15-1.4l-.37-.21-3.64.95.97-3.56-.24-.36A10.04 10.04 0 0 1 2 12.11C2 6.54 6.48 2 12 2c5.53 0 10 4.54 10 10.11 0 5.57-4.47 10.06-10 10.06Zm5.43-7.52c-.3-.15-1.76-.86-2.03-.96-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.07a8.1 8.1 0 0 1-2.37-1.46 9.06 9.06 0 0 1-1.68-2.09c-.17-.29-.02-.44.13-.59.13-.14.3-.36.45-.54.15-.18.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.5-.5-.67-.51-.17-.01-.36-.01-.55-.01-.19 0-.5.07-.77.36-.27.29-1.03 1.01-1.03 2.47 0 1.46 1.06 2.87 1.21 3.08.15.21 2.09 3.18 5.24 4.34.73.25 1.29.4 1.73.5.72.15 1.38.13 1.9.08.58-.07 1.76-.72 2.01-1.42.25-.7.25-1.3.18-1.43-.06-.13-.24-.21-.54-.36Z" />
                           </svg>
                         </a>
+                        {ag.telefone}
                       </>
                     ) : '-'}
                   </span>
@@ -802,6 +863,22 @@ export default function DashboardRecepcao() {
               <div className="mt-4 flex gap-2 justify-end">
                 <button onClick={submitCancel} className="bg-[#0095DA] hover:brightness-110 text-white px-4 py-2 rounded-full">Confirmar cancelamento</button>
               </div>
+            </Modal>
+          )}
+
+          {/* Modal de cadastro do paciente */}
+          {mostrarModalPaciente && (
+            <Modal 
+              isOpen={mostrarModalPaciente} 
+              onRequestClose={handleCancelarPaciente}
+              size="xl"
+              shouldCloseOnOverlayClick={false}
+            >
+              <FormPaciente
+                pacienteEditando={pacienteEditando}
+                onNovoPaciente={handleSalvarPaciente}
+                onFimEdicao={handleCancelarPaciente}
+              />
             </Modal>
           )}
         </div>

@@ -129,6 +129,22 @@ exports.listarPacientes = async (req, res) => {
   }
 };
 
+// Buscar paciente por ID
+exports.buscarPacientePorId = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const conn = await getConnection();
+    const [rows] = await conn.query('SELECT * FROM pacientes WHERE id = ?', [id]);
+    conn.release();
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Paciente não encontrado.' });
+    }
+    res.json(rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao buscar paciente', details: err });
+  }
+};
+
 exports.criarPaciente = async (req, res) => {
   const {
     nome, telefone, numero_prontuario, numero_gaveta, rg, cpf,
