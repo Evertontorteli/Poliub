@@ -251,13 +251,13 @@ exports.criarAgendamento = async (req, res) => {
 
     // Validação de bloqueio de agendamento no mesmo dia da disciplina
     // Bloqueia apenas se tentar agendar para HOJE e HOJE for dia de atendimento da disciplina
+    // APENAS PARA ALUNOS - Recepção pode agendar normalmente
     const bloqueioConfig = await AppSettings.get('bloquear_agendamento_mesmo_dia');
-    if (bloqueioConfig?.enabled && disciplina_id && data) {
+    if (bloqueioConfig?.enabled && req.user.role === 'aluno' && disciplina_id && data) {
       // Verifica se a data do agendamento é HOJE
-      const hojeComparacao = new Date();
-      hojeComparacao.setHours(0, 0, 0, 0);
-      
-      if (dataAgendamento.getTime() === hojeComparacao.getTime()) {
+      // Usa a mesma variável 'hoje' criada acima (linha 226-227) e compara com dataAgendamento
+      // Ambos estão no mesmo formato (Date com horas zeradas no fuso local)
+      if (dataAgendamento && hoje && dataAgendamento.getTime() === hoje.getTime()) {
         // Data é HOJE, verifica se hoje é dia de atendimento da disciplina
         const conn = await db.getConnection();
         try {
@@ -270,7 +270,7 @@ exports.criarAgendamento = async (req, res) => {
             
             // Mapeia o dia da semana de HOJE
             const diasSemana = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];
-            const diaHoje = diasSemana[hojeComparacao.getDay()].toLowerCase();
+            const diaHoje = diasSemana[hoje.getDay()].toLowerCase();
             
             // Normaliza para comparação
             const normalizarDia = (d) => {
