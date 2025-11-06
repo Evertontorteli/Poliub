@@ -57,7 +57,8 @@ function LayoutInterno() {
   const [active, setActive] = useState('dashboard')
   const { user } = useAuth()
   const [onlineUsers, setOnlineUsers] = useState([])
-  const [showSidebar, setShowSidebar] = useState(window.innerWidth >= 1280)
+  const [showSidebar, setShowSidebar] = useState(window.innerWidth >= 1366)
+  const [sidebarExpanded, setSidebarExpanded] = useState(false)
   const [showFeedbackPrompt, setShowFeedbackPrompt] = useState(false)
   const [feedbackFreqDays, setFeedbackFreqDays] = useState(null)
   const [feedbackEnabled, setFeedbackEnabled] = useState(false)
@@ -75,7 +76,7 @@ function LayoutInterno() {
   // Lida com o resize para mostrar/esconder a sidebar
   useEffect(() => {
     function handleResize() {
-      setShowSidebar(window.innerWidth >= 1280)
+      setShowSidebar(window.innerWidth >= 1366)
     }
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
@@ -411,11 +412,17 @@ function LayoutInterno() {
       <Header onlineUsers={onlineUsers} />
       <div className="flex">
         {showSidebar && (
-          <Sidebar active={active} onMenuClick={setActive} />
+          <Sidebar 
+            active={active} 
+            onMenuClick={setActive}
+            onExpandedChange={setSidebarExpanded}
+          />
         )}
         <main
-          className={`flex-1 mt-16 p-4 h-[calc(100vh-64px)] overflow-y-auto transition-all duration-200 ${
-            showSidebar ? "ml-64" : "mx-auto max-w-5xl"
+          className={`flex-1 mt-16 p-4 h-[calc(100vh-64px)] overflow-y-auto transition-all duration-300 ${
+            showSidebar 
+              ? (sidebarExpanded ? "ml-64" : "ml-20")
+              : "mx-auto max-w-5xl"
           }`}
         >
           <div className="mx-auto">{renderConteudo()}</div>

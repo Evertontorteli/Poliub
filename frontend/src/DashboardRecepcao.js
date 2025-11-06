@@ -413,7 +413,7 @@ export default function DashboardRecepcao() {
 
       {/* Disciplinas */}
       <div className="mb-6">
-        <h2 className="text-2xl font-medium mb-3 text-[#344054]">Disciplinas</h2>
+        <h2 className="text-xl lg:text-2xl font-medium mb-3 text-[#344054]">Disciplinas</h2>
         
         <div className="flex flex-wrap gap-3">
           {disciplinasVisiveis.map((disc, idx) => (
@@ -422,7 +422,7 @@ export default function DashboardRecepcao() {
               onClick={() => buscarAgendamentosDaDisciplina(disc)}
               className={`
                 relative w-auto min-w-[10.5rem] md:min-w-[12rem] max-w-full md:max-w-[18rem] min-h-[6rem]
-                rounded-xl px-4 py-4 text-center border transition overflow-hidden
+                rounded-xl px-3 lg:px-4 py-3 lg:py-4 text-center border transition overflow-hidden
                 flex flex-col items-center justify-center
                 bg-white text-gray-700 border-gray-300 shadow-sm hover:shadow-md
                 ${disciplinaSelecionada?.id === disc.id ? "ring-2 ring-blue-300" : ""}
@@ -432,12 +432,12 @@ export default function DashboardRecepcao() {
                 className={`absolute left-0 top-0 h-full w-1 ${cardColors[idx % cardColors.length]} rounded-l-xl`}
                 aria-hidden="true"
               />
-              <div className="text-lg md:text-xl font-bold text-gray-600 leading-none mb-1">{countsByDisc[disc.id] ?? 0}</div>
-              <div className="font-bold text-sm text-gray-600 mb-1 text-left line-clamp-2" title={disc.nome}>{disc.nome}</div>
-              <div className="text-xs text-gray-600 whitespace-normal break-words flex items-center gap-2" title={`${disc.periodo_nome} ${disc.turno}${disc.dia_semana ? ` • ${disc.dia_semana}` : ''}`}>
+              <div className="text-base lg:text-lg xl:text-xl font-bold text-gray-600 leading-none mb-1">{countsByDisc[disc.id] ?? 0}</div>
+              <div className="font-bold text-xs lg:text-sm text-gray-600 mb-1 text-left line-clamp-2" title={disc.nome}>{disc.nome}</div>
+              <div className="text-[10px] lg:text-xs text-gray-600 whitespace-normal break-words flex items-center gap-2" title={`${disc.periodo_nome} ${disc.turno}${disc.dia_semana ? ` • ${disc.dia_semana}` : ''}`}>
                 <span>{disc.periodo_nome} {disc.turno}</span>
                 {disc.dia_semana ? (
-                  <span className="inline-block px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] md:text-xs">
+                  <span className="inline-block px-1 lg:px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[9px] lg:text-[10px] xl:text-xs">
                     {disc.dia_semana}
                   </span>
                 ) : null}
@@ -449,7 +449,7 @@ export default function DashboardRecepcao() {
       {/* Lista de Agendamentos */}
       {disciplinaSelecionada && (
         <div className="bg-white rounded-2xl shadow p-2">
-          <h2 className="text-lg font-medium px-4 pt-6 pb-2">
+          <h2 className="text-base lg:text-lg font-medium px-4 pt-6 pb-2">
             Agendamentos de{" "}
             <span className="text-[#3172C0]">
               {disciplinaSelecionada.nome}
@@ -532,27 +532,27 @@ export default function DashboardRecepcao() {
           <div className="hidden md:block">
             <table className="min-w-full w-full bg-white border-separate border-spacing-0">
               <thead>
-                <tr className="bg-gray-100 text-[#344054] text-sm">
-                  <th className="px-3 py-2 text-left font-semibold border-b">#</th>
-                  <th className="px-3 py-2 text-left font-semibold border-b">Box</th>
-                  <th className="px-3 py-2 text-center font-semibold border-b">Ester. Op.</th>
-                  <th className="px-3 py-2 text-left font-semibold border-b">Operador</th>
-                  <th className="px-3 py-2 text-center font-semibold border-b">Ester. Aux.</th>
-                  <th className="px-3 py-2 text-left font-semibold border-b">Auxiliar</th>
-                  <th className="px-3 py-2 text-left font-semibold border-b">Disciplina</th>
-                  <th className="px-3 py-2 text-left font-semibold border-b">Paciente</th>
-                  <th className="px-3 py-2 text-left font-semibold border-b">Telefone</th>
-                  <th className="px-3 py-2 text-left font-semibold border-b">Data e Hora</th>
-                  <th className="px-3 py-2 text-right font-semibold border-b">Status & Ações</th>
+                <tr className="bg-gray-100 text-[#344054] text-xs lg:text-sm">
+                  <th className="px-2 lg:px-3 py-1.5 lg:py-2 text-left font-semibold border-b">#</th>
+                  <th className="px-2 lg:px-3 py-1.5 lg:py-2 text-left font-semibold border-b">Box</th>
+                  <th className="px-2 lg:px-3 py-1.5 lg:py-2 text-center font-semibold border-b">Ester. Op.</th>
+                  <th className="px-2 lg:px-3 py-1.5 lg:py-2 text-left font-semibold border-b">Operador</th>
+                  <th className="px-2 lg:px-3 py-1.5 lg:py-2 text-center font-semibold border-b">Ester. Aux.</th>
+                  <th className="px-2 lg:px-3 py-1.5 lg:py-2 text-left font-semibold border-b">Auxiliar</th>
+                  <th className="px-2 lg:px-3 py-1.5 lg:py-2 text-left font-semibold border-b">Disciplina</th>
+                  <th className="px-2 lg:px-3 py-1.5 lg:py-2 text-left font-semibold border-b">Paciente</th>
+                  <th className="px-2 lg:px-3 py-1.5 lg:py-2 text-left font-semibold border-b">Telefone</th>
+                  <th className="px-2 lg:px-3 py-1.5 lg:py-2 text-left font-semibold border-b">Data e Hora</th>
+                  <th className="px-2 lg:px-3 py-1.5 lg:py-2 text-right font-semibold border-b">Status & Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {agsPagina.map((ag, idx) => (
                   <React.Fragment key={ag.id}>
                     <tr className="border-none hover:bg-gray-50 transition">
-                      <td className="px-3 py-2 text-gray-500">{inicio + idx + 1}</td>
-                      <td className="px-3 py-2 text-gray-500">{ag.operadorBox ?? '-'}</td>
-                      <td className="px-3 py-2">
+                      <td className="px-2 lg:px-3 py-1.5 lg:py-2 text-xs lg:text-sm text-gray-500">{inicio + idx + 1}</td>
+                      <td className="px-2 lg:px-3 py-1.5 lg:py-2 text-xs lg:text-sm text-gray-500">{ag.operadorBox ?? '-'}</td>
+                      <td className="px-2 lg:px-3 py-1.5 lg:py-2">
                         {(() => {
                           const st = getSterilizationStatus(ag.aluno_id);
                           if (!st.hasData) {
@@ -578,8 +578,8 @@ export default function DashboardRecepcao() {
                           return <div className="w-4 h-4 rounded-full mx-auto bg-gray-500" title="Sem registro" />
                         })()}
                       </td>
-                      <td className="px-3 py-2 font-medium text-gray-500">{ag.operadorNome || '-'}</td>
-                      <td className="px-3 py-2">
+                      <td className="px-2 lg:px-3 py-1.5 lg:py-2 text-xs lg:text-sm font-medium text-gray-500">{ag.operadorNome || '-'}</td>
+                      <td className="px-2 lg:px-3 py-1.5 lg:py-2">
                         {(() => {
                           const auxId = ag.auxiliar1_id || ag.auxiliar2_id || null;
                           if (!auxId) {
@@ -601,9 +601,9 @@ export default function DashboardRecepcao() {
                           return <div className="w-4 h-4 rounded-full mx-auto bg-gray-500" title="Sem registro" />
                         })()}
                       </td>
-                      <td className="px-3 py-2 text-gray-500">{ag.auxiliarNome || '-'}</td>
-                      <td className="px-3 py-2 text-gray-500">{disciplinaSelecionada.nome}</td>
-                      <td className="px-3 py-2 text-gray-800">
+                      <td className="px-2 lg:px-3 py-1.5 lg:py-2 text-xs lg:text-sm text-gray-500">{ag.auxiliarNome || '-'}</td>
+                      <td className="px-2 lg:px-3 py-1.5 lg:py-2 text-xs lg:text-sm text-gray-500">{disciplinaSelecionada.nome}</td>
+                      <td className="px-2 lg:px-3 py-1.5 lg:py-2 text-xs lg:text-sm text-gray-800">
                         <div className="flex items-center gap-2">
                           {ag.paciente_id && (
                             <button
@@ -619,7 +619,7 @@ export default function DashboardRecepcao() {
                           {ag.pacienteNome || '-'}
                         </div>
                       </td>
-                      <td className="px-3 py-2 text-gray-500">
+                      <td className="px-2 lg:px-3 py-1.5 lg:py-2 text-xs lg:text-sm text-gray-500">
                         {ag.telefone ? (
                           <div className="flex items-center gap-2">
                             <a
@@ -645,15 +645,16 @@ export default function DashboardRecepcao() {
                         ) : '-'}
                       </td>
 
-                      <td className="px-3 py-2 text-gray-500">
+                      <td className="px-2 lg:px-3 py-1.5 lg:py-2 text-xs lg:text-sm text-gray-500">
                         {ag.data
                           ? ag.data.slice(0, 10).split("-").reverse().join("/")
                           : "-"} {ag.hora || "-"}
                       </td>
-                      <td className="px-3 py-2 text-right flex gap-2 justify-end items-center">
-                        <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold min-w-[34px] text-center ${STATUS_COLORS[ag.status] || 'bg-gray-200 text-gray-700'}`}>
-                          {STATUS_LABELS[ag.status] || '-'}
-                        </span>
+                      <td className="px-2 lg:px-3 py-1.5 lg:py-2 text-right">
+                        <div className="flex items-center justify-end gap-1.5 lg:gap-2">
+                          <span className={`inline-block px-1.5 lg:px-2 py-0.5 lg:py-1 rounded-full text-[10px] lg:text-xs font-semibold min-w-[34px] text-center ${STATUS_COLORS[ag.status] || 'bg-gray-200 text-gray-700'}`}>
+                            {STATUS_LABELS[ag.status] || '-'}
+                          </span>
                         {ag.status === 'Cancelado' && (
                           <span className="inline-flex items-center text-gray-500" title={ag.canceledReason || 'Agendamento cancelado'}>
                             <Info size={16} />
@@ -699,6 +700,7 @@ export default function DashboardRecepcao() {
                             </div>
                           </>
                         )}
+                        </div>
                       </td>
                     </tr>
                     {idx !== agsPagina.length - 1 && (
