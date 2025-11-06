@@ -415,14 +415,14 @@ export default function DashboardRecepcao() {
       <div className="mb-6">
         <h2 className="text-xl lg:text-2xl font-medium mb-3 text-[#344054]">Disciplinas</h2>
         
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-2">
           {disciplinasVisiveis.map((disc, idx) => (
             <button
               key={disc.id}
               onClick={() => buscarAgendamentosDaDisciplina(disc)}
               className={`
-                relative w-auto min-w-[10.5rem] md:min-w-[12rem] max-w-full md:max-w-[18rem] min-h-[6rem]
-                rounded-xl px-3 lg:px-4 py-3 lg:py-4 text-center border transition overflow-hidden
+                relative w-[170px] h-[120px]
+                rounded-xl p-1 text-center border transition overflow-hidden
                 flex flex-col items-center justify-center
                 bg-white text-gray-700 border-gray-300 shadow-sm hover:shadow-md
                 ${disciplinaSelecionada?.id === disc.id ? "ring-2 ring-blue-300" : ""}
@@ -432,15 +432,17 @@ export default function DashboardRecepcao() {
                 className={`absolute left-0 top-0 h-full w-1 ${cardColors[idx % cardColors.length]} rounded-l-xl`}
                 aria-hidden="true"
               />
-              <div className="text-base lg:text-lg xl:text-xl font-bold text-gray-600 leading-none mb-1">{countsByDisc[disc.id] ?? 0}</div>
-              <div className="font-bold text-xs lg:text-sm text-gray-600 mb-1 text-left line-clamp-2" title={disc.nome}>{disc.nome}</div>
-              <div className="text-[10px] lg:text-xs text-gray-600 whitespace-normal break-words flex items-center gap-2" title={`${disc.periodo_nome} ${disc.turno}${disc.dia_semana ? ` • ${disc.dia_semana}` : ''}`}>
-                <span>{disc.periodo_nome} {disc.turno}</span>
-                {disc.dia_semana ? (
-                  <span className="inline-block px-1 lg:px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[9px] lg:text-[10px] xl:text-xs">
-                    {disc.dia_semana}
-                  </span>
-                ) : null}
+              <div className="w-full h-full flex flex-col items-center justify-center">
+                <div className="text-base lg:text-lg xl:text-xl font-bold text-gray-600 leading-none mb-2">{countsByDisc[disc.id] ?? 0}</div>
+                <div className="font-medium text-[10px] lg:text-xs text-gray-600 mb-2 text-center line-clamp-2 w-full px-1" title={disc.nome}>{disc.nome}</div>
+                <div className="text-[9px] lg:text-[10px] text-gray-600 whitespace-normal break-words flex items-center justify-center gap-2 w-full px-1" title={`${disc.periodo_nome} ${disc.turno}${disc.dia_semana ? ` • ${disc.dia_semana}` : ''}`}>
+                  <span>{disc.periodo_nome} {disc.turno}</span>
+                  {disc.dia_semana ? (
+                    <span className="inline-block px-1 lg:px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[9px] lg:text-[10px]">
+                      {disc.dia_semana.replace(/-?[Ff]eira/g, '')}
+                    </span>
+                  ) : null}
+                </div>
               </div>
             </button>
           ))}
