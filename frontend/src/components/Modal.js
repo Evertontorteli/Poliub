@@ -10,11 +10,11 @@ export default function ModalCustom({ isOpen, onRequestClose, onClose, children,
     : size === 'lg' ? 'w-full max-w-5xl h-[78vh]'
     : size === 'auto' ? 'w-full max-w-2xl'
     : size === 'sm' ? 'w-full max-w-md'
-    : 'w-full max-w-3xl h-[72vh]';
+    : 'w-full max-w-3xl h-[80vh]';
   const innerClasses =
     (size === 'sm' || size === 'auto')
-      ? 'overflow-y-auto pt-2 pb-12 px-8 w-full'
-      : 'overflow-y-auto pt-2 pb-12 px-8 w-full h-full';
+      ? 'overflow-y-auto pt-2 pb-12 px-4 w-full'
+      : 'overflow-y-auto pt-2 pb-12 px-4 w-full h-full';
   return (
     <Modal
       isOpen={isOpen}

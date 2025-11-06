@@ -389,13 +389,13 @@ async function handleSubmit(e) {
 
 
   return (
-    <div className="bg-white mx-auto max-w-2xl rounded-2xl p-2">
+    <div className="bg-white mx-auto max-w-2xl rounded-2xl">
       <form onSubmit={handleSubmit} autoComplete="off">
-        <h2 className="text-2xl font-bold mb-6 text-[#0095DA]">
+        <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 text-[#0095DA]">
           Agendar Paciente
         </h2>
         {((tipoAtendimento === 'Solicitar' && solWin.enabled && solicitacaoInfo) || (['Novo','Retorno'].includes(tipoAtendimento) && disciplinaInfoBase)) && (
-          <div className={`mb-3 p-2 rounded-lg border text-sm ${showSolicitarBlocked ? 'bg-yellow-50 border-yellow-300 text-yellow-800' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
+          <div className={`mb-3 p-2 rounded-lg border text-xs md:text-sm ${showSolicitarBlocked ? 'bg-yellow-50 border-yellow-300 text-yellow-800' : 'bg-blue-50 border-blue-200 text-blue-800'}`}>
             {tipoAtendimento === 'Solicitar' && solWin.enabled && solicitacaoInfo ? (
               <>
                 Dia: <b>{solicitacaoInfo.diaLabel}</b> · Próximo agendamento: <b>{solicitacaoInfo.nextLabel}</b> · Prazo: <b>{solicitacaoInfo.deadlineLabel}</b>
@@ -419,7 +419,7 @@ async function handleSubmit(e) {
                   ? 'bg-[#C9E2FC] text-gray-800'
                   : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}`}
             >
-              {t === 'Solicitar' ? 'Solicitar para Recepção' : t}
+              {t === 'Solicitar' ? 'Solicitar Recepção' : t}
             </button>
           ))}
         </div>
@@ -427,9 +427,9 @@ async function handleSubmit(e) {
         {/* Disciplinas (carrossel) */}
         <div className="mb-6 group">
           <div className="flex items-center mb-1">
-            <label className={`font-medium transition-colors group-focus-within:text-blue-600 ${!disciplinaId ? 'text-red-600' : ''}`}>Disciplina</label>
+            <label className={`text-sm md:text-base font-medium transition-colors group-focus-within:text-blue-600 ${!disciplinaId ? 'text-red-600' : ''}`}>Disciplina</label>
             {!disciplinaId && (
-              <span className="ml-2 text-xs text-red-600">Selecione uma disciplina</span>
+              <span className="ml-2 text-[10px] md:text-xs text-red-600">Selecione uma disciplina</span>
             )}
           </div>
           <div className="relative">
@@ -449,8 +449,8 @@ async function handleSubmit(e) {
                   type="button"
                   onClick={() => setDisciplinaId(String(d.id))}
                   className={`
-                    relative w-auto min-w-[10.5rem] md:min-w-[12rem] max-w-full md:max-w-[18rem] min-h-[6rem]
-                    rounded-xl px-4 py-4 text-center border transition overflow-hidden
+                    relative w-auto min-w-[8rem] md:min-w-[12rem] max-w-full md:max-w-[18rem] min-h-[5rem] md:min-h-[6rem]
+                    rounded-xl px-3 py-2 md:px-4 md:py-4 text-center border transition overflow-hidden
                     flex flex-col items-center justify-center snap-start snap-always
                     bg-white text-gray-700 border-gray-300 shadow-sm hover:shadow-md
                     ${disciplinaId === String(d.id) ? 'ring-2 ring-blue-300' : ''}
@@ -460,11 +460,11 @@ async function handleSubmit(e) {
                     className={`absolute left-0 top-0 h-full w-1 ${cardColors[idx % cardColors.length]} rounded-l-xl`}
                     aria-hidden="true"
                   />
-                  <div className="font-bold text-xs text-gray-600 mb-1 text-left line-clamp-2" title={d.nome}>{d.nome}</div>
-                  <div className="text-xs text-gray-600 whitespace-normal break-words flex items-center gap-2" title={`${d.periodo_nome} ${d.turno}${d.dia_semana ? ` • ${d.dia_semana}` : ''}`}>
+                  <div className="font-bold text-[10px] md:text-xs text-gray-600 mb-1 text-left line-clamp-2" title={d.nome}>{d.nome}</div>
+                  <div className="text-[10px] md:text-xs text-gray-600 whitespace-normal break-words flex items-center gap-1 md:gap-2" title={`${d.periodo_nome} ${d.turno}${d.dia_semana ? ` • ${d.dia_semana}` : ''}`}>
                     <span>{d.periodo_nome} {d.turno}</span>
                     {d.dia_semana ? (
-                      <span className="inline-block px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[10px] md:text-xs">
+                      <span className="inline-block px-1 py-0.5 md:px-1.5 md:py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-[9px] md:text-xs">
                         {d.dia_semana}
                       </span>
                     ) : null}
@@ -503,16 +503,49 @@ async function handleSubmit(e) {
         {/* Paciente autocomplete */}
         {tipoAtendimento !== 'Solicitar' && (
           <div className="mb-6 relative group" ref={inputRef}>
-            <label className="block mb-1 font-medium transition-colors group-focus-within:text-blue-600">Paciente</label>
+            {mensagem && mensagem.includes('paciente') && (
+              <div className="mb-2 text-xs md:text-sm text-red-600 font-medium flex items-center gap-1">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                {mensagem}
+              </div>
+            )}
+            <label className={`block mb-1 text-sm md:text-base font-medium transition-colors ${
+              (mensagem && mensagem.includes('paciente')) || (!pacienteId && tipoAtendimento !== 'Solicitar')
+                ? 'text-red-600' 
+                : 'group-focus-within:text-blue-600'
+            }`}>
+              Paciente
+              {(!pacienteId && tipoAtendimento !== 'Solicitar') && (
+                <span className="ml-2 text-[10px] md:text-xs text-red-600">Obrigatório</span>
+              )}
+            </label>
             <input
-              className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+              className={`w-full border rounded px-3 py-2 text-sm md:text-base focus:outline-none focus:ring-2 transition-colors ${
+                (mensagem && mensagem.includes('paciente')) || (!pacienteId && tipoAtendimento !== 'Solicitar')
+                  ? 'border-red-300 focus:ring-red-300' 
+                  : 'border-gray-300 focus:ring-blue-300'
+              }`}
               placeholder="Digite nome ou telefone"
               value={buscaPaciente}
               onChange={e => {
                 setBuscaPaciente(e.target.value);
                 setShowLista(true);
+                // Limpa a mensagem de erro quando o usuário começa a digitar
+                if (mensagem && mensagem.includes('paciente')) {
+                  setMensagem('');
+                }
               }}
-              onFocus={() => setShowLista(true)}
+              onFocus={() => {
+                setShowLista(true);
+                // Limpa a mensagem de erro quando o campo recebe foco
+                if (mensagem && mensagem.includes('paciente')) {
+                  setMensagem('');
+                }
+              }}
               required
             />
             {showLista && buscaPaciente && (
@@ -548,12 +581,12 @@ async function handleSubmit(e) {
               <div className="mt-2 space-y-1">
                 <input
                   readOnly
-                  className="w-full border rounded px-3 py-2 bg-gray-100 focus:outline-none"
+                  className="w-full border rounded px-2 md:px-3 py-2 text-sm md:text-base bg-gray-100 focus:outline-none"
                   value={nomePaciente}
                 />
                 <input
                   readOnly
-                  className="w-full border rounded px-3 py-2 bg-gray-100 focus:outline-none"
+                  className="w-full border rounded px-2 md:px-3 py-2 text-sm md:text-base bg-gray-100 focus:outline-none"
                   value={telefone}
                 />
               </div>
@@ -562,14 +595,14 @@ async function handleSubmit(e) {
         )}
 
         {/* Data / Hora */}
-        <label className="block mb-2 font-medium text-base md:text-lg">
+        <label className="block mb-2 text-sm md:text-base font-medium">
           Data e Hora do Agendamento
         </label>
         <div className="mb-6 flex items-center gap-3">
           <div className="group">
             <input
               type="date"
-              className="w-[180px] border rounded-full px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+              className="w-[140px] md:w-[180px] border rounded-full px-2 md:px-3 py-2 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-blue-300"
               value={data}
               onChange={e => setData(e.target.value)}
               required
@@ -578,7 +611,7 @@ async function handleSubmit(e) {
           <div className="group">
             <input
               type="time"
-              className="border rounded-full px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+              className="border rounded-full px-2 md:px-3 py-2 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-blue-300"
               value={hora}
               onChange={e => setHora(e.target.value)}
               required
@@ -588,16 +621,16 @@ async function handleSubmit(e) {
 
         {/* Operador / Auxiliar */}
         <div className="mb-6 group">
-          <label className="block mb-4 font-medium transition-colors group-focus-within:text-blue-600">
+          <label className="block mb-3 md:mb-4 text-sm md:text-base font-medium transition-colors group-focus-within:text-blue-600">
             Alunos que irão realizar o procedimento
           </label>
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 group">
-              <label className="block mb-1 text-sm font-semibold transition-colors group-focus-within:text-blue-600">
+              <label className="block mb-1 text-xs md:text-sm font-semibold transition-colors group-focus-within:text-blue-600">
                 Operador
               </label>
               <select
-                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                className="w-full border rounded px-2 md:px-3 py-2 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-blue-300"
                 value={operadorId}
                 onChange={e => setOperadorId(e.target.value)}
                 required
@@ -611,11 +644,11 @@ async function handleSubmit(e) {
               </select>
             </div>
             <div className="flex-1 group">
-              <label className="block mb-1 text-sm font-semibold transition-colors group-focus-within:text-blue-600">
+              <label className="block mb-1 text-xs md:text-sm font-semibold transition-colors group-focus-within:text-blue-600">
                 Auxiliar (Opcional)
               </label>
               <select
-                className="w-full border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+                className="w-full border rounded px-2 md:px-3 py-2 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-blue-300"
                 value={auxiliar1Id}
                 onChange={e => setAuxiliar1Id(e.target.value)}
               >
@@ -636,7 +669,7 @@ async function handleSubmit(e) {
             <button
               type="button"
               onClick={onFimEdicao}
-              className="bg-[#DA3648] hover:bg-[#BC3140] text-white px-4 py-2 rounded-full"
+              className="bg-[#DA3648] hover:bg-[#BC3140] text-white px-3 md:px-4 py-2 text-sm md:text-base rounded-full"
             >
               Cancelar
             </button>
@@ -644,14 +677,24 @@ async function handleSubmit(e) {
           <button
             type="submit"
             disabled={saving}
-            className={`font-bold px-6 py-2 rounded-full text-white ${saving ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#0095DA] hover:brightness-110'}`}
+            className={`font-bold px-4 md:px-6 py-2 rounded-full text-sm md:text-base text-white ${saving ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#0095DA] hover:brightness-110'}`}
           >
-            {saving ? 'Agendando…' : (tipoAtendimento === 'Solicitar' ? 'Solicitar para Recepção' : 'Agendar Paciente')}
+            {saving ? 'Agendando…' : (tipoAtendimento === 'Solicitar' ? 'Solicitar Recepção' : 'Agendar Paciente')}
           </button>
         </div>
 
-        {mensagem && (
-          <p className="mt-4 text-red-600">{mensagem}</p>
+        {/* Mensagem de erro geral (quando não for relacionada a paciente) */}
+        {mensagem && !mensagem.includes('paciente') && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-600 text-xs md:text-sm flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+              {mensagem}
+            </p>
+          </div>
         )}
       </form>
     </div>
