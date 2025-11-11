@@ -30,6 +30,8 @@ export default function DashboardRecepcao() {
   const [cancelMotivo, setCancelMotivo] = useState('');
   const [cancelId, setCancelId] = useState(null);
   const [countsByDisc, setCountsByDisc] = useState({});
+  const [showCancelDetailsModal, setShowCancelDetailsModal] = useState(false);
+  const [cancelDetails, setCancelDetails] = useState(null);
 
   // Paginação
   const [pagina, setPagina] = useState(1);
@@ -288,6 +290,35 @@ export default function DashboardRecepcao() {
   const handleCancelarPaciente = () => {
     setMostrarModalPaciente(false);
     setPacienteEditando(null);
+  };
+
+  const formatarDataBrasileira = (dataString) => {
+    if (!dataString || dataString === 'Data não disponível') return dataString;
+    try {
+      // Formato esperado: 'YYYY-MM-DD HH:mm:ss'
+      const [data, hora] = dataString.split(' ');
+      if (!data) return dataString;
+      const [ano, mes, dia] = data.split('-');
+      if (hora) {
+        return `${dia}/${mes}/${ano} ${hora}`;
+      }
+      return `${dia}/${mes}/${ano}`;
+    } catch {
+      return dataString;
+    }
+  };
+
+  const handleVerDetalhesCancelamento = (agendamento) => {
+    const dataFormatada = agendamento.canceledAt 
+      ? formatarDataBrasileira(agendamento.canceledAt)
+      : 'Data não disponível';
+    
+    setCancelDetails({
+      motivo: agendamento.canceledReason || 'Motivo não informado',
+      canceladoPor: agendamento.canceledBy || 'Usuário não identificado',
+      canceladoEm: dataFormatada
+    });
+    setShowCancelDetailsModal(true);
   };
 
   function Tooltip({ text }) {
@@ -658,9 +689,13 @@ export default function DashboardRecepcao() {
                             {STATUS_LABELS[ag.status] || '-'}
                           </span>
                         {ag.status === 'Cancelado' && (
-                          <span className="inline-flex items-center text-gray-500" title={ag.canceledReason || 'Agendamento cancelado'}>
-                            <Info size={16} />
-                          </span>
+                          <button
+                            onClick={() => handleVerDetalhesCancelamento(ag)}
+                            className="inline-flex items-center text-gray-500 hover:text-blue-600 transition cursor-pointer"
+                            title={ag.canceledReason || 'Clique para ver detalhes do cancelamento'}
+                          >
+                            <Info size={18} />
+                          </button>
                         )}
                         {/* Botão Editar */}
                         <div className="relative group">
@@ -741,9 +776,13 @@ export default function DashboardRecepcao() {
                       <Tooltip text="Editar" />
                     </div>
                     {ag.status === 'Cancelado' && (
-                      <span className="inline-flex items-center text-gray-500" title={ag.canceledReason || 'Agendamento cancelado'}>
-                        <Info size={14} />
-                      </span>
+                      <button
+                        onClick={() => handleVerDetalhesCancelamento(ag)}
+                        className="inline-flex items-center text-gray-500 hover:text-blue-600 transition cursor-pointer"
+                        title={ag.canceledReason || 'Clique para ver detalhes do cancelamento'}
+                      >
+                        <Info size={17} />
+                      </button>
                     )}
                     {ag.status !== 'Cancelado' && (
                       <>
@@ -883,6 +922,51 @@ export default function DashboardRecepcao() {
                 onNovoPaciente={handleSalvarPaciente}
                 onFimEdicao={handleCancelarPaciente}
               />
+            </Modal>
+          )}
+
+          {/* Modal de detalhes do cancelamento */}
+          {showCancelDetailsModal && cancelDetails && (
+            <Modal 
+              isOpen={showCancelDetailsModal} 
+              onRequestClose={() => setShowCancelDetailsModal(false)}
+              size="auto"
+              shouldCloseOnOverlayClick={false}
+            >
+              <div className="p-6">
+                <h2 className="text-2xl font-bold mb-6 text-[#0095DA]">Detalhes do Cancelamento</h2>
+                
+                <div className="space-y-4">
+                  <div className="flex gap-4 items-start">
+                    <div className="flex-1">
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">
+                        Cancelado por:
+                      </label>
+                      <p className="text-gray-800 bg-gray-50 px-3 py-2 rounded border">
+                        {cancelDetails.canceladoPor}
+                      </p>
+                    </div>
+
+                    <div className="flex-shrink-0">
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">
+                        Data e Hora:
+                      </label>
+                      <p className="text-gray-800 bg-gray-50 px-3 py-2 rounded border whitespace-nowrap">
+                        {cancelDetails.canceladoEm}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">
+                      Motivo do Cancelamento:
+                    </label>
+                    <p className="text-gray-800 bg-gray-50 px-3 py-2 rounded border whitespace-pre-wrap">
+                      {cancelDetails.motivo}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </Modal>
           )}
         </div>

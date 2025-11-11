@@ -106,7 +106,7 @@ async function adicionaBoxAoOperador(agendamentos) {
 }
 
 /**
- * Anexa "canceledReason" aos agendamentos a partir da tabela de logs
+ * Anexa "canceledReason", "canceledBy" e "canceledAt" aos agendamentos a partir da tabela de logs
  * Considera o último log (mais recente) com { entidade='agendamento', acao='cancelou' }
  */
 async function anexarMotivoCancelamento(agendamentos) {
@@ -117,7 +117,11 @@ async function anexarMotivoCancelamento(agendamentos) {
     if (ids.length === 0) return agendamentos;
 
     const [rows] = await conn.query(
-      `SELECT entidade_id, detalhes
+      `SELECT entidade_id, detalhes, usuario_nome,
+              DATE_FORMAT(
+                CONVERT_TZ(criado_em, '+00:00', 'America/Sao_Paulo'),
+                '%Y-%m-%d %H:%i:%s'
+              ) AS criado_em
          FROM logs
         WHERE entidade = 'agendamento' AND acao = 'cancelou' AND entidade_id IN (?)
         ORDER BY id DESC`,
@@ -138,9 +142,24 @@ async function anexarMotivoCancelamento(agendamentos) {
           motivo = trimmed;
         }
       } catch { motivo = ''; }
-      map.set(key, motivo);
+      map.set(key, {
+        motivo: motivo,
+        canceledBy: r.usuario_nome || '',
+        canceledAt: r.criado_em || ''
+      });
     }
-    return agendamentos.map(a => ({ ...a, canceledReason: map.get(Number(a.id)) || a.canceledReason || '' }));
+    return agendamentos.map(a => {
+      const cancelInfo = map.get(Number(a.id));
+      if (cancelInfo) {
+        return {
+          ...a,
+          canceledReason: cancelInfo.motivo || a.canceledReason || '',
+          canceledBy: cancelInfo.canceledBy,
+          canceledAt: cancelInfo.canceledAt
+        };
+      }
+      return { ...a, canceledReason: a.canceledReason || '' };
+    });
   } finally {
     conn.release();
   }
