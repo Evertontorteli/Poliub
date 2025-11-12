@@ -11,6 +11,11 @@ const PAGE_SIZE = 100;
 
 const LABELS = {
   nome: "Nome",
+  nome_paciente: "Nome do Paciente",
+  nome_aluno: "Nome do Aluno",
+  nome_disciplina: "Nome da Disciplina",
+  nome_auxiliar1: "Nome do Auxiliar 1",
+  nome_auxiliar2: "Nome do Auxiliar 2",
   ra: "RA",
   usuario: "Usuário",
   periodo_id: "Período ID",
@@ -27,15 +32,96 @@ const LABELS = {
   numero: "Número",
   idade: "Idade",
   data_nascimento: "Nascimento",
-  observacao: "Observação"
+  observacao: "Observação",
+  paciente_id: "ID do Paciente",
+  aluno_id: "Aluno ID",
+  disciplina_id: "Disciplina ID",
+  auxiliar1_id: "Auxiliar 1 ID",
+  auxiliar2_id: "Auxiliar 2 ID"
 };
 
 function traduzirChave(chave) {
   return LABELS[chave] || chave.charAt(0).toUpperCase() + chave.slice(1);
 }
 
+function formatarValor(valor, chave, dadosCompletos = {}) {
+  if (!valor || valor === null || valor === undefined || valor === "") {
+    return '-';
+  }
+  
+  const valorStr = String(valor);
+  
+  // Verificar se é uma data (ISO string, YYYY-MM-DD, ou timestamp)
+  const isData = /^(data|data_|created_at|updated_at|deleted_at|canceled_at|data_nascimento)/i.test(chave) ||
+                 /^\d{4}-\d{2}-\d{2}/.test(valorStr) ||
+                 /^\d{4}-\d{2}-\d{2}T/.test(valorStr);
+  
+  if (isData) {
+    try {
+      let dataObj;
+      
+      // Se for ISO string com T
+      if (valorStr.includes('T')) {
+        dataObj = new Date(valorStr);
+      }
+      // Se for YYYY-MM-DD
+      else if (/^\d{4}-\d{2}-\d{2}$/.test(valorStr)) {
+        const [yyyy, mm, dd] = valorStr.split('-');
+        dataObj = new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+      }
+      // Se for timestamp
+      else if (/^\d+$/.test(valorStr) && valorStr.length > 8) {
+        dataObj = new Date(Number(valorStr));
+      }
+      else {
+        dataObj = new Date(valorStr);
+      }
+      
+      if (!isNaN(dataObj.getTime())) {
+        return dataObj.toLocaleDateString('pt-BR');
+      }
+    } catch (e) {
+      // Se falhar, retorna o valor original
+    }
+  }
+  
+  // Se for um campo de ID, verificar se há nome correspondente
+  if (chave.endsWith('_id') && dadosCompletos) {
+    // Mapear campos de ID para seus respectivos campos de nome
+    const mapeamentoNomes = {
+      'paciente_id': 'nome_paciente',
+      'aluno_id': 'nome_aluno',
+      'disciplina_id': 'nome_disciplina',
+      'auxiliar1_id': 'nome_auxiliar1',
+      'auxiliar2_id': 'nome_auxiliar2',
+      'periodo_id': 'periodo_nome',
+      'operador_id': 'nome_operador'
+    };
+    
+    const nomeKey = mapeamentoNomes[chave];
+    if (nomeKey && dadosCompletos[nomeKey]) {
+      return `${valorStr} - ${dadosCompletos[nomeKey]}`;
+    }
+    
+    // Tentar variações genéricas como fallback
+    const possiveisNomes = [
+      'nome_' + chave.replace('_id', ''),
+      chave.replace('_id', '_nome'),
+      chave.replace('_id', '') + '_nome'
+    ];
+    
+    for (const nomeKeyFallback of possiveisNomes) {
+      if (dadosCompletos[nomeKeyFallback]) {
+        return `${valorStr} - ${dadosCompletos[nomeKeyFallback]}`;
+      }
+    }
+  }
+  
+  return valorStr;
+}
+
 function renderDetalhes(log) {
-  if (!log.detalhes || log.detalhes === "{}") return <span>-</span>;
+  if (!log.detalhes || log.detalhes === "{}") return <span className="text-gray-400">-</span>;
   let data;
   try {
     if (typeof log.detalhes === "object") {
@@ -44,31 +130,101 @@ function renderDetalhes(log) {
       data = JSON.parse(log.detalhes);
     }
   } catch {
-    return <span>{String(log.detalhes)}</span>;
+    return <span className="text-gray-600 text-xs">{String(log.detalhes)}</span>;
   }
-  if (!data || typeof data !== "object") return <span>-</span>;
+  if (!data || typeof data !== "object") return <span className="text-gray-400">-</span>;
+  
   if (data.antes && data.depois) {
-    const before = Object.entries(data.antes)
-      .filter(([k, v]) => v !== null && v !== undefined && v !== "")
-      .map(([k, v]) => `${traduzirChave(k)}: ${v}`)
-      .join(" | ");
-    const after = Object.entries(data.depois)
-      .filter(([k, v]) => v !== null && v !== undefined && v !== "")
-      .map(([k, v]) => `${traduzirChave(k)}: ${v}`)
-      .join(" | ");
+    // Obter todas as chaves únicas de antes e depois
+    const todasChaves = new Set([
+      ...Object.keys(data.antes),
+      ...Object.keys(data.depois)
+    ]);
+    
+    // Mostrar todos os campos que existem em antes ou depois
+    // Filtrar campos de nome que já têm ID correspondente (para não duplicar)
+    const camposRelevantes = Array.from(todasChaves).filter(chave => {
+      // Se for um campo de nome (nome_paciente, nome_aluno, etc), verificar se há ID correspondente
+      if (chave.startsWith('nome_') && chave !== 'nome_paciente' && chave !== 'nome_aluno' && 
+          chave !== 'nome_disciplina' && chave !== 'nome_auxiliar1' && chave !== 'nome_auxiliar2') {
+        // Se não for um dos campos de nome conhecidos, pode mostrar
+      } else if (chave.startsWith('nome_')) {
+        // Se for um campo de nome conhecido, verificar se há ID correspondente
+        const idChave = chave.replace('nome_', '') + '_id';
+        const temIdAntes = data.antes[idChave] !== null && data.antes[idChave] !== undefined && data.antes[idChave] !== "";
+        const temIdDepois = data.depois[idChave] !== null && data.depois[idChave] !== undefined && data.depois[idChave] !== "";
+        // Se houver ID, não mostrar o campo de nome separadamente (será exibido junto com o ID)
+        if (temIdAntes || temIdDepois) {
+          return false;
+        }
+      }
+      
+      const antes = data.antes[chave];
+      const depois = data.depois[chave];
+      const temAntes = antes !== null && antes !== undefined && antes !== "";
+      const temDepois = depois !== null && depois !== undefined && depois !== "";
+      return temAntes || temDepois;
+    });
+    
+    if (camposRelevantes.length === 0) {
+      return <span className="text-gray-400">Sem alterações</span>;
+    }
+    
     return (
-      <span>
-        <b>Antes:</b> {before} <br />
-        <b>Depois:</b> {after}
-      </span>
+      <div className="grid grid-cols-2 gap-6 max-w-4xl">
+        {/* Coluna ANTES */}
+        <div>
+          <div className="text-xs font-semibold text-gray-700 mb-2">Antes</div>
+          <div className="space-y-1 text-xs">
+            {camposRelevantes.map((chave) => {
+              const antes = data.antes[chave];
+              const label = traduzirChave(chave);
+              const temAntes = antes !== null && antes !== undefined && antes !== "";
+              
+              return (
+                <div key={chave}>
+                  <span className="font-medium text-gray-700">{label}:</span>{" "}
+                  <span className="text-gray-600">{formatarValor(antes, chave, data.antes)}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        
+        {/* Coluna DEPOIS */}
+        <div>
+          <div className="text-xs font-semibold text-gray-700 mb-2">Depois</div>
+          <div className="space-y-1 text-xs">
+            {camposRelevantes.map((chave) => {
+              const depois = data.depois[chave];
+              const label = traduzirChave(chave);
+              const temDepois = depois !== null && depois !== undefined && depois !== "";
+              
+              return (
+                <div key={chave}>
+                  <span className="font-medium text-gray-700">{label}:</span>{" "}
+                  <span className="text-gray-600">{formatarValor(depois, chave, data.depois)}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
     );
   }
+  
+  // Caso não tenha antes/depois, mostrar dados simples
   const entries = Object.entries(data).filter(([k, v]) => v !== null && v !== undefined && v !== "");
-  if (entries.length === 0) return <span>-</span>;
+  if (entries.length === 0) return <span className="text-gray-400">-</span>;
   return (
-    <span>
-      {entries.map(([k, v]) => `${traduzirChave(k)}: ${v}`).join(" | ")}
-    </span>
+    <div className="space-y-1">
+      {entries.map(([k, v]) => (
+        <div key={k} className="text-xs">
+          <span className="font-medium text-gray-700">{traduzirChave(k)}:</span>{" "}
+          <span className="text-gray-600">{formatarValor(v, k, data)}</span>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -395,7 +551,10 @@ export default function TelaLogs() {
                 <div className="font-semibold mb-1">{log.usuario_nome}</div>
                 <div className="mb-1"><b>Ação:</b> <span className="capitalize">{log.acao}</span></div>
                 <div className="mb-1"><b>Entidade:</b> {log.entidade} <span className="ml-2 text-gray-500">ID: {log.entidade_id}</span></div>
-                <div className="mb-1"><b>Detalhes:</b> {renderDetalhes(log)}</div>
+                <div className="mb-1">
+                  <b className="block mb-2">Detalhes:</b>
+                  <div className="ml-2">{renderDetalhes(log)}</div>
+                </div>
               </div>
             ))
           )}
@@ -405,11 +564,11 @@ export default function TelaLogs() {
           <table className="min-w-full text-sm border-separate border-spacing-0">
             <thead className="bg-gray-100 text-gray-600 font-semibold">
               <tr>
-                <th className="px-4 py-3 text-left border-b">Data/Hora</th>
-                <th className="px-4 py-3 text-left border-b">Usuário</th>
-                <th className="px-4 py-3 text-left border-b">Ação</th>
-                <th className="px-4 py-3 text-left border-b">Entidade</th>
-                <th className="px-4 py-3 text-left border-b">ID</th>
+                <th className="px-3 py-3 text-left border-b w-40">Data/Hora</th>
+                <th className="px-3 py-3 text-left border-b w-40">Usuário</th>
+                <th className="px-3 py-3 text-left border-b w-28">Ação</th>
+                <th className="px-3 py-3 text-left border-b w-32">Entidade</th>
+                <th className="px-3 py-3 text-left border-b w-20">ID</th>
                 <th className="px-4 py-3 text-left border-b">Detalhes</th>
               </tr>
             </thead>
@@ -431,12 +590,12 @@ export default function TelaLogs() {
               ) : (
                 logsFiltrados.map((log) => (
                   <tr key={log.id} className="border-b hover:bg-gray-50">
-                    <td className="px-4 py-2 whitespace-nowrap border-b">{formatarDataBR(log.criado_em)}</td>
-                    <td className="px-4 py-2 border-b">{log.usuario_nome}</td>
-                    <td className="px-4 py-2 capitalize border-b">{log.acao}</td>
-                    <td className="px-4 py-2 border-b">{log.entidade}</td>
-                    <td className="px-4 py-2 border-b">{log.entidade_id}</td>
-                    <td className="px-4 py-2 border-b">{renderDetalhes(log)}</td>
+                    <td className="px-3 py-2 whitespace-nowrap border-b w-40">{formatarDataBR(log.criado_em)}</td>
+                    <td className="px-3 py-2 border-b w-40">{log.usuario_nome}</td>
+                    <td className="px-3 py-2 capitalize border-b w-28">{log.acao}</td>
+                    <td className="px-3 py-2 border-b w-32">{log.entidade}</td>
+                    <td className="px-3 py-2 border-b w-20">{log.entidade_id}</td>
+                    <td className="px-4 py-3 border-b">{renderDetalhes(log)}</td>
                   </tr>
                 ))
               )}

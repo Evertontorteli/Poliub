@@ -263,6 +263,10 @@ exports.atualizarAluno = async (req, res) => {
 
     let papel = (req.user.role === 'aluno') ? 'aluno' : (role === 'recepcao' ? 'recepcao' : 'aluno');
 
+    // Busca o estado atual do aluno ANTES de alterar (para o log)
+    const alunoAntes = await Aluno.buscarPorId(id);
+    const dadosAntes = alunoAntes || null;
+
     let senhaHash = null;
     if (senha && senha.trim() !== '') {
       const salt = await bcrypt.genSalt(10);
@@ -280,14 +284,28 @@ exports.atualizarAluno = async (req, res) => {
       role: papel
     });
 
-    //REGISTRAR LOG ATUALIZAR
+    // Prepara dados para o log (antes e depois)
+    const dadosDepois = {
+      nome,
+      ra,
+      periodo_id,
+      usuario,
+      pin: pin || null,
+      cod_esterilizacao: cod_esterilizacao || null,
+      role: papel
+    };
+
+    //REGISTRAR LOG ATUALIZAR (mostrando o antes e o depois)
     await Log.criar({
       usuario_id: req.user.id,
       usuario_nome: req.user.nome,
       acao: 'atualizou',
       entidade: 'aluno',
       entidade_id: id,
-      detalhes: JSON.stringify({ nome, ra, usuario, periodo_id, pin, cod_esterilizacao, role: papel })
+      detalhes: JSON.stringify({
+        antes: dadosAntes,
+        depois: dadosDepois
+      })
     });
 
     return res.json({ id, nome, ra, periodo_id, usuario, pin, cod_esterilizacao, role: papel });

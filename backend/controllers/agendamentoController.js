@@ -521,14 +521,109 @@ exports.atualizarAgendamento = async (req, res) => {
     // Busca o estado atual do agendamento ANTES de alterar (para o log)
     const conn = await db.getConnection();
     const [antesRows] = await conn.execute(
-      'SELECT * FROM agendamentos WHERE id = ?',
+      `SELECT a.*, 
+              p.nome as paciente_nome,
+              al.nome as aluno_nome,
+              d.nome as disciplina_nome,
+              aux1.nome as auxiliar1_nome,
+              aux2.nome as auxiliar2_nome,
+              per.nome as periodo_nome
+       FROM agendamentos a 
+       LEFT JOIN pacientes p ON a.paciente_id = p.id 
+       LEFT JOIN alunos al ON a.aluno_id = al.id
+       LEFT JOIN disciplinas d ON a.disciplina_id = d.id
+       LEFT JOIN alunos aux1 ON a.auxiliar1_id = aux1.id
+       LEFT JOIN alunos aux2 ON a.auxiliar2_id = aux2.id
+       LEFT JOIN periodos per ON al.periodo_id = per.id
+       WHERE a.id = ?`,
       [id]
     );
     const dadosAntes = antesRows[0] || null;
+    
+    // Função auxiliar para buscar nomes de IDs
+    const buscarNomes = async (ids) => {
+      const nomes = {};
+      
+      // Buscar nome do paciente
+      if (ids.paciente_id) {
+        const [rows] = await conn.execute('SELECT nome FROM pacientes WHERE id = ?', [ids.paciente_id]);
+        if (rows[0]) nomes.paciente_nome = rows[0].nome;
+      }
+      
+      // Buscar nome do aluno
+      if (ids.aluno_id) {
+        const [rows] = await conn.execute('SELECT nome FROM alunos WHERE id = ?', [ids.aluno_id]);
+        if (rows[0]) nomes.aluno_nome = rows[0].nome;
+      }
+      
+      // Buscar nome da disciplina
+      if (ids.disciplina_id) {
+        const [rows] = await conn.execute('SELECT nome FROM disciplinas WHERE id = ?', [ids.disciplina_id]);
+        if (rows[0]) nomes.disciplina_nome = rows[0].nome;
+      }
+      
+      // Buscar nome do auxiliar1
+      if (ids.auxiliar1_id) {
+        const [rows] = await conn.execute('SELECT nome FROM alunos WHERE id = ?', [ids.auxiliar1_id]);
+        if (rows[0]) nomes.auxiliar1_nome = rows[0].nome;
+      }
+      
+      // Buscar nome do auxiliar2
+      if (ids.auxiliar2_id) {
+        const [rows] = await conn.execute('SELECT nome FROM alunos WHERE id = ?', [ids.auxiliar2_id]);
+        if (rows[0]) nomes.auxiliar2_nome = rows[0].nome;
+      }
+      
+      // Buscar nome do período (precisa do aluno_id primeiro)
+      if (ids.periodo_id) {
+        const [rows] = await conn.execute('SELECT nome FROM periodos WHERE id = ?', [ids.periodo_id]);
+        if (rows[0]) nomes.periodo_nome = rows[0].nome;
+      }
+      
+      return nomes;
+    };
+    
+    // Busca nomes para o "depois"
+    const nomesDepois = await buscarNomes(dados);
 
     // Valida permissões e faz o update como já fazia
     if (req.user.role === 'recepcao') {
       await Agendamento.atualizar(id, dados);
+
+      // Prepara dados para o log incluindo nomes
+      const antesLog = { ...dadosAntes };
+      if (antesLog.paciente_id && antesLog.paciente_nome) {
+        antesLog.nome_paciente = antesLog.paciente_nome;
+      }
+      if (antesLog.aluno_id && antesLog.aluno_nome) {
+        antesLog.nome_aluno = antesLog.aluno_nome;
+      }
+      if (antesLog.disciplina_id && antesLog.disciplina_nome) {
+        antesLog.nome_disciplina = antesLog.disciplina_nome;
+      }
+      if (antesLog.auxiliar1_id && antesLog.auxiliar1_nome) {
+        antesLog.nome_auxiliar1 = antesLog.auxiliar1_nome;
+      }
+      if (antesLog.auxiliar2_id && antesLog.auxiliar2_nome) {
+        antesLog.nome_auxiliar2 = antesLog.auxiliar2_nome;
+      }
+      
+      const depoisLog = { ...dados };
+      if (nomesDepois.paciente_nome) {
+        depoisLog.nome_paciente = nomesDepois.paciente_nome;
+      }
+      if (nomesDepois.aluno_nome) {
+        depoisLog.nome_aluno = nomesDepois.aluno_nome;
+      }
+      if (nomesDepois.disciplina_nome) {
+        depoisLog.nome_disciplina = nomesDepois.disciplina_nome;
+      }
+      if (nomesDepois.auxiliar1_nome) {
+        depoisLog.nome_auxiliar1 = nomesDepois.auxiliar1_nome;
+      }
+      if (nomesDepois.auxiliar2_nome) {
+        depoisLog.nome_auxiliar2 = nomesDepois.auxiliar2_nome;
+      }
 
       // LOG (mostrando o antes e o depois)
       await Log.criar({
@@ -538,8 +633,8 @@ exports.atualizarAgendamento = async (req, res) => {
         entidade: 'agendamento',
         entidade_id: id,
         detalhes: JSON.stringify({
-          antes: dadosAntes,
-          depois: dados
+          antes: antesLog,
+          depois: depoisLog
         })
       });
 
@@ -554,17 +649,51 @@ exports.atualizarAgendamento = async (req, res) => {
       );
       const permissoes = rows[0];
 
-      conn.release();
-
       if (
         !permissoes ||
         ![permissoes.aluno_id, permissoes.auxiliar1_id, permissoes.auxiliar2_id]
           .map(x => String(x))
           .includes(String(req.user.id))
       ) {
+        conn.release();
         return res.status(403).json({ error: 'Não autorizado a atualizar este agendamento.' });
       }
       await Agendamento.atualizar(id, dados);
+
+      // Prepara dados para o log incluindo nomes
+      const antesLog = { ...dadosAntes };
+      if (antesLog.paciente_id && antesLog.paciente_nome) {
+        antesLog.nome_paciente = antesLog.paciente_nome;
+      }
+      if (antesLog.aluno_id && antesLog.aluno_nome) {
+        antesLog.nome_aluno = antesLog.aluno_nome;
+      }
+      if (antesLog.disciplina_id && antesLog.disciplina_nome) {
+        antesLog.nome_disciplina = antesLog.disciplina_nome;
+      }
+      if (antesLog.auxiliar1_id && antesLog.auxiliar1_nome) {
+        antesLog.nome_auxiliar1 = antesLog.auxiliar1_nome;
+      }
+      if (antesLog.auxiliar2_id && antesLog.auxiliar2_nome) {
+        antesLog.nome_auxiliar2 = antesLog.auxiliar2_nome;
+      }
+      
+      const depoisLog = { ...dados };
+      if (nomesDepois.paciente_nome) {
+        depoisLog.nome_paciente = nomesDepois.paciente_nome;
+      }
+      if (nomesDepois.aluno_nome) {
+        depoisLog.nome_aluno = nomesDepois.aluno_nome;
+      }
+      if (nomesDepois.disciplina_nome) {
+        depoisLog.nome_disciplina = nomesDepois.disciplina_nome;
+      }
+      if (nomesDepois.auxiliar1_nome) {
+        depoisLog.nome_auxiliar1 = nomesDepois.auxiliar1_nome;
+      }
+      if (nomesDepois.auxiliar2_nome) {
+        depoisLog.nome_auxiliar2 = nomesDepois.auxiliar2_nome;
+      }
 
       // LOG (mostrando o antes e o depois)
       await Log.criar({
@@ -574,10 +703,12 @@ exports.atualizarAgendamento = async (req, res) => {
         entidade: 'agendamento',
         entidade_id: id,
         detalhes: JSON.stringify({
-          antes: dadosAntes,
-          depois: dados
+          antes: antesLog,
+          depois: depoisLog
         })
       });
+      
+      conn.release();
 
       return res.json({ mensagem: 'Agendamento atualizado!' });
     }

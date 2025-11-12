@@ -37,6 +37,10 @@ exports.atualizar = async (req, res) => {
   try {
     const { id } = req.params;
     const dados = req.body || {};
+    
+    // Busca o estado atual do encaminhamento ANTES de alterar (para o log)
+    const dadosAntes = await Enc.buscarPorId(Number(id));
+    
     const r = await Enc.atualizar(Number(id), dados);
     try {
       await Log.criar({
@@ -45,7 +49,10 @@ exports.atualizar = async (req, res) => {
         acao: 'atualizou',
         entidade: 'encaminhamento',
         entidade_id: id,
-        detalhes: dados
+        detalhes: JSON.stringify({
+          antes: dadosAntes,
+          depois: dados
+        })
       });
     } catch {}
     res.json({ ok: true, changed: r.changedRows ?? 0 });

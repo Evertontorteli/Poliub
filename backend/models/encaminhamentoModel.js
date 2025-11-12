@@ -48,6 +48,19 @@ const Encaminhamento = {
     }
   },
 
+  buscarPorId: async (id) => {
+    const conn = await getConnection();
+    try {
+      const [rows] = await conn.query(
+        `SELECT * FROM encaminhamentos WHERE id = ?`,
+        [Number(id)]
+      );
+      return rows[0] || null;
+    } finally {
+      conn.release();
+    }
+  },
+
   inserir: async (dados) => {
     const conn = await getConnection();
     try {

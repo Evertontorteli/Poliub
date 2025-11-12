@@ -215,6 +215,13 @@ exports.atualizarPaciente = async (req, res) => {
   try {
     const conn = await getConnection();
 
+    // Busca o estado atual do paciente ANTES de alterar (para o log)
+    const [antesRows] = await conn.query(
+      'SELECT * FROM pacientes WHERE id = ?',
+      [id]
+    );
+    const dadosAntes = antesRows[0] || null;
+
     const tipo = (tipo_paciente || 'NORMAL').toUpperCase();
     const telDigits = (telefone || '').replace(/\D/g, '');
     const telRespDigits = (responsavel_telefone || '').replace(/\D/g, '');
@@ -278,17 +285,39 @@ exports.atualizarPaciente = async (req, res) => {
       ]
     );
 
-    // LOG de atualização
+    // Prepara dados para o log (antes e depois)
+    const dadosDepois = {
+      nome,
+      telefone: telDigits || null,
+      numero_prontuario: numero_prontuario || null,
+      numero_gaveta: numero_gaveta || null,
+      rg: rg || null,
+      cpf: cpf || null,
+      data_nascimento: data_nascimento || null,
+      idade: idade || null,
+      cep: cep || null,
+      endereco: endereco || null,
+      numero: numero || null,
+      bairro: bairro || null,
+      cidade: cidade || null,
+      uf: uf || null,
+      observacao: observacao || null,
+      tipo_paciente: tipo,
+      responsavel_nome: responsavel_nome || null,
+      responsavel_telefone: telRespDigits || null
+    };
+
+    // LOG de atualização (mostrando o antes e o depois)
     await Log.criar({
       usuario_id: req.user.id,
       usuario_nome: req.user.nome,
       acao: 'atualizou',
       entidade: 'paciente',
       entidade_id: id,
-      detalhes: {
-        nome, telefone, numero_prontuario, numero_gaveta, rg, cpf,
-        data_nascimento, idade, cidade, endereco, numero, observacao
-      }
+      detalhes: JSON.stringify({
+        antes: dadosAntes,
+        depois: dadosDepois
+      })
     });
 
     conn.release();

@@ -1,7 +1,7 @@
 {
   "files": {
-    "main.css": "/static/css/main.13d736f8.css",
-    "main.js": "/static/js/main.ff5b3106.js",
+    "main.css": "/static/css/main.0a1a5315.css",
+    "main.js": "/static/js/main.e3ddf349.js",
     "static/media/login_poliub.jpg": "/static/media/login_poliub.62be56943c89c4f4e36a.jpg",
     "static/media/36.svg": "/static/media/36.10b2e95131b6d4b7b539.svg",
     "static/media/47.svg": "/static/media/47.5d20891b5f1f34e49270.svg",
@@ -40,11 +40,11 @@
     "static/media/implante.svg": "/static/media/implante.db87718355e881348ee2.svg",
     "index.html": "/index.html",
     "static/media/quadrado_anatomico.svg": "/static/media/quadrado_anatomico.1bf27edc6bcb9f3a38a6.svg",
-    "main.13d736f8.css.map": "/static/css/main.13d736f8.css.map",
-    "main.ff5b3106.js.map": "/static/js/main.ff5b3106.js.map"
+    "main.0a1a5315.css.map": "/static/css/main.0a1a5315.css.map",
+    "main.e3ddf349.js.map": "/static/js/main.e3ddf349.js.map"
   },
   "entrypoints": [
-    "static/css/main.13d736f8.css",
-    "static/js/main.ff5b3106.js"
+    "static/css/main.0a1a5315.css",
+    "static/js/main.e3ddf349.js"
   ]
 }
