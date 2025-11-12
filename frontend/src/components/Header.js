@@ -4,9 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Search, LogOut, User, MessageSquare } from "lucide-react";
 import SpotlightSearch from './SpotlightSearch';
-import PerfilModal from './PerfilModal'; // <=== ADICIONE ESTA LINHA
+import PerfilModal from './PerfilModal';
 import FeedbackModal from './FeedbackModal';
-import axios from 'axios'; // <=== NECESSÁRIO
+import Modal from './Modal';
+import FormPaciente from '../FormPaciente';
+import FormAluno from './FormAluno';
+import FormAgendamento from './FormAgendamento';
+import FormDisciplina from '../FormDisciplina';
+import axios from 'axios';
+import { toast } from 'react-toastify';
 
 const AvatarIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32px" height="32px">
@@ -56,10 +62,20 @@ export default function Header({ onlineUsers = [] }) {
   const wrapperRef = useRef(null);
   const popoverRef = useRef(null);
 
-  // NOVO: estados para o modal de perfil
+  // Estados para o modal de perfil
   const [showPerfilModal, setShowPerfilModal] = useState(false);
   const [alunoPerfil, setAlunoPerfil] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
+  
+  // Estados para modais de busca
+  const [showModalPaciente, setShowModalPaciente] = useState(false);
+  const [pacienteEditando, setPacienteEditando] = useState(null);
+  const [showModalAluno, setShowModalAluno] = useState(false);
+  const [alunoEditando, setAlunoEditando] = useState(null);
+  const [showModalDisciplina, setShowModalDisciplina] = useState(false);
+  const [disciplinaEditando, setDisciplinaEditando] = useState(null);
+  const [showModalAgendamento, setShowModalAgendamento] = useState(false);
+  const [agendamentoEditando, setAgendamentoEditando] = useState(null);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -74,21 +90,106 @@ export default function Header({ onlineUsers = [] }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Atalho de teclado Ctrl+K / Cmd+K para abrir busca
+  useEffect(() => {
+    if (user?.role !== "recepcao") return;
+    
+    function handleKeyDown(e) {
+      // Ctrl+K (Windows/Linux) ou Cmd+K (Mac)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    }
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [user?.role]);
+
   const toggleDropdown = () => setDropdownOpen(open => !open);
   const handleLogout = () => { setDropdownOpen(false); logout(); navigate('/login', { replace: true }); };
 
-  // NOVO: handler para "Meu Perfil"
+  // Handler para "Meu Perfil"
   const handleMeuPerfil = async () => {
     setDropdownOpen(false);
     try {
-      // Busca dados atualizados do backend (ajuste o endpoint se necessário)
       const { data } = await axios.get(`/api/alunos/${user.id}`);
       setAlunoPerfil(data);
       setShowPerfilModal(true);
     } catch (err) {
-      // fallback: mostra só o que já está no context se a API falhar
       setAlunoPerfil(user);
       setShowPerfilModal(true);
+    }
+  };
+
+  // Handlers para abrir modais a partir da busca
+  const handleOpenPaciente = async (dados) => {
+    try {
+      if (dados.id) {
+        const { data } = await axios.get(`/api/pacientes/${dados.id}`);
+        setPacienteEditando(data);
+        setShowModalPaciente(true);
+      } else {
+        setPacienteEditando(dados);
+        setShowModalPaciente(true);
+      }
+    } catch (err) {
+      toast.error('Erro ao carregar dados do paciente.');
+      console.error('Erro ao buscar paciente:', err);
+    }
+  };
+
+  const handleOpenAluno = async (dados) => {
+    try {
+      if (dados.id) {
+        const { data } = await axios.get(`/api/alunos/${dados.id}`);
+        setAlunoEditando(data);
+        setShowModalAluno(true);
+      } else {
+        setAlunoEditando(dados);
+        setShowModalAluno(true);
+      }
+    } catch (err) {
+      toast.error('Erro ao carregar dados do aluno.');
+      console.error('Erro ao buscar aluno:', err);
+    }
+  };
+
+  const handleOpenDisciplina = async (dados) => {
+    try {
+      if (dados.id) {
+        const { data } = await axios.get(`/api/disciplinas/${dados.id}`);
+        setDisciplinaEditando(data);
+        setShowModalDisciplina(true);
+      } else {
+        setDisciplinaEditando(dados);
+        setShowModalDisciplina(true);
+      }
+    } catch (err) {
+      toast.error('Erro ao carregar dados da disciplina.');
+      console.error('Erro ao buscar disciplina:', err);
+    }
+  };
+
+  const handleOpenAgendamento = async (dados) => {
+    try {
+      if (dados.id) {
+        // Busca todos os agendamentos e encontra o específico
+        const { data: agendamentos } = await axios.get('/api/agendamentos');
+        const agendamento = agendamentos.find(a => a.id === dados.id);
+        if (agendamento) {
+          setAgendamentoEditando(agendamento);
+          setShowModalAgendamento(true);
+        } else {
+          toast.error('Agendamento não encontrado.');
+        }
+      } else {
+        setAgendamentoEditando(dados);
+        setShowModalAgendamento(true);
+      }
+    } catch (err) {
+      toast.error('Erro ao carregar dados do agendamento.');
+      console.error('Erro ao buscar agendamento:', err);
     }
   };
 
@@ -131,7 +232,14 @@ export default function Header({ onlineUsers = [] }) {
             >
               <Search size={22} color="#0095DA" strokeWidth={2.5} />
             </button>
-            <SpotlightSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
+            <SpotlightSearch 
+              open={searchOpen} 
+              onClose={() => setSearchOpen(false)}
+              onOpenPaciente={handleOpenPaciente}
+              onOpenAluno={handleOpenAluno}
+              onOpenDisciplina={handleOpenDisciplina}
+              onOpenAgendamento={handleOpenAgendamento}
+            />
           </>
         )}
 
@@ -276,6 +384,99 @@ export default function Header({ onlineUsers = [] }) {
       )}
       {showFeedback && (
         <FeedbackModal open={showFeedback} onClose={() => setShowFeedback(false)} />
+      )}
+
+      {/* Modais de busca */}
+      {showModalPaciente && (
+        <Modal 
+          isOpen={showModalPaciente} 
+          onRequestClose={() => {
+            setShowModalPaciente(false);
+            setPacienteEditando(null);
+          }}
+          size="xl"
+        >
+          <FormPaciente
+            pacienteEditando={pacienteEditando}
+            onNovoPaciente={() => {
+              setShowModalPaciente(false);
+              setPacienteEditando(null);
+            }}
+            onFimEdicao={() => {
+              setShowModalPaciente(false);
+              setPacienteEditando(null);
+            }}
+          />
+        </Modal>
+      )}
+
+      {showModalAluno && (
+        <Modal 
+          isOpen={showModalAluno} 
+          onRequestClose={() => {
+            setShowModalAluno(false);
+            setAlunoEditando(null);
+          }}
+          size="xl"
+        >
+          <FormAluno
+            alunoEditando={alunoEditando}
+            onNovoAluno={() => {
+              setShowModalAluno(false);
+              setAlunoEditando(null);
+            }}
+            onFimEdicao={() => {
+              setShowModalAluno(false);
+              setAlunoEditando(null);
+            }}
+          />
+        </Modal>
+      )}
+
+      {showModalAgendamento && (
+        <Modal 
+          isOpen={showModalAgendamento} 
+          onRequestClose={() => {
+            setShowModalAgendamento(false);
+            setAgendamentoEditando(null);
+          }}
+          size="auto"
+        >
+          <FormAgendamento
+            agendamentoEditando={agendamentoEditando}
+            onNovoAgendamento={() => {
+              setShowModalAgendamento(false);
+              setAgendamentoEditando(null);
+            }}
+            onFimEdicao={() => {
+              setShowModalAgendamento(false);
+              setAgendamentoEditando(null);
+            }}
+          />
+        </Modal>
+      )}
+
+      {showModalDisciplina && (
+        <Modal 
+          isOpen={showModalDisciplina} 
+          onRequestClose={() => {
+            setShowModalDisciplina(false);
+            setDisciplinaEditando(null);
+          }}
+          size="lg"
+        >
+          <FormDisciplina
+            disciplinaEditando={disciplinaEditando}
+            onNovaDisciplina={() => {
+              setShowModalDisciplina(false);
+              setDisciplinaEditando(null);
+            }}
+            onFimEdicao={() => {
+              setShowModalDisciplina(false);
+              setDisciplinaEditando(null);
+            }}
+          />
+        </Modal>
       )}
     </header>
   );

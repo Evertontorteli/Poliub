@@ -7,7 +7,7 @@ import FormAgendamento from "./components/FormAgendamento";
 import FormPaciente from "./FormPaciente";
 import { useAuth } from "./context/AuthContext";
 import { toast } from 'react-toastify';
-import { Pencil, Trash, XCircle, Info, User } from 'lucide-react';
+import { Pencil, Trash, XCircle, Info, User, X } from 'lucide-react';
 
 
 export default function DashboardRecepcao() {
@@ -32,6 +32,9 @@ export default function DashboardRecepcao() {
   const [countsByDisc, setCountsByDisc] = useState({});
   const [showCancelDetailsModal, setShowCancelDetailsModal] = useState(false);
   const [cancelDetails, setCancelDetails] = useState(null);
+  const [filtroStatus, setFiltroStatus] = useState(null);
+  const [ordenacao, setOrdenacao] = useState({ campo: 'data', direcao: 'asc' });
+  const [buscaDebounced, setBuscaDebounced] = useState("");
 
   // Paginação
   const [pagina, setPagina] = useState(1);
@@ -117,22 +120,103 @@ export default function DashboardRecepcao() {
   }
 
 
+  // Função para buscar data inteligente no texto
+  const parsearDataDoTexto = (texto) => {
+    if (!texto) return null;
+    const hoje = new Date();
+    const textoLower = texto.toLowerCase().trim();
+    
+    // Hoje
+    if (textoLower === 'hoje') {
+      const yyyy = hoje.getFullYear();
+      const mm = String(hoje.getMonth() + 1).padStart(2, '0');
+      const dd = String(hoje.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+    
+    // Amanhã
+    if (textoLower === 'amanhã' || textoLower === 'amanha') {
+      const amanha = new Date(hoje);
+      amanha.setDate(hoje.getDate() + 1);
+      const yyyy = amanha.getFullYear();
+      const mm = String(amanha.getMonth() + 1).padStart(2, '0');
+      const dd = String(amanha.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+    
+    // Formato DD/MM/YYYY ou DD/MM
+    const matchData = texto.match(/(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?/);
+    if (matchData) {
+      const [, dia, mes, ano] = matchData;
+      const anoFinal = ano || hoje.getFullYear();
+      const mesPadded = mes.padStart(2, '0');
+      const diaPadded = dia.padStart(2, '0');
+      return `${anoFinal}-${mesPadded}-${diaPadded}`;
+    }
+    
+    return null;
+  };
+
+  // Função para destacar texto
+  const destacarTexto = (texto, termos) => {
+    if (!texto || !termos || termos.length === 0) return texto;
+    let resultado = String(texto);
+    const termosArray = termos.filter(t => t.length > 0);
+    termosArray.forEach(termo => {
+      const regex = new RegExp(`(${termo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+      resultado = resultado.replace(regex, '<mark class="bg-yellow-200 font-semibold">$1</mark>');
+    });
+    return resultado;
+  };
+
+  // Componente para renderizar texto com destaque
+  const TextoComDestaque = ({ texto, termos }) => {
+    if (!texto || !termos || termos.length === 0) return <>{texto || '-'}</>;
+    const termosArray = termos.filter(t => t.length > 0);
+    const textoDestacado = destacarTexto(texto, termosArray);
+    return <span dangerouslySetInnerHTML={{ __html: textoDestacado }} />;
+  };
+
   // Filtro + paginação
-  const agendamentosExibidos = agendamentosFiltrados.filter((ag) => {
-    const textoBusca = busca.toLowerCase();
-    const campos = [
-      ag.operadorNome,
-      ag.auxiliarNome,
-      ag.periodo_nome,
-      ag.pacienteNome,
-      ag.status,
-    ].map((x) => (x ? x.toLowerCase() : ""));
-    const matchTexto = campos.some((campo) => campo.includes(textoBusca));
+  const agendamentosFiltradosCompleto = agendamentosFiltrados.filter((ag) => {
+    // Busca de texto (com múltiplos termos)
+    let matchTexto = true;
+    if (buscaDebounced.trim()) {
+      const textoBusca = buscaDebounced.toLowerCase().trim();
+      const termos = textoBusca.split(/\s+/).filter(t => t.length > 0);
+      
+      // Verifica se é uma busca por data
+      const dataEncontrada = parsearDataDoTexto(buscaDebounced);
+      if (dataEncontrada) {
+        matchTexto = ag.data?.startsWith(dataEncontrada) || false;
+      } else {
+        // Busca em múltiplos campos
+        const campos = [
+          ag.operadorNome,
+          ag.auxiliarNome,
+          ag.periodo_nome,
+          ag.pacienteNome,
+          ag.status,
+          ag.telefone,
+          ag.operadorBox,
+          ag.numero_prontuario?.toString(),
+          ag.numero_gaveta?.toString(),
+        ].map((x) => (x ? String(x).toLowerCase() : ""));
+        
+        // Todos os termos devem estar presentes (AND)
+        matchTexto = termos.every(termo => 
+          campos.some((campo) => campo.includes(termo))
+        );
+      }
+    }
+    
     const matchData = filtroData ? ag.data?.startsWith(filtroData) : true;
     const matchHora = filtroHora ? ag.hora?.startsWith(filtroHora) : true;
+    const matchStatus = filtroStatus ? ag.status === filtroStatus : true;
+    
     // Janela padrão: somente próximos 32 dias quando não há filtro de data
     let matchJanela = true;
-    if (!filtroData) {
+    if (!filtroData && !buscaDebounced.match(/\d{1,2}\/\d{1,2}/)) {
       if (!ag.data) matchJanela = false;
       else {
         const hoje = new Date();
@@ -152,14 +236,60 @@ export default function DashboardRecepcao() {
         matchJanela = agStr >= hojeStr && agStr <= limiteStr;
       }
     }
-    return matchTexto && matchData && matchHora && matchJanela;
+    return matchTexto && matchData && matchHora && matchStatus && matchJanela;
   });
+
+  // Ordenação
+  const agendamentosOrdenados = [...agendamentosFiltradosCompleto].sort((a, b) => {
+    let valorA, valorB;
+    
+    switch (ordenacao.campo) {
+      case 'data':
+        valorA = a.data ? new Date(a.data.slice(0, 10)) : new Date(0);
+        valorB = b.data ? new Date(b.data.slice(0, 10)) : new Date(0);
+        if (valorA.getTime() !== valorB.getTime()) {
+          return ordenacao.direcao === 'asc' ? valorA - valorB : valorB - valorA;
+        }
+        // Se datas iguais, ordena por hora
+        valorA = a.hora || '00:00';
+        valorB = b.hora || '00:00';
+        return ordenacao.direcao === 'asc' ? valorA.localeCompare(valorB) : valorB.localeCompare(valorA);
+      case 'hora':
+        valorA = a.hora || '00:00';
+        valorB = b.hora || '00:00';
+        return ordenacao.direcao === 'asc' ? valorA.localeCompare(valorB) : valorB.localeCompare(valorA);
+      case 'paciente':
+        valorA = a.pacienteNome || '';
+        valorB = b.pacienteNome || '';
+        return ordenacao.direcao === 'asc' ? valorA.localeCompare(valorB) : valorB.localeCompare(valorA);
+      case 'operador':
+        valorA = a.operadorNome || '';
+        valorB = b.operadorNome || '';
+        return ordenacao.direcao === 'asc' ? valorA.localeCompare(valorB) : valorB.localeCompare(valorA);
+      case 'status':
+        valorA = a.status || '';
+        valorB = b.status || '';
+        return ordenacao.direcao === 'asc' ? valorA.localeCompare(valorB) : valorB.localeCompare(valorA);
+      default:
+        return 0;
+    }
+  });
+
+  const agendamentosExibidos = agendamentosOrdenados;
   const totalPaginas = Math.ceil(agendamentosExibidos.length / POR_PAGINA);
   const inicio = (pagina - 1) * POR_PAGINA;
   const fim = inicio + POR_PAGINA;
   const agsPagina = agendamentosExibidos.slice(inicio, fim);
 
-  useEffect(() => { setPagina(1); }, [busca, filtroData, filtroHora, agendamentosFiltrados.length]);
+  // Debounce da busca
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setBuscaDebounced(busca);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [busca]);
+
+  useEffect(() => { setPagina(1); }, [buscaDebounced, filtroData, filtroHora, filtroStatus, ordenacao, agendamentosFiltrados.length]);
 
   // Atualiza contagem de agendamentos (estável): total na janela padrão de 32 dias
   useEffect(() => {
@@ -481,86 +611,139 @@ export default function DashboardRecepcao() {
       </div>
       {/* Lista de Agendamentos */}
       {disciplinaSelecionada && (
-        <div className="bg-white rounded-2xl shadow p-2">
-          <h2 className="text-base lg:text-lg font-medium px-4 pt-6 pb-2">
+        <React.Fragment>
+          <div className="bg-white rounded-2xl shadow p-2">
+          <h2 className="text-base lg:text-lg font-medium pt-6 pb-2">
             Agendamentos de{" "}
             <span className="text-[#3172C0]">
               {disciplinaSelecionada.nome}
             </span>
           </h2>
-          {!filtroData && (
-            <div className="px-4 pt-0 pb-2 text-xs text-gray-600 text-center">
-              <div>Exibindo apenas os próximos <strong>32 dias</strong> a partir de hoje.</div>
-              <div className="mt-1 opacity-70">Ordenação: mais antigos primeiro (ordem de chegada)</div>
+          <div className="pt-0 pb-2 text-xs text-gray-600">
+            <div className="flex flex-wrap items-center gap-2">
+              {!filtroData && (
+                <span>Exibindo apenas os próximos <strong>32 dias</strong> a partir de hoje.</span>
+              )}
+              <span className={!filtroData ? "opacity-70" : ""}>
+                {!filtroData && "| "}
+                Ordenação: mais antigos primeiro (ordem de chegada).
+              </span>
             </div>
-          )}
+          </div>
           {/* Filtros */}
-          <div className="flex flex-col md:flex-row md:items-end gap-3 pt-0 pb-2">
-            <div className="flex-1 group">
-              <label className="block text-sm text-gray-600 mb-1 transition-colors group-focus-within:text-blue-600">Buscar</label>
-              <input
-                type="text"
-                className="border rounded px-4 py-2 w-full rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-300"
-                placeholder="Operador, Auxiliar, Período, Paciente ou Status"
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-              />
-            </div>
-            <div className="flex items-center gap-4 mt-4 md:mt-0">
-              {/* Data */}
-              <div className="relative group flex items-center">
-                <button
-                  type="button"
-                  className="p-2 hover:bg-gray-200 rounded-full transition"
-                  onClick={handleDataClick}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#0095DA]" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><path d="M8 2v4" /><path d="M16 2v4" /><rect width="18" height="18" x="3" y="4" rx="2" /><path d="M3 10h18" /></svg>
-                </button>
-                <Tooltip text="Filtrar por data" />
-                <input
-                  type="date"
-                  ref={dataInputRef}
-                  value={filtroData}
-                  onChange={e => setFiltroData(e.target.value)}
-                  className="absolute opacity-0 w-0 h-0"
-                />
+          <div className="flex flex-col gap-3 pt-0 pb-2">
+            <div className="flex flex-col md:flex-row md:items-end gap-3">
+              <div className="flex-1 group relative">
+                <label className="block text-sm text-gray-600 mb-1 transition-colors group-focus-within:text-blue-600">
+                  Buscar
+                  {agendamentosExibidos.length > 0 && (
+                    <span className="ml-2 text-xs text-gray-500 font-normal">
+                      ({agendamentosExibidos.length} {agendamentosExibidos.length === 1 ? 'resultado' : 'resultados'})
+                    </span>
+                  )}
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    className="border rounded px-4 py-2 w-full rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-300 pr-10"
+                    placeholder="Operador, Auxiliar, Período, Paciente, Status, Telefone, Box, Prontuário, Data (ex: 25/12 ou hoje)"
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                  />
+                  {busca && (
+                    <button
+                      onClick={() => setBusca('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-200 rounded-full transition"
+                      title="Limpar busca"
+                    >
+                      <X size={16} className="text-gray-500" />
+                    </button>
+                  )}
+                </div>
               </div>
-              {/* Hora */}
-              <div className="relative group flex items-center">
-                <button
-                  type="button"
-                  className="p-2 hover:bg-gray-200 rounded-full transition"
-                  onClick={handleHoraClick}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#0095DA]" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v6l4 2" /><circle cx="12" cy="12" r="10" /></svg>
-                </button>
-                <Tooltip text="Filtrar por hora" />
-                <input
-                  type="time"
-                  ref={horaInputRef}
-                  value={filtroHora}
-                  onChange={e => setFiltroHora(e.target.value)}
-                  className="absolute opacity-0 w-0 h-0"
-                />
-              </div>
-              {/* Impressão */}
-              <div className="relative group flex items-center">
-                <button
-                  type="button"
-                  className="p-2 hover:bg-gray-200 rounded-full transition"
-                  onClick={handleImprimir}
-                >
-
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#0095DA]" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6" /><rect x="6" y="14" width="12" height="8" rx="1" /></svg>
-                </button>
-                <Tooltip text="Imprimir lista" />
+              <div className="flex items-center gap-4 mt-4 md:mt-0 flex-wrap justify-end">
+                {/* Chips de Status */}
+                <div className="flex flex-wrap gap-2 items-center">
+                  <button
+                    onClick={() => setFiltroStatus(null)}
+                    className={`px-3 py-1 rounded-full text-xs font-medium transition ${
+                      filtroStatus === null
+                        ? 'bg-blue-100 text-blue-700 border-2 border-blue-300'
+                        : 'bg-gray-200 text-gray-700 border-2 border-transparent hover:bg-gray-300'
+                    }`}
+                  >
+                    Todos
+                  </button>
+                  {Object.entries(STATUS_LABELS).map(([key, label]) => (
+                    <button
+                      key={key}
+                      onClick={() => setFiltroStatus(filtroStatus === key ? null : key)}
+                      className={`px-3 py-1 rounded-full text-xs font-medium transition ${
+                        filtroStatus === key
+                          ? 'bg-blue-100 text-blue-700 border-2 border-blue-300'
+                          : 'bg-gray-200 text-gray-700 border-2 border-transparent hover:bg-gray-300'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                
+                {/* Ícones de Filtro */}
+                <div className="flex items-center gap-4">
+                    {/* Data */}
+                    <div className="relative group flex items-center">
+                      <button
+                        type="button"
+                        className="p-2 hover:bg-gray-200 rounded-full transition"
+                        onClick={handleDataClick}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#0095DA]" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><path d="M8 2v4" /><path d="M16 2v4" /><rect width="18" height="18" x="3" y="4" rx="2" /><path d="M3 10h18" /></svg>
+                      </button>
+                      <Tooltip text="Filtrar por data" />
+                      <input
+                        type="date"
+                        ref={dataInputRef}
+                        value={filtroData}
+                        onChange={e => setFiltroData(e.target.value)}
+                        className="absolute opacity-0 w-0 h-0"
+                      />
+                    </div>
+                    {/* Hora */}
+                    <div className="relative group flex items-center">
+                      <button
+                        type="button"
+                        className="p-2 hover:bg-gray-200 rounded-full transition"
+                        onClick={handleHoraClick}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#0095DA]" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v6l4 2" /><circle cx="12" cy="12" r="10" /></svg>
+                      </button>
+                      <Tooltip text="Filtrar por hora" />
+                      <input
+                        type="time"
+                        ref={horaInputRef}
+                        value={filtroHora}
+                        onChange={e => setFiltroHora(e.target.value)}
+                        className="absolute opacity-0 w-0 h-0"
+                      />
+                    </div>
+                    {/* Impressão */}
+                    <div className="relative group flex items-center">
+                      <button
+                        type="button"
+                        className="p-2 hover:bg-gray-200 rounded-full transition"
+                        onClick={handleImprimir}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#0095DA]" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6" /><rect x="6" y="14" width="12" height="8" rx="1" /></svg>
+                      </button>
+                      <Tooltip text="Imprimir lista" />
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-
-          {/* Paginação */}
           <Paginador />
-
           {/* Tabela Desktop */}
           <div className="hidden md:block">
             <table className="min-w-full w-full bg-white border-separate border-spacing-0">
@@ -611,7 +794,12 @@ export default function DashboardRecepcao() {
                           return <div className="w-4 h-4 rounded-full mx-auto bg-gray-500" title="Sem registro" />
                         })()}
                       </td>
-                      <td className="px-2 lg:px-3 py-1.5 lg:py-2 text-xs lg:text-sm font-medium text-gray-500">{ag.operadorNome || '-'}</td>
+                      <td className="px-2 lg:px-3 py-1.5 lg:py-2 text-xs lg:text-sm font-medium text-gray-500">
+                        <TextoComDestaque 
+                          texto={ag.operadorNome} 
+                          termos={buscaDebounced ? buscaDebounced.split(/\s+/).filter(t => t.length > 0) : []} 
+                        />
+                      </td>
                       <td className="px-2 lg:px-3 py-1.5 lg:py-2">
                         {(() => {
                           const auxId = ag.auxiliar1_id || ag.auxiliar2_id || null;
@@ -634,7 +822,12 @@ export default function DashboardRecepcao() {
                           return <div className="w-4 h-4 rounded-full mx-auto bg-gray-500" title="Sem registro" />
                         })()}
                       </td>
-                      <td className="px-2 lg:px-3 py-1.5 lg:py-2 text-xs lg:text-sm text-gray-500">{ag.auxiliarNome || '-'}</td>
+                      <td className="px-2 lg:px-3 py-1.5 lg:py-2 text-xs lg:text-sm text-gray-500">
+                        <TextoComDestaque 
+                          texto={ag.auxiliarNome} 
+                          termos={buscaDebounced ? buscaDebounced.split(/\s+/).filter(t => t.length > 0) : []} 
+                        />
+                      </td>
                       <td className="px-2 lg:px-3 py-1.5 lg:py-2 text-xs lg:text-sm text-gray-500">{disciplinaSelecionada.nome}</td>
                       <td className="px-2 lg:px-3 py-1.5 lg:py-2 text-xs lg:text-sm text-gray-800">
                         <div className="flex items-center gap-2">
@@ -649,7 +842,10 @@ export default function DashboardRecepcao() {
                               <User size={12} />
                             </button>
                           )}
-                          {ag.pacienteNome || '-'}
+                          <TextoComDestaque 
+                            texto={ag.pacienteNome} 
+                            termos={buscaDebounced ? buscaDebounced.split(/\s+/).filter(t => t.length > 0) : []} 
+                          />
                         </div>
                       </td>
                       <td className="px-2 lg:px-3 py-1.5 lg:py-2 text-xs lg:text-sm text-gray-500">
@@ -673,7 +869,10 @@ export default function DashboardRecepcao() {
                                 <path d="M20.52 3.48A12 12 0 0 0 12 0C5.38 0 0 5.42 0 12.11a12 12 0 0 0 1.65 6.09L0 24l6.13-1.6A12.07 12.07 0 0 0 12 24c6.63 0 12-5.43 12-12.09a12.1 12.1 0 0 0-3.48-8.43Zm-8.52 18.09a10.03 10.03 0 0 1-5.15-1.4l-.37-.21-3.64.95.97-3.56-.24-.36A10.04 10.04 0 0 1 2 12.11C2 6.54 6.48 2 12 2c5.53 0 10 4.54 10 10.11 0 5.57-4.47 10.06-10 10.06Zm5.43-7.52c-.3-.15-1.76-.86-2.03-.96-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.07a8.1 8.1 0 0 1-2.37-1.46 9.06 9.06 0 0 1-1.68-2.09c-.17-.29-.02-.44.13-.59.13-.14.3-.36.45-.54.15-.18.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.5-.5-.67-.51-.17-.01-.36-.01-.55-.01-.19 0-.5.07-.77.36-.27.29-1.03 1.01-1.03 2.47 0 1.46 1.06 2.87 1.21 3.08.15.21 2.09 3.18 5.24 4.34.73.25 1.29.4 1.73.5.72.15 1.38.13 1.9.08.58-.07 1.76-.72 2.01-1.42.25-.7.25-1.3.18-1.43-.06-.13-.24-.21-.54-.36Z" />
                               </svg>
                             </a>
-                            {ag.telefone}
+                            <TextoComDestaque 
+                              texto={ag.telefone} 
+                              termos={buscaDebounced ? buscaDebounced.split(/\s+/).filter(t => t.length > 0) : []} 
+                            />
                           </div>
                         ) : '-'}
                       </td>
@@ -752,7 +951,6 @@ export default function DashboardRecepcao() {
               </tbody>
             </table>
           </div>
-
           {/* Cards Mobile */}
           <div className="md:hidden space-y-3">
             {agsPagina.map((ag, idx) => (
@@ -815,9 +1013,24 @@ export default function DashboardRecepcao() {
                   </div>
                 </div>
 
-                <div><b>Box:</b> <span className="text-gray-800">{ag.operadorBox ?? '-'}</span></div>
-                <div><b>Operador:</b> <span className="text-gray-800">{ag.operadorNome || '-'}</span></div>
-                <div><b>Auxiliar:</b> <span className="text-gray-800">{ag.auxiliarNome || '-'}</span></div>
+                <div><b>Box:</b> <span className="text-gray-800">
+                  <TextoComDestaque 
+                    texto={ag.operadorBox} 
+                    termos={buscaDebounced ? buscaDebounced.split(/\s+/).filter(t => t.length > 0) : []} 
+                  />
+                </span></div>
+                <div><b>Operador:</b> <span className="text-gray-800">
+                  <TextoComDestaque 
+                    texto={ag.operadorNome} 
+                    termos={buscaDebounced ? buscaDebounced.split(/\s+/).filter(t => t.length > 0) : []} 
+                  />
+                </span></div>
+                <div><b>Auxiliar:</b> <span className="text-gray-800">
+                  <TextoComDestaque 
+                    texto={ag.auxiliarNome} 
+                    termos={buscaDebounced ? buscaDebounced.split(/\s+/).filter(t => t.length > 0) : []} 
+                  />
+                </span></div>
                 <div><b>Disciplina:</b> <span className="text-gray-800">{disciplinaSelecionada.nome}</span></div>
                 <div><b>Paciente:</b> 
                   <span className="text-gray-800 ml-1 flex items-center gap-2 inline-flex">
@@ -832,7 +1045,10 @@ export default function DashboardRecepcao() {
                         <User size={12} />
                       </button>
                     )}
-                    {ag.pacienteNome || '-'}
+                    <TextoComDestaque 
+                      texto={ag.pacienteNome} 
+                      termos={buscaDebounced ? buscaDebounced.split(/\s+/).filter(t => t.length > 0) : []} 
+                    />
                   </span>
                 </div>
                 <div>
@@ -858,7 +1074,10 @@ export default function DashboardRecepcao() {
                             <path d="M20.52 3.48A12 12 0 0 0 12 0C5.38 0 0 5.42 0 12.11a12 12 0 0 0 1.65 6.09L0 24l6.13-1.6A12.07 12.07 0 0 0 12 24c6.63 0 12-5.43 12-12.09a12.1 12.1 0 0 0-3.48-8.43Zm-8.52 18.09a10.03 10.03 0 0 1-5.15-1.4l-.37-.21-3.64.95.97-3.56-.24-.36A10.04 10.04 0 0 1 2 12.11C2 6.54 6.48 2 12 2c5.53 0 10 4.54 10 10.11 0 5.57-4.47 10.06-10 10.06Zm5.43-7.52c-.3-.15-1.76-.86-2.03-.96-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.07a8.1 8.1 0 0 1-2.37-1.46 9.06 9.06 0 0 1-1.68-2.09c-.17-.29-.02-.44.13-.59.13-.14.3-.36.45-.54.15-.18.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.5-.5-.67-.51-.17-.01-.36-.01-.55-.01-.19 0-.5.07-.77.36-.27.29-1.03 1.01-1.03 2.47 0 1.46 1.06 2.87 1.21 3.08.15.21 2.09 3.18 5.24 4.34.73.25 1.29.4 1.73.5.72.15 1.38.13 1.9.08.58-.07 1.76-.72 2.01-1.42.25-.7.25-1.3.18-1.43-.06-.13-.24-.21-.54-.36Z" />
                           </svg>
                         </a>
-                        {ag.telefone}
+                        <TextoComDestaque 
+                          texto={ag.telefone} 
+                          termos={buscaDebounced ? buscaDebounced.split(/\s+/).filter(t => t.length > 0) : []} 
+                        />
                       </>
                     ) : '-'}
                   </span>
@@ -969,7 +1188,7 @@ export default function DashboardRecepcao() {
               </div>
             </Modal>
           )}
-        </div>
+        </React.Fragment>
       )}
     </div>
   );

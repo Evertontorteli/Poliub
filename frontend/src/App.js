@@ -362,7 +362,22 @@ function LayoutInterno() {
       } = payload || {}
 
       const paciente = nome_paciente ? ` para ${nome_paciente}` : ''
-      const quando = [data, hora].filter(Boolean).join(' às ')
+      
+      // Formata data para padrão brasileiro (DD/MM/YYYY)
+      let dataFormatada = data
+      if (data && data.includes('-')) {
+        const [yyyy, mm, dd] = data.split('-')
+        dataFormatada = `${dd}/${mm}/${yyyy}`
+      }
+      
+      // Formata hora para padrão brasileiro (HH:mm)
+      let horaFormatada = hora
+      if (hora && hora.includes(':')) {
+        const [hh, mm] = hora.split(':')
+        horaFormatada = `${hh}:${mm}`
+      }
+      
+      const quando = [dataFormatada, horaFormatada].filter(Boolean).join(' às ')
       const periodo = [periodo_nome, periodo_turno].filter(Boolean).join(' - ')
       const disc = disciplina_nome ? ` (${disciplina_nome}${periodo ? ' — ' + periodo : ''})` : ''
 

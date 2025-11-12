@@ -32,6 +32,23 @@
   background: #e5e7eb;
   border-radius: 8px;
 }
+
+/* Barra de rolagem customizada para busca */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+  border: 2px solid #f1f5f9;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
 @media (min-width: 1366px) {
   .sidebar-1366 {
     display: flex !important;
