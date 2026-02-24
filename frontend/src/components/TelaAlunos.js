@@ -297,7 +297,7 @@ export default function TelaAlunos() {
           </div>
         </div>
 
-        {role === "recepcao" && selecionados.size > 0 && (
+        {role === "recepcao" && !mostrarDesativados && selecionados.size > 0 && (
           <div className="flex items-center gap-2 mb-3 p-2 bg-blue-50 rounded-lg">
             <span className="text-sm text-gray-700">{selecionados.size} selecionado(s)</span>
             <button
@@ -325,7 +325,7 @@ export default function TelaAlunos() {
           <table className="min-w-full bg-white border-separate border-spacing-0">
             <thead>
               <tr className="bg-gray-100 text-gray-600 text-sm">
-                {role === "recepcao" && (
+                {role === "recepcao" && !mostrarDesativados && (
                   <th className="px-2 py-2 text-left font-semibold border-b w-10">
                     <input
                       type="checkbox"
@@ -355,7 +355,7 @@ export default function TelaAlunos() {
               {alunosPagina.map((a, idx) => (
                 <React.Fragment key={a.id}>
                   <tr className="border-none hover:bg-gray-50 transition">
-                    {role === "recepcao" && (
+                    {role === "recepcao" && !mostrarDesativados && (
                       <td className="px-2 py-2">
                         <input
                           type="checkbox"
@@ -410,7 +410,7 @@ export default function TelaAlunos() {
                   {/* Separador entre linhas, exceto a última */}
                   {idx !== alunosPagina.length - 1 && (
                     <tr>
-                      <td colSpan={role === "recepcao" ? 12 : 11}>
+                      <td colSpan={role === "recepcao" && !mostrarDesativados ? 12 : 11}>
                         <hr className="border-t border-gray-200 my-0" />
                       </td>
                     </tr>
@@ -481,7 +481,7 @@ export default function TelaAlunos() {
                   <span className="text-red-600">{a.cod_esterilizacao || "-"}</span>
                 </div>
               </div>
-              {role === "recepcao" && (
+              {role === "recepcao" && !mostrarDesativados && (
                 <div className="flex items-center gap-2 mt-1">
                   <input
                     type="checkbox"

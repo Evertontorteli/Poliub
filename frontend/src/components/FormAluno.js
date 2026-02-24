@@ -68,9 +68,9 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
   const [pin, setPin] = useState(alunoEditando?.pin || '');  // novo estado para o PIN
   const [showSenha, setShowSenha] = useState(false);
   const [role, setRole] = useState('aluno');
+  const [ativo, setAtivo] = useState(true);
   const [mensagem, setMensagem] = useState('');
   const [codEsterilizacao, setCodEsterilizacao] = useState(alunoEditando?.cod_esterilizacao || '');
-
 
   // Auxiliares
   const [periodos, setPeriodos] = useState([]);
@@ -93,7 +93,8 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
       setSenha(alunoEditando.senha || '');
       setShowSenha(false);
       setCodEsterilizacao(alunoEditando.cod_esterilizacao || '');
-      
+      setAtivo(alunoEditando.ativo !== 0 && alunoEditando.ativo !== false);
+
       // Se o box já vem no objeto alunoEditando (da lista), usa direto
       if (alunoEditando.box) {
         setBox(String(alunoEditando.box).slice(0, 3));
@@ -119,7 +120,7 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
     } else {
       setNome(''); setRa(''); setBox(''); setBoxId(null);
       setPeriodoId(''); setUsuario(''); setSenha(''); setShowSenha(false);
-      setRole('aluno'); setMensagem(''); setCodEsterilizacao('');
+      setRole('aluno'); setAtivo(true); setMensagem(''); setCodEsterilizacao('');
     }
   }, [alunoEditando, token]);
 
@@ -165,11 +166,11 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
       senha,
       role,
       pin: pin || null,
-      cod_esterilizacao: codEsterilizacao || null // <-- Adicione!
+      cod_esterilizacao: codEsterilizacao || null,
     };
 
     if (alunoEditando) {
-      const payload = { ...alunoData };
+      const payload = { ...alunoData, ativo };
       if (!senha) delete payload.senha;
       try {
         await axios.put(`/api/alunos/${alunoId}`, payload, { headers });
@@ -345,6 +346,21 @@ function FormAluno({ onNovoAluno, alunoEditando, onFimEdicao }) {
         </select>
       </div>
 
+      {/* Ativo (só ao editar; permite reativar aluno desativado) */}
+      {alunoEditando && user?.role === 'recepcao' && (
+        <div className="group flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="form-aluno-ativo"
+            checked={ativo}
+            onChange={e => setAtivo(e.target.checked)}
+            className="rounded border-gray-300 text-[#0095DA] focus:ring-[#0095DA]"
+          />
+          <label htmlFor="form-aluno-ativo" className="font-medium text-gray-800 cursor-pointer">
+            Ativo (pode acessar o sistema)
+          </label>
+        </div>
+      )}
 
       {/* Mensagem de feedback */}
       {mensagem && (

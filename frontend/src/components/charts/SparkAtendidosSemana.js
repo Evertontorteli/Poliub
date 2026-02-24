@@ -10,16 +10,25 @@ function weekKey(d) {
   return `${y}-${m}-${dd}`
 }
 
+function parseDataAgendamento(a) {
+  if (!a?.data) return null
+  const d = a.data
+  const str = typeof d === 'string' ? d.slice(0, 10) : (d instanceof Date ? d.toISOString().slice(0, 10) : null)
+  if (!str || str.length < 10) return null
+  const parts = str.split('-').map(Number)
+  if (parts.length < 3) return null
+  return new Date(parts[0], parts[1] - 1, parts[2])
+}
+
 export default function SparkAtendidosSemana({ agendamentos = [], semanas = 8, height = 80 }) {
   const data = useMemo(() => {
     const hoje = new Date(); hoje.setHours(0,0,0,0)
     const inicio = new Date(hoje); inicio.setDate(inicio.getDate() - semanas*7)
     const map = new Map()
     for (const a of agendamentos) {
-      if (!a?.data || a.status === 'Solicitado') continue
-      const [Y,M,D] = a.data.slice(0,10).split('-')
-      const dt = new Date(Number(Y), Number(M)-1, Number(D))
-      if (dt < inicio || dt > hoje) continue
+      if (a.status === 'Solicitado') continue
+      const dt = parseDataAgendamento(a)
+      if (!dt || dt < inicio || dt > hoje) continue
       const k = weekKey(dt)
       map.set(k, (map.get(k)||0) + 1)
     }

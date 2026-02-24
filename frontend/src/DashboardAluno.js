@@ -140,16 +140,27 @@ export default function DashboardAluno() {
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
 
+  // Extrai data no formato YYYY-MM-DD (evita problema de timezone e formato vindo da API)
+  const dataAgendamento = (a) => {
+    if (a == null || a.data == null) return null;
+    const d = a.data;
+    const str = typeof d === "string" ? d.slice(0, 10) : (d instanceof Date ? d.toISOString().slice(0, 10) : null);
+    if (!str || str.length < 10) return null;
+    const [Y, M, D] = str.split("-").map(Number);
+    if (!Y || !M || !D) return null;
+    return new Date(Y, M - 1, D);
+  };
+
   const solicitacoes = Array.isArray(agendamentos)
     ? agendamentos.filter(a => {
-      if (a.status !== "Solicitado" || !a.data) return false;
-      const [Y, M, D] = a.data.slice(0, 10).split("-");
-      const dt = new Date(Y, M - 1, D);
-      return dt >= hoje;
+      if (a.status !== "Solicitado") return false;
+      const dt = dataAgendamento(a);
+      return dt != null && dt >= hoje;
     }).sort((a,b)=>{
-      const ab = new Date(a.data.slice(0,10));
-      const bb = new Date(b.data.slice(0,10));
-      if (bb - ab !== 0) return bb - ab; // mais novo primeiro
+      const ab = dataAgendamento(a);
+      const bb = dataAgendamento(b);
+      if (!ab || !bb) return 0;
+      if (bb - ab !== 0) return bb - ab;
       const ah = (a.hora||'00:00'); const bh = (b.hora||'00:00');
       return bh.localeCompare(ah);
     })
@@ -157,13 +168,12 @@ export default function DashboardAluno() {
 
   const proximos = Array.isArray(agendamentos)
     ? agendamentos.filter(a => {
-      if (!a.data) return false;
-      const [Y, M, D] = a.data.slice(0, 10).split("-");
-      const dt = new Date(Y, M - 1, D);
-      return dt >= hoje && a.status !== "Solicitado";
+      const dt = dataAgendamento(a);
+      return dt != null && dt >= hoje && a.status !== "Solicitado";
     }).sort((a,b)=>{
-      const ad = new Date(a.data.slice(0,10));
-      const bd = new Date(b.data.slice(0,10));
+      const ad = dataAgendamento(a);
+      const bd = dataAgendamento(b);
+      if (!ad || !bd) return 0;
       if (bd - ad !== 0) return bd - ad;
       const ah = (a.hora||'00:00'); const bh = (b.hora||'00:00');
       return bh.localeCompare(ah);
@@ -172,13 +182,12 @@ export default function DashboardAluno() {
 
   const atendidos = Array.isArray(agendamentos)
     ? agendamentos.filter(a => {
-      if (!a.data) return false;
-      const [Y, M, D] = a.data.slice(0, 10).split("-");
-      const dt = new Date(Y, M - 1, D);
-      return dt < hoje && a.status !== "Solicitado";
+      const dt = dataAgendamento(a);
+      return dt != null && dt < hoje && a.status !== "Solicitado";
     }).sort((a,b)=>{
-      const ad = new Date(a.data.slice(0,10));
-      const bd = new Date(b.data.slice(0,10));
+      const ad = dataAgendamento(a);
+      const bd = dataAgendamento(b);
+      if (!ad || !bd) return 0;
       if (bd - ad !== 0) return bd - ad;
       const ah = (a.hora||'00:00'); const bh = (b.hora||'00:00');
       return bh.localeCompare(ah);

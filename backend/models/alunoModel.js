@@ -9,7 +9,10 @@ const Aluno = {
     const { incluirDesativados = false } = opcoes;
     const conn = await pool.getConnection();
     try {
-      const whereAtivo = incluirDesativados ? '' : 'WHERE (COALESCE(a.ativo, 1) = 1)';
+      // incluirDesativados = true → lista apenas desativados; false → apenas ativos
+      const whereAtivo = incluirDesativados
+        ? 'WHERE (COALESCE(a.ativo, 1) = 0)'
+        : 'WHERE (COALESCE(a.ativo, 1) = 1)';
       const [rows] = await conn.execute(`
         SELECT 
           a.id,
@@ -36,6 +39,10 @@ const Aluno = {
       return rows;
     } catch (err) {
       if (err.code === 'ER_BAD_FIELD_ERROR' && /ativo/.test(err.message)) {
+        if (incluirDesativados) {
+          conn.release();
+          return [];
+        }
         const [rows] = await conn.execute(`
           SELECT 
             a.id,

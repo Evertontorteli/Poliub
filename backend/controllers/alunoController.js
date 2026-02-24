@@ -228,7 +228,7 @@ exports.criarAluno = async (req, res) => {
  */
 exports.atualizarAluno = async (req, res) => {
   const { id } = req.params;
-  const { nome, ra, periodo_id, usuario, senha, role, pin, cod_esterilizacao } = req.body;
+  const { nome, ra, periodo_id, usuario, senha, role, pin, cod_esterilizacao, ativo } = req.body;
 
   // valida campos obrigatórios
   if (!nome || !ra || !usuario) {
@@ -282,7 +282,8 @@ exports.atualizarAluno = async (req, res) => {
       senhaHash,
       pin,
       cod_esterilizacao,
-      role: papel
+      role: papel,
+      ativo: ativo !== undefined ? !!ativo : undefined
     });
 
     // Prepara dados para o log (antes e depois)
