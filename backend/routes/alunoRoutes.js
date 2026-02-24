@@ -79,6 +79,14 @@ router.delete(
   alunoController.deletarAluno
 );
 
+// Desativar alunos em massa (apenas recepção) — rota antes de /:id
+router.post(
+  '/desativar-massa',
+  verificaToken,
+  apenasRecepcao,
+  alunoController.desativarEmMassa
+);
+
 // 6) ROTA “/me” → apenas ALUNO para ver os próprios dados
 router.get('/me', verificaToken, apenasAluno, async (req, res) => {
   try {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import Modal from "./Modal";
+import ConfirmModal from "./ConfirmModal";
 import FormAluno from "./FormAluno";
 import { useAuth } from "../context/AuthContext";
 import { Pencil, Trash } from "lucide-react";
@@ -23,16 +24,19 @@ export default function TelaAlunos() {
   // Novos filtros
   const [periodoFiltro, setPeriodoFiltro] = useState("");
   const [codEsterilizacaoFiltro, setCodEsterilizacaoFiltro] = useState("");
+  const [mostrarDesativados, setMostrarDesativados] = useState(false);
+  const [selecionados, setSelecionados] = useState(new Set());
+  const [mostrarConfirmDesativar, setMostrarConfirmDesativar] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
 
   const fetchAlunos = async () => {
     setCarregando(true);
     try {
-      const url = role === "recepcao" ? "/api/alunos" : "/api/alunos/me";
+      let url = role === "recepcao" ? "/api/alunos" : "/api/alunos/me";
+      if (role === "recepcao" && mostrarDesativados) url += "?desativados=1";
       const res = await axios.get(url, { headers });
       const lista = Array.isArray(res.data) ? res.data : [res.data];
-      // Evita N+1 requisições: não buscar box individualmente para cada aluno (melhora muito no mobile)
       setAlunos(lista);
     } catch (err) {
       console.error("Erro ao buscar alunos:", err.response?.data || err.message);
@@ -45,11 +49,43 @@ export default function TelaAlunos() {
   useEffect(() => {
     fetchAlunos();
     // eslint-disable-next-line
-  }, [token, role]);
+  }, [token, role, mostrarDesativados]);
 
   useEffect(() => {
     setPagina(1);
   }, [searchTerm, periodoFiltro, codEsterilizacaoFiltro, alunos.length]);
+
+  const toggleSelecionado = (id) => {
+    setSelecionados((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleAbrirConfirmDesativar = () => {
+    const ids = Array.from(selecionados);
+    if (ids.length === 0) {
+      toast.warning("Selecione pelo menos um aluno.");
+      return;
+    }
+    setMostrarConfirmDesativar(true);
+  };
+
+  const handleConfirmarDesativarEmMassa = () => {
+    const ids = Array.from(selecionados);
+    axios
+      .post("/api/alunos/desativar-massa", { ids }, { headers })
+      .then((res) => {
+        toast.success(`${res.data.desativados} aluno(s) desativado(s).`);
+        setSelecionados(new Set());
+        fetchAlunos();
+      })
+      .catch((err) => {
+        toast.error(err.response?.data?.error || "Não foi possível desativar.");
+      });
+  };
 
   const onEditar = (aluno) => {
     setAlunoEditando(aluno);
@@ -146,6 +182,20 @@ export default function TelaAlunos() {
   const fim = inicio + POR_PAGINA;
   const alunosPagina = filtered.slice(inicio, fim);
 
+  const selecionarTodosNaPagina = (marcar) => {
+    if (marcar) {
+      setSelecionados((prev) => new Set([...prev, ...alunosPagina.map((a) => a.id)]));
+    } else {
+      setSelecionados((prev) => {
+        const next = new Set(prev);
+        alunosPagina.forEach((a) => next.delete(a.id));
+        return next;
+      });
+    }
+  };
+
+  const todosSelecionadosNaPagina = alunosPagina.length > 0 && alunosPagina.every((a) => selecionados.has(a.id));
+
   // Paginador
   function Paginador() {
     return (
@@ -231,8 +281,41 @@ export default function TelaAlunos() {
                 className="w-full border border-gray-300 rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
               />
             </div>
+            {role === "recepcao" && (
+              <div className="flex items-end gap-2 pb-0.5">
+                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-700 whitespace-nowrap">
+                  <input
+                    type="checkbox"
+                    checked={mostrarDesativados}
+                    onChange={(e) => setMostrarDesativados(e.target.checked)}
+                    className="rounded border-gray-300 text-[#0095DA] focus:ring-[#0095DA]"
+                  />
+                  Alunos Desativados
+                </label>
+              </div>
+            )}
           </div>
         </div>
+
+        {role === "recepcao" && selecionados.size > 0 && (
+          <div className="flex items-center gap-2 mb-3 p-2 bg-blue-50 rounded-lg">
+            <span className="text-sm text-gray-700">{selecionados.size} selecionado(s)</span>
+            <button
+              type="button"
+              onClick={handleAbrirConfirmDesativar}
+              className="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition"
+            >
+              Desativar selecionados
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelecionados(new Set())}
+              className="text-gray-600 hover:text-gray-800 text-sm"
+            >
+              Limpar seleção
+            </button>
+          </div>
+        )}
 
         {/* Paginação Topo */}
         <Paginador />
@@ -242,6 +325,18 @@ export default function TelaAlunos() {
           <table className="min-w-full bg-white border-separate border-spacing-0">
             <thead>
               <tr className="bg-gray-100 text-gray-600 text-sm">
+                {role === "recepcao" && (
+                  <th className="px-2 py-2 text-left font-semibold border-b w-10">
+                    <input
+                      type="checkbox"
+                      checked={todosSelecionadosNaPagina}
+                      onChange={(e) => selecionarTodosNaPagina(e.target.checked)}
+                      className="rounded border-gray-300 text-[#0095DA] focus:ring-[#0095DA]"
+                      title="Selecionar todos desta página"
+                      aria-label="Selecionar todos desta página"
+                    />
+                  </th>
+                )}
                 <th className="px-3 py-2 text-left font-semibold border-b">#</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">ID</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">Box</th>
@@ -250,6 +345,7 @@ export default function TelaAlunos() {
                 <th className="px-3 py-2 text-left font-semibold border-b">Período</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">PIN</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">Cód. Esterilização</th>
+                <th className="px-3 py-2 text-left font-semibold border-b">Status</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">Usuário</th>
                 <th className="px-3 py-2 text-left font-semibold border-b">Perfil</th>
                 <th className="px-3 py-2 text-right font-semibold border-b">Ações</th>
@@ -259,6 +355,18 @@ export default function TelaAlunos() {
               {alunosPagina.map((a, idx) => (
                 <React.Fragment key={a.id}>
                   <tr className="border-none hover:bg-gray-50 transition">
+                    {role === "recepcao" && (
+                      <td className="px-2 py-2">
+                        <input
+                          type="checkbox"
+                          checked={selecionados.has(a.id)}
+                          onChange={() => toggleSelecionado(a.id)}
+                          className="rounded border-gray-300 text-[#0095DA] focus:ring-[#0095DA]"
+                          title="Selecionar para desativar"
+                          aria-label={`Selecionar ${a.nome}`}
+                        />
+                      </td>
+                    )}
                     <td className="px-3 py-2 text-gray-500">{inicio + idx + 1}</td>
                     <td className="px-3 py-2 text-gray-600">{a.id}</td>
                     <td className="px-3 py-2 text-gray-600">{a.box || "-"}</td>
@@ -270,6 +378,11 @@ export default function TelaAlunos() {
                     <td className="px-3 py-2 text-blue-600">{a.pin || "-"}</td>
                     <td className="px-3 py-2 text-red-600">
                       {a.cod_esterilizacao || "-"}
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${a.ativo === 0 ? 'bg-gray-200 text-gray-700' : 'bg-green-100 text-green-800'}`}>
+                        {a.ativo === 0 ? "Desativado" : "Ativo"}
+                      </span>
                     </td>
                     <td className="px-3 py-2 text-gray-600">{a.usuario}</td>
                     <td className="px-3 py-2 text-gray-600">{a.role}</td>
@@ -297,7 +410,7 @@ export default function TelaAlunos() {
                   {/* Separador entre linhas, exceto a última */}
                   {idx !== alunosPagina.length - 1 && (
                     <tr>
-                      <td colSpan={11}>
+                      <td colSpan={role === "recepcao" ? 12 : 11}>
                         <hr className="border-t border-gray-200 my-0" />
                       </td>
                     </tr>
@@ -368,6 +481,24 @@ export default function TelaAlunos() {
                   <span className="text-red-600">{a.cod_esterilizacao || "-"}</span>
                 </div>
               </div>
+              {role === "recepcao" && (
+                <div className="flex items-center gap-2 mt-1">
+                  <input
+                    type="checkbox"
+                    checked={selecionados.has(a.id)}
+                    onChange={() => toggleSelecionado(a.id)}
+                    className="rounded border-gray-300 text-[#0095DA] focus:ring-[#0095DA]"
+                    aria-label={`Selecionar ${a.nome}`}
+                  />
+                  <span className="text-xs text-gray-500">Selecionar para desativar</span>
+                </div>
+              )}
+              <div>
+                <b>Status:</b>{" "}
+                <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${a.ativo === 0 ? 'bg-gray-200 text-gray-700' : 'bg-green-100 text-green-800'}`}>
+                  {a.ativo === 0 ? "Desativado" : "Ativo"}
+                </span>
+              </div>
               <div>
                 <b>Usuário:</b> <span className="text-gray-700">{a.usuario}</span>
               </div>
@@ -391,6 +522,17 @@ export default function TelaAlunos() {
             />
           </Modal>
         )}
+
+        <ConfirmModal
+          isOpen={mostrarConfirmDesativar}
+          onClose={() => setMostrarConfirmDesativar(false)}
+          onConfirm={handleConfirmarDesativarEmMassa}
+          title="Desativar alunos"
+          message={`Desativar ${selecionados.size} aluno(s)? Eles não poderão mais acessar o sistema.`}
+          confirmLabel="Desativar"
+          cancelLabel="Cancelar"
+          variant="warning"
+        />
       </div>
     </div>
   );

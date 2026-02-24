@@ -5,30 +5,61 @@ const Aluno = {
   /**
    * Lista todos os alunos, agora incluindo o campo `pin`
    */
-  listarTodos: async () => {
+  listarTodos: async (opcoes = {}) => {
+    const { incluirDesativados = false } = opcoes;
     const conn = await pool.getConnection();
-    const [rows] = await conn.execute(`
-      SELECT 
-        a.id,
-        a.nome,
-        a.ra,
-        a.usuario,
-        a.role,
-        a.pin,
-        a.cod_esterilizacao,
-        a.periodo_id,
-        p.nome     AS periodo_nome,
-        p.turno    AS periodo_turno,
-        b.conteudo AS box
-      FROM alunos a
-      LEFT JOIN periodos p 
-        ON a.periodo_id = p.id
-      LEFT JOIN boxes b
-        ON a.id = b.aluno_id
-      ORDER BY a.nome
-    `);
-    conn.release();
-    return rows;
+    try {
+      const whereAtivo = incluirDesativados ? '' : 'WHERE (COALESCE(a.ativo, 1) = 1)';
+      const [rows] = await conn.execute(`
+        SELECT 
+          a.id,
+          a.nome,
+          a.ra,
+          a.usuario,
+          a.role,
+          a.pin,
+          a.cod_esterilizacao,
+          a.periodo_id,
+          a.ativo,
+          p.nome     AS periodo_nome,
+          p.turno    AS periodo_turno,
+          b.conteudo AS box
+        FROM alunos a
+        LEFT JOIN periodos p 
+          ON a.periodo_id = p.id
+        LEFT JOIN boxes b
+          ON a.id = b.aluno_id
+        ${whereAtivo}
+        ORDER BY a.nome
+      `);
+      conn.release();
+      return rows;
+    } catch (err) {
+      if (err.code === 'ER_BAD_FIELD_ERROR' && /ativo/.test(err.message)) {
+        const [rows] = await conn.execute(`
+          SELECT 
+            a.id,
+            a.nome,
+            a.ra,
+            a.usuario,
+            a.role,
+            a.pin,
+            a.cod_esterilizacao,
+            a.periodo_id,
+            p.nome     AS periodo_nome,
+            p.turno    AS periodo_turno,
+            b.conteudo AS box
+          FROM alunos a
+          LEFT JOIN periodos p ON a.periodo_id = p.id
+          LEFT JOIN boxes b ON a.id = b.aluno_id
+          ORDER BY a.nome
+        `);
+        conn.release();
+        return rows.map((r) => ({ ...r, ativo: 1 }));
+      }
+      conn.release();
+      throw err;
+    }
   },
   /**
  * Busca um aluno pelo RA (retorna o primeiro encontrado ou null)
@@ -58,32 +89,70 @@ const Aluno = {
   },
 
   /**
+   * Define ativo = 0 para uma lista de IDs (desativação em massa).
+   */
+  desativarEmMassa: async (ids) => {
+    if (!ids || !Array.isArray(ids) || ids.length === 0) return 0;
+    const placeholders = ids.map(() => '?').join(',');
+    const conn = await pool.getConnection();
+    const [result] = await conn.execute(
+      `UPDATE alunos SET ativo = 0 WHERE id IN (${placeholders})`,
+      ids
+    );
+    conn.release();
+    return result.affectedRows;
+  },
+
+  /**
    * Busca um aluno por ID (incluindo pin e box)
    */
   buscarPorId: async (id) => {
     const conn = await pool.getConnection();
-    const [rows] = await conn.execute(
-      `SELECT 
-       a.id,
-       a.nome,
-       a.ra,
-       a.usuario,
-       a.role,
-       a.pin,
-       a.cod_esterilizacao,
-       a.periodo_id,
-       a.session_token,             
-       p.nome AS periodo_nome,
-       p.turno AS periodo_turno,
-       b.conteudo AS box
-     FROM alunos a
-     LEFT JOIN periodos p ON a.periodo_id = p.id
-     LEFT JOIN boxes b ON a.id = b.aluno_id
-     WHERE a.id = ?`,
-      [id]
-    );
-    conn.release();
-    return rows[0];
+    try {
+      const [rows] = await conn.execute(
+        `SELECT 
+         a.id,
+         a.nome,
+         a.ra,
+         a.usuario,
+         a.role,
+         a.pin,
+         a.cod_esterilizacao,
+         a.periodo_id,
+         a.ativo,
+         a.session_token,             
+         p.nome AS periodo_nome,
+         p.turno AS periodo_turno,
+         b.conteudo AS box
+       FROM alunos a
+       LEFT JOIN periodos p ON a.periodo_id = p.id
+       LEFT JOIN boxes b ON a.id = b.aluno_id
+       WHERE a.id = ?`,
+        [id]
+      );
+      conn.release();
+      const row = rows[0];
+      return row ? { ...row, ativo: row.ativo !== undefined ? row.ativo : 1 } : row;
+    } catch (err) {
+      if (err.code === 'ER_BAD_FIELD_ERROR' && /ativo/.test(err.message)) {
+        const [rows] = await conn.execute(
+          `SELECT 
+           a.id, a.nome, a.ra, a.usuario, a.role, a.pin,
+           a.cod_esterilizacao, a.periodo_id, a.session_token,             
+           p.nome AS periodo_nome, p.turno AS periodo_turno, b.conteudo AS box
+           FROM alunos a
+           LEFT JOIN periodos p ON a.periodo_id = p.id
+           LEFT JOIN boxes b ON a.id = b.aluno_id
+           WHERE a.id = ?`,
+          [id]
+        );
+        conn.release();
+        const row = rows[0];
+        return row ? { ...row, ativo: 1 } : row;
+      }
+      conn.release();
+      throw err;
+    }
   },
 
   /**
@@ -116,8 +185,10 @@ const Aluno = {
    */
   atualizar: async (id, dados) => {
     const conn = await pool.getConnection();
+    const ativo = dados.ativo !== undefined ? (dados.ativo ? 1 : 0) : null;
+    const setAtivo = ativo !== null ? ', ativo = ?' : '';
+    const paramsAtivo = ativo !== null ? [ativo] : [];
     if (dados.senhaHash) {
-      // atualiza senha e pin
       await conn.execute(
         `UPDATE alunos SET
            nome       = ?, 
@@ -128,6 +199,7 @@ const Aluno = {
            role       = ?,
            pin        = ?,
            cod_esterilizacao  = ?
+           ${setAtivo}
          WHERE id = ?`,
         [
           dados.nome,
@@ -138,11 +210,11 @@ const Aluno = {
           dados.role,
           dados.pin,
           dados.cod_esterilizacao !== undefined ? dados.cod_esterilizacao : null,
+          ...paramsAtivo,
           id
         ]
       );
     } else {
-      // sem alterar a senha, mas atualiza o pin
       await conn.execute(
         `UPDATE alunos SET
            nome       = ?, 
@@ -152,6 +224,7 @@ const Aluno = {
            role       = ?,
            pin        = ?,
            cod_esterilizacao = ?
+           ${setAtivo}
          WHERE id = ?`,
         [
           dados.nome,
@@ -161,6 +234,7 @@ const Aluno = {
           dados.role,
           dados.pin,
           dados.cod_esterilizacao !== undefined ? dados.cod_esterilizacao : null,
+          ...paramsAtivo,
           id
         ]
       );

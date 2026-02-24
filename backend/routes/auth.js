@@ -50,6 +50,11 @@ router.post('/login', async (req, res) => {
 
     const aluno = rows[0];
 
+    // aluno desativado não pode acessar
+    if (aluno.ativo === 0 || aluno.ativo === false) {
+      return res.status(403).json({ error: 'Conta desativada. Entre em contato com a recepção.' });
+    }
+
     // valida senha
     const senhaValida = await bcrypt.compare(senha, aluno.senha);
     if (!senhaValida) {

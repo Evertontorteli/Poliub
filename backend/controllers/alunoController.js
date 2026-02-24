@@ -64,8 +64,9 @@ exports.listarAlunos = async (req, res) => {
       return res.json(rows);
     }
 
-    // Listar todos normalmente se não tem filtro
-    const lista = await Aluno.listarTodos();
+    // Listar todos (incluir desativados se ?desativados=1)
+    const incluirDesativados = req.query.desativados === '1';
+    const lista = await Aluno.listarTodos({ incluirDesativados });
     const semSenha = lista.map(({ senhaHash, ...rest }) => rest);
     return res.json(semSenha);
 
@@ -356,11 +357,22 @@ exports.listarPorPeriodo = async (req, res) => {
   let conn;
   try {
     conn = await getConnection();
-    const [alunos] = await conn.query(
-      'SELECT id, nome FROM alunos WHERE periodo_id = ?',
-      [periodoId]
-    );
-    return res.json(alunos);
+    try {
+      const [alunos] = await conn.query(
+        'SELECT id, nome FROM alunos WHERE periodo_id = ? AND (COALESCE(ativo, 1) = 1)',
+        [periodoId]
+      );
+      return res.json(alunos);
+    } catch (sqlErr) {
+      if (sqlErr.code === 'ER_BAD_FIELD_ERROR' && /ativo/.test(sqlErr.message)) {
+        const [alunos] = await conn.query(
+          'SELECT id, nome FROM alunos WHERE periodo_id = ?',
+          [periodoId]
+        );
+        return res.json(alunos);
+      }
+      throw sqlErr;
+    }
   } catch (err) {
     console.error('Erro ao listar alunos por período:', err);
     return res.status(500).json({
@@ -369,5 +381,39 @@ exports.listarPorPeriodo = async (req, res) => {
     });
   } finally {
     if (conn) await conn.release();
+  }
+};
+
+/**
+ * Desativar alunos em massa (apenas recepção). Não exclui, só ativo = 0.
+ */
+exports.desativarEmMassa = async (req, res) => {
+  const { ids } = req.body;
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ error: 'Informe um array de ids (ids) para desativar.' });
+  }
+  const idsNum = ids.map((id) => parseInt(id, 10)).filter((n) => !Number.isNaN(n));
+  if (idsNum.length === 0) {
+    return res.status(400).json({ error: 'Nenhum id válido.' });
+  }
+  try {
+    const affected = await Aluno.desativarEmMassa(idsNum);
+    await Log.criar({
+      usuario_id: req.user.id,
+      usuario_nome: req.user.nome,
+      acao: 'desativou_em_massa',
+      entidade: 'aluno',
+      entidade_id: null,
+      detalhes: JSON.stringify({ ids: idsNum, quantidade: affected })
+    });
+    return res.json({ sucesso: true, desativados: affected });
+  } catch (err) {
+    if (err.code === 'ER_BAD_FIELD_ERROR' && /ativo/.test(err.message)) {
+      return res.status(503).json({
+        error: 'Atualize o banco: execute o SQL em backend/scripts/add-ativo-alunos.sql no seu MySQL (local e Railway).'
+      });
+    }
+    console.error('Erro ao desativar alunos em massa:', err);
+    return res.status(500).json({ error: 'Não foi possível desativar os alunos.' });
   }
 };
