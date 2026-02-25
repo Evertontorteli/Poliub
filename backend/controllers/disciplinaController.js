@@ -23,9 +23,9 @@ exports.criarDisciplina = async (req, res) => {
 
 exports.atualizarDisciplina = async (req, res) => {
   const { id } = req.params;
-  const { nome, periodo_id, dia_semana } = req.body;
+  const { nome, periodo_id, dia_semana, ativo } = req.body;
   try {
-    await Disciplina.atualizar(id, { nome, periodo_id, dia_semana });
+    await Disciplina.atualizar(id, { nome, periodo_id, dia_semana, ativo });
     res.send('Disciplina atualizada!');
   } catch (err) {
     res.status(500).json({ error: 'Erro ao atualizar disciplina', details: err });
