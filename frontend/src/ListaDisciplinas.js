@@ -84,21 +84,24 @@ function ListaDisciplinas({ reloadKey, onEditar }) {
   };
 
   if (carregando) return <p>Carregando disciplinas...</p>;
-  if (disciplinas.length === 0) return <p>{mostrarDesativadas ? 'Nenhuma disciplina desativada.' : 'Nenhuma disciplina cadastrada.'}</p>;
 
-  // Obter períodos únicos para filtro
-  const periodosUnicos = [
-    ...new Map(
-      disciplinas.map((d) => [
-        d.periodo_id,
-        {
-          id: d.periodo_id,
-          nome: d.periodo_nome,
-          turno: d.turno,
-        },
-      ])
-    ).values(),
-  ].filter((p) => p.id);
+  const listaVazia = disciplinas.length === 0;
+
+  // Obter períodos únicos para filtro (somente se houver disciplinas)
+  const periodosUnicos = listaVazia
+    ? []
+    : [
+        ...new Map(
+          disciplinas.map((d) => [
+            d.periodo_id,
+            {
+              id: d.periodo_id,
+              nome: d.periodo_nome,
+              turno: d.turno,
+            },
+          ])
+        ).values(),
+      ].filter((p) => p.id);
 
   const formatPeriodoLabel = (p) => {
     const base = `${p.nome}${p.turno ? ` - ${p.turno}` : ''}`;
@@ -244,7 +247,14 @@ function ListaDisciplinas({ reloadKey, onEditar }) {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl shadow p-2">
+      {/* Mensagem quando lista vazia */}
+      {listaVazia && (
+        <p className="text-center py-8 text-gray-500">
+          {mostrarDesativadas ? 'Nenhuma disciplina desativada.' : 'Nenhuma disciplina cadastrada.'}
+        </p>
+      )}
+
+      {!listaVazia && <div className="bg-white rounded-2xl shadow p-2">
         <Paginador />
         <hr className="border-t border-gray-200 my-2" />
 
@@ -388,7 +398,7 @@ function ListaDisciplinas({ reloadKey, onEditar }) {
           ))}
         </div>
         <Paginador />
-      </div>
+      </div>}
 
       {/* Modal de confirmação */}
       <ConfirmModal
