@@ -1,5 +1,5 @@
 // src/components/ListaAgendamentos.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { Pencil, Trash, XCircle, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -31,15 +31,31 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
   const [agendamentos, setAgendamentos] = useState([]);
   const [carregando, setCarregando] = useState(true);
   const [busca, setBusca] = useState('');
-  const [filtroData, setFiltroData] = useState('');
+  const [filtroDataInicio, setFiltroDataInicio] = useState('');
+  const [filtroDataFim, setFiltroDataFim] = useState('');
   const [filtroHora, setFiltroHora] = useState('');
   const [pagina, setPagina] = useState(1);
   const [role, setRole] = useState(localStorage.getItem('role') || '');
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelMotivo, setCancelMotivo] = useState('');
   const [cancelId, setCancelId] = useState(null);
+  const [showDateFilter, setShowDateFilter] = useState(false);
+  const dateFilterRef = useRef(null);
 
   const navigate = useNavigate();
+
+  // Fechar dropdown de filtro de data ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dateFilterRef.current && !dateFilterRef.current.contains(event.target)) {
+        setShowDateFilter(false);
+      }
+    };
+    if (showDateFilter) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showDateFilter]);
 
   useEffect(() => {
     setCarregando(true);
@@ -63,7 +79,7 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
       });
   }, [reloadKey]);
 
-  useEffect(() => { setPagina(1); }, [busca, filtroData, filtroHora, agendamentos.length]);
+  useEffect(() => { setPagina(1); }, [busca, filtroDataInicio, filtroDataFim, filtroHora, agendamentos.length]);
 
   const filtrarAgendamentos = (lista) => {
     return lista.filter(ag => {
@@ -77,7 +93,19 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
         ag.status
       ].map(x => x ? x.toLowerCase() : '');
       const matchTexto = campos.some(campo => campo.includes(textoBusca));
-      const matchData = filtroData ? (ag.data && ag.data.startsWith(filtroData)) : true;
+      
+      // Filtro por período de datas
+      const agData = ag.data ? ag.data.slice(0, 10) : null;
+      let matchData = true;
+      if (filtroDataInicio || filtroDataFim) {
+        if (!agData) {
+          matchData = false;
+        } else {
+          if (filtroDataInicio && agData < filtroDataInicio) matchData = false;
+          if (filtroDataFim && agData > filtroDataFim) matchData = false;
+        }
+      }
+      
       const matchHora = filtroHora ? (ag.hora && ag.hora.startsWith(filtroHora)) : true;
       return matchTexto && matchData && matchHora;
     });
@@ -117,13 +145,14 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
       disciplinaNome = found?.disciplinaNome || '';
     }
 
-    const filtros = { data: filtroData, hora: filtroHora, busca };
+    const filtros = { dataInicio: filtroDataInicio, dataFim: filtroDataFim, hora: filtroHora, busca };
 
     // Querystring
     const params = new URLSearchParams();
     if (unicaDisciplina) params.set('disciplinaId', unicaDisciplina);
     if (disciplinaNome) params.set('disciplinaNome', disciplinaNome);
-    if (filtroData) params.set('data', filtroData);
+    if (filtroDataInicio) params.set('dataInicio', filtroDataInicio);
+    if (filtroDataFim) params.set('dataFim', filtroDataFim);
     if (filtroHora) params.set('hora', filtroHora);
     if (busca) params.set('busca', busca);
 
@@ -219,29 +248,65 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
             />
           </div>
           <div className="flex items-center gap-4 mt-4 md:mt-0">
-            {/* Filtro Data */}
-            <div className="relative group flex items-center">
+            {/* Filtro por período de datas */}
+            <div className="relative group flex items-center" ref={dateFilterRef}>
               <button
                 type="button"
-                className="p-2 hover:bg-gray-200 rounded-full transition"
-                onClick={() =>
-                  document.getElementById('filtroDataInput')?.showPicker &&
-                  document.getElementById('filtroDataInput').showPicker()
-                }
+                className={`p-2 hover:bg-gray-200 rounded-full transition relative ${(filtroDataInicio || filtroDataFim) ? 'bg-blue-50' : ''}`}
+                onClick={() => setShowDateFilter(!showDateFilter)}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#0095DA]" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><path d="M8 2v4" /><path d="M16 2v4" /><rect width="18" height="18" x="3" y="4" rx="2" /><path d="M3 10h18" /></svg>
-
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#0095DA]" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 2v4" /><path d="M16 2v4" /><rect width="18" height="18" x="3" y="4" rx="2" /><path d="M3 10h18" /></svg>
+                {(filtroDataInicio || filtroDataFim) && (
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-[#0095DA] rounded-full"></span>
+                )}
               </button>
               <span className="absolute z-50 left-1/2 -translate-x-1/2 -top-9 w-max bg-gray-900 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 pointer-events-none transition">
-                Filtrar por data
+                Filtrar por período
               </span>
-              <input
-                type="date"
-                id="filtroDataInput"
-                className="sr-only"
-                value={filtroData}
-                onChange={e => setFiltroData(e.target.value)}
-              />
+              {/* Dropdown do filtro de data */}
+              {showDateFilter && (
+                <div className="absolute top-full right-0 mt-2 bg-white rounded-xl shadow-lg border border-gray-200 p-4 z-50 min-w-[280px]">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-sm font-medium text-gray-700">Filtrar por período</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowDateFilter(false)}
+                      className="p-1 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    </button>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Data início</label>
+                      <input
+                        type="date"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                        value={filtroDataInicio}
+                        onChange={e => setFiltroDataInicio(e.target.value)}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Data fim</label>
+                      <input
+                        type="date"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                        value={filtroDataFim}
+                        onChange={e => setFiltroDataFim(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  {(filtroDataInicio || filtroDataFim) && (
+                    <button
+                      type="button"
+                      onClick={() => { setFiltroDataInicio(''); setFiltroDataFim(''); }}
+                      className="mt-3 w-full text-sm text-gray-600 hover:text-gray-800 py-1.5 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                    >
+                      Limpar filtro
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
             {/* Filtro Hora */}
             <div className="relative group flex items-center">
@@ -253,7 +318,7 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
                   document.getElementById('filtroHoraInput').showPicker()
                 }
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#0095DA]" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6v6l4 2" /><circle cx="12" cy="12" r="10" /></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#0095DA]" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 6v6l4 2" /><circle cx="12" cy="12" r="10" /></svg>
 
               </button>
               <span className="absolute z-50 left-1/2 -translate-x-1/2 -top-9 w-max bg-gray-900 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 pointer-events-none transition">
@@ -274,7 +339,7 @@ export default function ListaAgendamentos({ onEditar, reloadKey }) {
                 className="p-2 hover:bg-gray-200 rounded-full transition"
                 onClick={handleImprimir}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#0095DA]" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" ><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6" /><rect x="6" y="14" width="12" height="8" rx="1" /></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-[#0095DA]" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6" /><rect x="6" y="14" width="12" height="8" rx="1" /></svg>
 
               </button>
               <span className="absolute z-50 left-1/2 -translate-x-1/2 -top-9 w-max bg-gray-900 text-white text-xs rounded py-1 px-2 opacity-0 group-hover:opacity-100 pointer-events-none transition">

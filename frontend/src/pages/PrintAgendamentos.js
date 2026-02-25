@@ -24,6 +24,8 @@ export default function PrintAgendamentos() {
     s.disciplinaNome ?? (params.get('disciplinaNome') || undefined);
 
   const filtros = {
+    dataInicio: fs.dataInicio ?? params.get('dataInicio') ?? undefined,
+    dataFim: fs.dataFim ?? params.get('dataFim') ?? undefined,
     data: fs.data ?? fs.filtroData ?? params.get('data') ?? undefined,
     hora: fs.hora ?? fs.filtroHora ?? params.get('hora') ?? undefined,
     busca: fs.busca ?? params.get('busca') ?? undefined,
@@ -64,8 +66,13 @@ export default function PrintAgendamentos() {
         if (!campos.some((c) => c.includes(textoBusca))) return false;
       }
 
-      if (filtros?.data) {
-        const apenasData = ag.data ? ag.data.slice(0, 10) : '';
+      // Filtro por período (dataInicio/dataFim) ou data única
+      const apenasData = ag.data ? ag.data.slice(0, 10) : '';
+      if (filtros?.dataInicio || filtros?.dataFim) {
+        if (!apenasData) return false;
+        if (filtros.dataInicio && apenasData < filtros.dataInicio) return false;
+        if (filtros.dataFim && apenasData > filtros.dataFim) return false;
+      } else if (filtros?.data) {
         if (apenasData !== filtros.data) return false;
       }
 
@@ -127,9 +134,14 @@ export default function PrintAgendamentos() {
   const cancelados = agendamentosFiltrados.filter(a => String(a.status).toLowerCase() === 'cancelado');
   const agendamentosParaImprimir = [...ativos, ...cancelados];
 
-  const selectedDateStr = filtros?.data
-    ? `${formatarData(filtros.data)}${filtros?.hora ? ` ${filtros.hora}` : ''}`
-    : '—';
+  let selectedDateStr = '—';
+  if (filtros?.dataInicio || filtros?.dataFim) {
+    const inicio = filtros.dataInicio ? formatarData(filtros.dataInicio) : '...';
+    const fim = filtros.dataFim ? formatarData(filtros.dataFim) : '...';
+    selectedDateStr = `${inicio} até ${fim}${filtros?.hora ? ` às ${filtros.hora}` : ''}`;
+  } else if (filtros?.data) {
+    selectedDateStr = `${formatarData(filtros.data)}${filtros?.hora ? ` ${filtros.hora}` : ''}`;
+  }
   const printDateStr = printStamp.toLocaleDateString('pt-BR');
   const printTimeStr = printStamp.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
