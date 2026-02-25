@@ -8,6 +8,7 @@ function FormDisciplina({ onNovaDisciplina, disciplinaEditando, onFimEdicao }) {
   const [periodos, setPeriodos] = useState([]);
   const [periodoId, setPeriodoId] = useState('');
   const [diaSemana, setDiaSemana] = useState('');
+  const [ativo, setAtivo] = useState(true);
 
   useEffect(() => {
     axios.get('/api/periodos')
@@ -20,35 +21,41 @@ function FormDisciplina({ onNovaDisciplina, disciplinaEditando, onFimEdicao }) {
       setNome(disciplinaEditando.nome);
       setPeriodoId(disciplinaEditando.periodo_id || '');
       setDiaSemana(disciplinaEditando.dia_semana || '');
+      setAtivo(disciplinaEditando.ativo !== 0);
     } else {
       setNome('');
       setPeriodoId('');
       setDiaSemana('');
+      setAtivo(true);
     }
   }, [disciplinaEditando]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const payload = { nome, periodo_id: periodoId, dia_semana: diaSemana };
     if (disciplinaEditando) {
-      axios.put(`/api/disciplinas/${disciplinaEditando.id}`, { nome, periodo_id: periodoId, dia_semana: diaSemana })
+      payload.ativo = ativo ? 1 : 0;
+      axios.put(`/api/disciplinas/${disciplinaEditando.id}`, payload)
         .then(() => {
           toast.success('Disciplina atualizada com sucesso!');
           setMensagem('');
           setNome('');
           setPeriodoId('');
           setDiaSemana('');
+          setAtivo(true);
           onNovaDisciplina();
           onFimEdicao();
         })
         .catch(() => setMensagem('Erro ao atualizar disciplina.'));
     } else {
-      axios.post('/api/disciplinas', { nome, periodo_id: periodoId, dia_semana: diaSemana })
+      axios.post('/api/disciplinas', payload)
         .then(() => {
           toast.success('Disciplina cadastrada com sucesso!');
           setMensagem('');
           setNome('');
           setPeriodoId('');
           setDiaSemana('');
+          setAtivo(true);
           onNovaDisciplina();
         })
         .catch(() => setMensagem('Erro ao cadastrar disciplina.'));
@@ -104,6 +111,22 @@ function FormDisciplina({ onNovaDisciplina, disciplinaEditando, onFimEdicao }) {
             <option value="Domingo">Domingo</option>
           </select>
         </div>
+        {disciplinaEditando && disciplinaEditando.ativo === 0 && (
+          <div className="mb-6 p-3 bg-amber-50 rounded-lg border border-amber-200">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={ativo}
+                onChange={(e) => setAtivo(e.target.checked)}
+                className="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500"
+              />
+              <span className="text-gray-700 font-medium">Reativar disciplina</span>
+            </label>
+            <p className="text-sm text-gray-500 mt-1 ml-8">
+              Marque para tornar esta disciplina ativa novamente no sistema.
+            </p>
+          </div>
+        )}
         <div className="flex justify-end gap-2 mt-4">
           <button type="submit" className="bg-[#0095DA] hover:brightness-110 text-white px-6 py-2 rounded-full">Salvar</button>
         </div>

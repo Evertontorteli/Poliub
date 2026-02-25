@@ -3,7 +3,8 @@ const Disciplina = require('../models/disciplinaModel');
 
 exports.listarDisciplinas = async (req, res) => {
   try {
-    const results = await Disciplina.listarTodos();
+    const incluirDesativados = req.query.desativados === '1';
+    const results = await Disciplina.listarTodos({ incluirDesativados });
     res.json(results);
   } catch (err) {
     res.status(500).json({ error: 'Erro ao buscar disciplinas', details: err });
@@ -38,5 +39,18 @@ exports.deletarDisciplina = async (req, res) => {
     res.send('Disciplina deletada!');
   } catch (err) {
     res.status(500).json({ error: 'Erro ao deletar disciplina', details: err });
+  }
+};
+
+exports.desativarEmMassa = async (req, res) => {
+  const { ids } = req.body;
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ error: 'Lista de IDs é obrigatória.' });
+  }
+  try {
+    const desativados = await Disciplina.desativarEmMassa(ids);
+    res.json({ desativados });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao desativar disciplinas em massa', details: err });
   }
 };
