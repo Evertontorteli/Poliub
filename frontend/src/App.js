@@ -478,8 +478,11 @@ export default function App() {
           position="top-right"
           autoClose={8000}
           closeOnClick
+          closeButton={true}
           pauseOnHover
-          draggable={false}
+          draggable
+          rtl={false}
+          limit={5}
         />
 
         <Routes>

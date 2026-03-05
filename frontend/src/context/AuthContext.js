@@ -44,35 +44,54 @@ export function AuthProvider({ children }) {
     }
   }
 
+  function isOnLoginPage() {
+    const hash = window.location.hash || '';
+    const path = window.location.pathname || '';
+    return hash.includes('login') || path.toLowerCase().endsWith('/login');
+  }
+
   function scheduleLogoutOnExpiry(token) {
     clearTokenExpiryTimer();
     const expSec = decodeJwtExp(token);
     if (!expSec) return; // sem exp legível
     const msLeft = expSec * 1000 - Date.now();
     if (msLeft <= 0) {
-      if (!toast.isActive('token-expired')) {
-        toast.error("Sua sessão expirou. Faça login novamente.", {
-          toastId: 'token-expired',
-          autoClose: 4000,
-          onClose: () => {
-            logout();
-            window.location.href = '/#/login';
-          }
-        });
+      // Não mostrar toast na tela de login; apenas deslogar e redirecionar
+      if (isOnLoginPage()) {
+        logout();
+        window.location.href = '/#/login';
+        return;
       }
+      toast.dismiss('token-expired');
+      toast.error("Sua sessão expirou. Faça login novamente.", {
+        toastId: 'token-expired',
+        autoClose: 5000,
+        closeButton: true,
+        closeOnClick: true,
+        onClose: () => {
+          logout();
+          if (!isOnLoginPage()) window.location.href = '/#/login';
+        }
+      });
       return;
     }
     tokenExpiryTimerRef.current = setTimeout(() => {
-      if (!toast.isActive('token-expired')) {
-        toast.error("Sua sessão expirou. Faça login novamente.", {
-          toastId: 'token-expired',
-          autoClose: 4000,
-          onClose: () => {
-            logout();
-            window.location.href = '/#/login';
-          }
-        });
+      if (isOnLoginPage()) {
+        logout();
+        window.location.href = '/#/login';
+        return;
       }
+      toast.dismiss('token-expired');
+      toast.error("Sua sessão expirou. Faça login novamente.", {
+        toastId: 'token-expired',
+        autoClose: 5000,
+        closeButton: true,
+        closeOnClick: true,
+        onClose: () => {
+          logout();
+          if (!isOnLoginPage()) window.location.href = '/#/login';
+        }
+      });
     }, msLeft);
   }
 
@@ -92,6 +111,9 @@ export function AuthProvider({ children }) {
    * armazena em state e, se remember=true, persiste em localStorage.
    */
   function login({ id, nome, usuario, role, token }, { remember = true } = {}) {
+    // Remove toasts de sessão expirada para não ficarem travados após login
+    toast.dismiss('token-expired');
+    toast.dismiss('session-invalidated');
     const u = { id, nome, usuario, role, token };
     setUser(u);
     if (remember) {
@@ -124,24 +146,27 @@ export function AuthProvider({ children }) {
     const interceptor = axios.interceptors.response.use(
       response => response,
       error => {
-        console.log("DEBUG interceptor:", error.response)
         if (
           error.response &&
           error.response.status === 401 &&
           error.response.data &&
           error.response.data.code === "SESSION_INVALIDATED"
         ) {
-          // Previne múltiplos toasts - verifica se já há um toast ativo
-          if (!toast.isActive('session-invalidated')) {
-            toast.error("Sua sessão foi encerrada porque sua conta foi acessada em outro dispositivo ou navegador.", {
-              toastId: 'session-invalidated',
-              autoClose: 6000,
-              onClose: () => {
-                logout();
-                window.location.href = '/#/login';
-              }
-            });
+          if (isOnLoginPage()) {
+            logout();
+            return Promise.reject(error);
           }
+          toast.dismiss('session-invalidated');
+          toast.error("Sua sessão foi encerrada porque sua conta foi acessada em outro dispositivo ou navegador.", {
+            toastId: 'session-invalidated',
+            autoClose: 6000,
+            closeButton: true,
+            closeOnClick: true,
+            onClose: () => {
+              logout();
+              if (!isOnLoginPage()) window.location.href = '/#/login';
+            }
+          });
         }
         return Promise.reject(error);
       }
